@@ -466,10 +466,10 @@ export default function FemaleTeacherRegistrationPage() {
             </p>
             <div className={styles.founderId}>
               <div className={styles.founderAv}>
-                <img src="/founder.png" alt="Muhammad Farabi Chowdhury" />
+                <img src="/founder.jpg" alt="Muhammad Farabi Chowdhury" />
               </div>
               <div>
-                <b>Muhammad Farabi Chowdhury</b>
+                <b>Hafiz Maowlana Muhammad Farabi Chowdhury</b>
                 <span>Founder & CEO, Fajr Academy</span>
               </div>
             </div>
