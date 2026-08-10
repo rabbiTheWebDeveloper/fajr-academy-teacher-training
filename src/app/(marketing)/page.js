@@ -26,7 +26,7 @@ export const metadata = {
     description:
       'ঘরে বসেই অনলাইনে ৪টি সেশনে প্রশিক্ষিত কুরআন টিচার হওয়ার সুযোগ। সার্টিফিকেট ও শিক্ষক নিয়োগ — ফজর একাডেমি।',
     url: PAGE_URL,
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'ফজর একাডেমি কুরআন টিচার ট্রেনিং' }],
+    images: [{ url: '/og-image.jpg', width: 1200, height: 1200, alt: 'ফজর একাডেমি কুরআন টিচার ট্রেনিং' }],
   },
 }
 

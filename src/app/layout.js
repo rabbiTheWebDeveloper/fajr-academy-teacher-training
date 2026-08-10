@@ -58,11 +58,11 @@ export const metadata = {
       "ঘরে বসেই ৪টি সেশনে প্রশিক্ষিত কুরআন টিচার হওয়ার সুযোগ। সার্টিফিকেট ও শিক্ষক নিয়োগ — ফজর একাডেমি।",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.jpg",
         width: 1200,
-        height: 630,
+        height: 1200,
         alt: "ফজর একাডেমি — Female Quran Teacher Training Program",
-        type: "image/png",
+        type: "image/jpeg",
       },
     ],
   },
@@ -72,7 +72,7 @@ export const metadata = {
     title: "ফজর একাডেমি — অনলাইন কুরআন টিচার ট্রেনিং",
     description:
       "ঘরে বসেই প্রশিক্ষিত কুরআন টিচার হওয়ার সুযোগ। মাত্র ৪টি সেশন, সার্টিফিকেট ও নিশ্চিত কাজের সুযোগ।",
-    images: ["/og-image.png"],
+    images: ["/og-image.jpg"],
     site: "@FajrAcademy",
     creator: "@FajrAcademy",
   },
@@ -89,12 +89,6 @@ export const metadata = {
       "max-image-preview": "large",
       "max-snippet": -1,
     },
-  },
-
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
   },
 
   verification: {
