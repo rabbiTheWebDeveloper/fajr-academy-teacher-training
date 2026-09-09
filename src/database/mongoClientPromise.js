@@ -1,10 +1,15 @@
 import { MongoClient } from 'mongodb';
+import dns from 'node:dns';
 
-
- var _mongomongoClientPromise;
-
-
-if (!process.env.MONGODB_CONNECTION_STRING) {
+// Fix Node.js DNS querySrv ECONNREFUSED on Windows
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1']);
+  if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+  }
+} catch (e) {
+  // Ignore in environments where setting DNS is restricted
+}
   throw new Error(
     'Invalid/Missing environment variable: "MONGODB_CONNECTION_STRING"'
   );

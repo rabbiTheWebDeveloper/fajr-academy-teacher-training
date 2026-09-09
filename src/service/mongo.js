@@ -1,9 +1,17 @@
 import mongoose from "mongoose";
+import dns from "node:dns";
+
+// Fix Node.js DNS querySrv ECONNREFUSED on Windows
+try {
+  dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
+} catch (e) {
+  // Ignore in environments where setting DNS is restricted
+}
 
 const MONGODB_URI = process.env.MONGODB_CONNECTION_STRING;
 
 if (!MONGODB_URI) {
-  throw new Error("❌ MONGODB_CONNECTION_STRING is not defined in environment variables");
+  console.warn("⚠️ MONGODB_CONNECTION_STRING is not defined in environment variables");
 }
 
 /** 

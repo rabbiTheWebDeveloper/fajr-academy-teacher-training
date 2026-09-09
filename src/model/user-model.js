@@ -2,7 +2,11 @@ import mongoose, { Schema } from "mongoose";
 
 const userSchema = new Schema(
   {
-    fullName: { type: String, required: true, trim: true },
+    fullName: { 
+      type: String, 
+      required: true, 
+      trim: true 
+    },
     email: {
       type: String,
       required: true,
@@ -11,31 +15,56 @@ const userSchema = new Schema(
       trim: true,
       index: true,
     },
-    phone: { type: String, trim: true, default: "" },
-    emergencyContactNumber: { type: String, trim: true, default: "" },
-    designation: { type: String, trim: true, default: "Administrator" },
-    employeeId: { type: String, trim: true, default: "" },
+    phone: { 
+      type: String, 
+      trim: true, 
+      default: "" 
+    },
+    emergencyContactNumber: { 
+      type: String, 
+      trim: true, 
+      default: "" 
+    },
+    designation: { 
+      type: String, 
+      trim: true, 
+      default: "TOT Trainee Teacher" 
+    },
+    employeeId: { 
+      type: String, 
+      trim: true, 
+      default: "" 
+    },
     bloodGroup: {
       type: String,
       enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", ""],
       default: "",
     },
-    department: { type: String, trim: true, default: "Administration" },
-    password: { type: String, required: true },
+    department: { 
+      type: String, 
+      trim: true, 
+      default: "Teacher Training Division" 
+    },
+    password: { 
+      type: String, 
+      required: true 
+    },
     role: {
       type: String,
+      enum: ["teacher", "admin", "instructor", "student"],
       default: "teacher",
       index: true,
     },
     track: {
       type: String,
       enum: ["TOT-MEN", "TOT-WOMEN-014", "TOT-WOMEN", ""],
-      default: "",
+      default: "TOT-MEN",
+      index: true,
     },
     gender: {
       type: String,
       enum: ["male", "female", "other", ""],
-      default: "",
+      default: "male",
     },
     hasLaptop: {
       type: String,
@@ -77,11 +106,24 @@ const userSchema = new Schema(
       type: Date,
       default: null,
     },
-    avatar: { type: String, default: "" },
+    avatar: { 
+      type: String, 
+      default: "" 
+    },
     permissions: [{ type: String }],
-    isActive: { type: Boolean, default: true, index: true },
-    lastLogin: { type: Date, default: null },
-    emailVerified: { type: Boolean, default: false },
+    isActive: { 
+      type: Boolean, 
+      default: true, 
+      index: true 
+    },
+    lastLogin: { 
+      type: Date, 
+      default: null 
+    },
+    emailVerified: { 
+      type: Boolean, 
+      default: false 
+    },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
   },
