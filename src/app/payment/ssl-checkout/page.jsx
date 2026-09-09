@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-export default function SSLCheckoutPage() {
+function SSLCheckoutContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -226,3 +226,12 @@ export default function SSLCheckoutPage() {
     </div>
   )
 }
+
+export default function SSLCheckoutPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-600 font-semibold">Loading payment portal...</div>}>
+      <SSLCheckoutContent />
+    </Suspense>
+  )
+}
+
