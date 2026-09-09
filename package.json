@@ -12,6 +12,8 @@
     "cloudinary": "^2.11.0",
     "clsx": "^2.1.1",
     "googleapis": "^178.0.0",
+    "html-to-image": "^1.11.13",
+    "html2canvas": "^1.4.1",
     "jose": "^6.2.12",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",

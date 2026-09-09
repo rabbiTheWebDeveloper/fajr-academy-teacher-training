@@ -75,7 +75,7 @@ async function handleSuccess(request) {
 
     const host = request.headers.get("host") || "localhost:3000";
     const protocol = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
-    const redirectUrl = new URL(`${protocol}://${host}/teacher?enrolled=true&tran_id=${tranId}`);
+    const redirectUrl = new URL(`${protocol}://${host}/dashboard?enrolled=true&tran_id=${tranId}`);
 
     const response = NextResponse.redirect(redirectUrl);
 
