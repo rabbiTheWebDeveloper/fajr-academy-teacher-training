@@ -3,6 +3,23 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
+import {
+  User,
+  Mail,
+  Phone,
+  Lock,
+  GraduationCap,
+  Laptop,
+  BookOpen,
+  MessageSquare,
+  ShieldCheck,
+  Calendar,
+  CreditCard,
+  Check,
+  ArrowRight,
+  Tag,
+  Users,
+} from 'lucide-react'
 
 export default function RegistrationForm({ initialTrack = 'men', courses: initialCourses = [] }) {
   const router = useRouter()
@@ -24,15 +41,15 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
 
   const menCourse = coursesList.find((c) => c.track === 'men' || c.courseId === 'TOT-MEN') || {
     name: 'Training of Trainers (TOT) – MEN',
-    orientationDate: '২০ সেপ্টেম্বর',
-    orientationTime: 'রাত ৮:০০ টা',
+    orientationDate: '২০ সেপ্টেম্বর ২০২৬',
+    orientationTime: 'সকাল ১০:০০ টা – ১:০০ টা',
     fee: 1000,
   }
 
   const womenCourse = coursesList.find((c) => c.track === 'women' || c.courseId?.includes('WOMEN')) || {
-    name: 'Training of Trainers (TOT) – WOMEN',
-    orientationDate: '২১ সেপ্টেম্বর',
-    orientationTime: 'রাত ৮:০০ টা',
+    name: 'Training of Trainers (TOT) – WOMEN (BATCH 01)',
+    orientationDate: '২০ সেপ্টেম্বর ২০২৬',
+    orientationTime: 'সকাল ১০:০০ টা – ১:০০ টা',
     fee: 1000,
   }
 
@@ -113,104 +130,142 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
   }
 
   return (
-    <div id="registration-section" className={styles.regSectionWrapper}>
-      {/* Track Selector Tabs / 2 Course Cards */}
-      <div className={styles.trackSelectorContainer}>
-        <div className={styles.trackCardsGrid}>
-          {/* Track 1: MEN */}
-          <div
-            onClick={() => handleTrackChange('men')}
-            className={`${styles.trackChoiceCard} ${
-              selectedTrack === 'men' ? styles.trackChoiceActive : ''
-            }`}
-          >
-            <div className={styles.trackBadge}>
-              <span>👨‍🏫 পুরুষ শিক্ষক প্রার্থীদের জন্য</span>
-              <span className={styles.trackBadgeFee}>ফি: ৳১,০০০</span>
+    <div>
+      {/* ── 2 Course Selection Cards (Men & Women) ── */}
+      <div className={styles.regTrackChoiceGrid}>
+        {/* Track 1: MEN */}
+        <div
+          onClick={() => handleTrackChange('men')}
+          className={`${styles.regTrackCard} ${
+            selectedTrack === 'men' ? styles.regTrackCardSelected : ''
+          }`}
+        >
+          <div>
+            <div className={styles.regTrackTopPills}>
+              <span className={styles.regPillPopular}>জনপ্রিয় কোর্স</span>
+              <span className={styles.regPillFeeTag}>
+                <Tag size={13} />
+                <span>৳ {menCourse.fee || 1000}</span>
+              </span>
             </div>
-            <h3 className={styles.trackCardTitle}>Training of Trainers (TOT) – MEN</h3>
-            <p className={styles.trackCardDesc}>
-              ছেলেদের জন্য ফজর একাডেমির সাথে মাত্র ১ মাসে ৪টি প্রফেশনাল ট্রেনিং ও নিশ্চিত ক্যারিয়ার গড়ার সুযোগ।
-            </p>
-            <div className={styles.trackMetaInfo}>
-              <div className={styles.metaRow}>
-                <span className={styles.metaIcon}>📅</span>
+
+            <div className={styles.regTrackTitleBlock}>
+              <div className={`${styles.regTrackAvatar} ${styles.avatarMen}`}>
+                <User size={20} />
+              </div>
+              <div className={styles.regTrackInfoText}>
+                <h3 className={styles.regTrackCardH3}>Training of Trainers (TOT) – MEN</h3>
+                <p className={styles.regTrackCardDesc}>
+                  দক্ষ ও আত্মবিশ্বাসী প্রশিক্ষক তৈরির লক্ষ্যে বিশেষায়িত প্রশিক্ষণ কোর্স।
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.regTrackDivider} />
+
+            <div className={styles.regTrackMetaList}>
+              <div className={styles.regTrackMetaItem}>
+                <Calendar size={15} className={styles.regMetaIcon} />
                 <span>
-                  <strong>First Orientation:</strong> {menCourse.orientationDate}, {menCourse.orientationTime}
+                  <strong>First Orientation:</strong> {menCourse.orientationDate || '২০ সেপ্টেম্বর ২০২৬'}, {menCourse.orientationTime || 'সকাল ১০:০০ টা – ১:০০ টা'}
                 </span>
               </div>
-              <div className={styles.metaRow}>
-                <span className={styles.metaIcon}>💰</span>
+              <div className={styles.regTrackMetaItem}>
+                <CreditCard size={15} className={styles.regMetaIcon} />
                 <span>
                   <strong>কোর্স ফি:</strong> ৳{menCourse.fee || 1000} (এককালীন)
                 </span>
               </div>
-              <div className={styles.metaRow}>
-                <span className={styles.metaIcon}>💻</span>
-                <span>
-                  <strong>ল্যাপটপ সুবিধা:</strong> ডিভাইস না থাকলে একাডেমির সহায়তা
-                </span>
+              <div className={styles.regTrackMetaItem}>
+                <Users size={15} className={styles.regMetaIcon} />
+                <span>সীমিত আসন, নির্বাচিতদের অগ্রাধিকার।</span>
               </div>
             </div>
-            <button
-              type="button"
-              className={`${styles.trackSelectBtn} ${
-                selectedTrack === 'men' ? styles.trackSelectBtnActive : ''
-              }`}
-            >
-              {selectedTrack === 'men' ? '✓ কোর্সটি নির্বাচিত' : `এই কোর্সটি নির্বাচন করুন (৳${menCourse.fee || 1000})`}
-            </button>
           </div>
 
-          {/* Track 2: WOMEN */}
-          <div
-            onClick={() => handleTrackChange('women')}
-            className={`${styles.trackChoiceCard} ${
-              selectedTrack === 'women' ? styles.trackChoiceActive : ''
-            }`}
+          <button
+            type="button"
+            className={selectedTrack === 'men' ? styles.regCardBtnSelected : styles.regCardBtnUnselected}
           >
-            <div className={styles.trackBadge}>
-              <span>🧕 {womenCourse.tag || 'নারী শিক্ষক প্রার্থীদের জন্য · Batch 014'}</span>
-              <span className={styles.trackBadgeFee}>ফি: ৳{womenCourse.fee || 1000}</span>
+            {selectedTrack === 'men' ? (
+              <>
+                <Check size={16} strokeWidth={3} />
+                <span>কোর্সটি নির্বাচন করা হয়েছে</span>
+              </>
+            ) : (
+              `এই কোর্সটি নির্বাচন করুন (৳${menCourse.fee || 1000})`
+            )}
+          </button>
+        </div>
+
+        {/* Track 2: WOMEN */}
+        <div
+          onClick={() => handleTrackChange('women')}
+          className={`${styles.regTrackCard} ${
+            selectedTrack === 'women' ? styles.regTrackCardSelected : ''
+          }`}
+        >
+          <div>
+            <div className={styles.regTrackTopPills}>
+              <span className={styles.regPillWomenTag}>নারী প্রশিক্ষকদের জন্য</span>
+              <span className={styles.regPillFeeTag}>
+                <Tag size={13} />
+                <span>৳ {womenCourse.fee || 1000}</span>
+              </span>
             </div>
-            <h3 className={styles.trackCardTitle}>{womenCourse.name || 'Training of Trainers (TOT) – WOMEN'}</h3>
-            <p className={styles.trackCardDesc}>
-              {womenCourse.summary || 'Batch 013 চলমান! নতুন Batch 014-এ মাত্র ১ মাসে ৪টি ট্রেনিং সেশনে সার্টিফিকেট ও শিক্ষক পদে নিয়োগ।'}
-            </p>
-            <div className={styles.trackMetaInfo}>
-              <div className={styles.metaRow}>
-                <span className={styles.metaIcon}>📅</span>
+
+            <div className={styles.regTrackTitleBlock}>
+              <div className={`${styles.regTrackAvatar} ${styles.avatarWomen}`}>
+                <User size={20} />
+              </div>
+              <div className={styles.regTrackInfoText}>
+                <h3 className={styles.regTrackCardH3}>Training of Trainers (TOT) – WOMEN (BATCH 01)</h3>
+                <p className={styles.regTrackCardDesc}>
+                  দক্ষ ও আত্মবিশ্বাসী প্রশিক্ষক তৈরির লক্ষ্যে বিশেষায়িত প্রশিক্ষণ কোর্স।
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.regTrackDivider} />
+
+            <div className={styles.regTrackMetaList}>
+              <div className={styles.regTrackMetaItem}>
+                <Calendar size={15} className={styles.regMetaIcon} />
                 <span>
-                  <strong>First Orientation:</strong> {womenCourse.orientationDate}, {womenCourse.orientationTime}
+                  <strong>First Orientation:</strong> {womenCourse.orientationDate || '২০ সেপ্টেম্বর ২০২৬'}, {womenCourse.orientationTime || 'সকাল ১০:০০ টা – ১:০০ টা'}
                 </span>
               </div>
-              <div className={styles.metaRow}>
-                <span className={styles.metaIcon}>💰</span>
+              <div className={styles.regTrackMetaItem}>
+                <CreditCard size={15} className={styles.regMetaIcon} />
                 <span>
                   <strong>কোর্স ফি:</strong> ৳{womenCourse.fee || 1000} (এককালীন)
                 </span>
               </div>
-              <div className={styles.metaRow}>
-                <span className={styles.metaIcon}>📜</span>
-                <span>
-                  <strong>সার্টিফিকেট:</strong> প্রতিটি ট্রেনিং শেষে অফিসিয়াল সনদ
-                </span>
+              <div className={styles.regTrackMetaItem}>
+                <Users size={15} className={styles.regMetaIcon} />
+                <span>সীমিত আসন, নির্বাচিতদের অগ্রাধিকার।</span>
               </div>
             </div>
-            <button
-              type="button"
-              className={`${styles.trackSelectBtn} ${
-                selectedTrack === 'women' ? styles.trackSelectBtnActive : ''
-              }`}
-            >
-              {selectedTrack === 'women' ? '✓ কোর্সটি নির্বাচিত' : `এই কোর্সটি নির্বাচন করুন (৳${womenCourse.fee || 1000})`}
-            </button>
           </div>
+
+          <button
+            type="button"
+            className={selectedTrack === 'women' ? styles.regCardBtnSelected : styles.regCardBtnUnselected}
+          >
+            {selectedTrack === 'women' ? (
+              <>
+                <Check size={16} strokeWidth={3} />
+                <span>কোর্সটি নির্বাচন করা হয়েছে</span>
+              </>
+            ) : (
+              `এই কোর্সটি নির্বাচন করুন (৳${womenCourse.fee || 1000})`
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Interactive Registration Form & Payment Box */}
-      <div className={styles.regFormCard}>
+      {/* ── White Registration Form Card ── */}
+      <div className={styles.regWhiteCard}>
         {submitted ? (
           <div className={styles.successBox}>
             <div className={styles.successIcon}>🎉</div>
@@ -219,8 +274,8 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
               আপনার নির্বাচিত কোর্স:{' '}
               <strong className={styles.goldText}>
                 {selectedTrack === 'men'
-                  ? 'TOT - MEN (Orientation: ২০ সেপ্টেম্বর, রাত ৮:০০ টা)'
-                  : 'TOT - WOMEN Batch 014 (Orientation: ২১ সেপ্টেম্বর, রাত ৮:০০ টা)'}
+                  ? 'TOT - MEN'
+                  : 'TOT - WOMEN (BATCH 01)'}
               </strong>
             </p>
 
@@ -236,14 +291,6 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
               <div className={styles.receiptRow}>
                 <span>রেজিস্ট্রেশন ফি:</span>
                 <strong className={styles.goldText}>৳১,০০০ (পরিশোধিত)</strong>
-              </div>
-              <div className={styles.receiptRow}>
-                <span>ট্রানজেকশন ID (SSLCommerz):</span>
-                <code>{formData.trxId || 'Auto Verified'}</code>
-              </div>
-              <div className={styles.receiptRow}>
-                <span>ল্যাপটপ স্ট্যাটাস:</span>
-                <span>{formData.hasLaptop === 'yes' ? 'ব্যক্তিগত ডিভাইস আছে' : 'ডিভাইস সহায়তা প্রয়োজন'}</span>
               </div>
             </div>
 
@@ -265,19 +312,31 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className={styles.formElement}>
-            <div className={styles.formHeader}>
-              <div className={styles.formBadge}>
-                {selectedTrack === 'men' ? '👨‍🏫 TOT MEN Teacher Application' : '🧕 TOT WOMEN Batch 014 Application'}
+          <form onSubmit={handleSubmit}>
+            {/* Form Header with Title and Step Indicator */}
+            <div className={styles.regFormHeader}>
+              <div className={styles.regFormTitleRow}>
+                <div className={styles.regStepBadgeCircle}>
+                  <User size={22} />
+                </div>
+                <div className={styles.regFormTitleBlock}>
+                  <h3 className={styles.regFormTitleMain}>১. তথ্য প্রদান করুন</h3>
+                  <p className={styles.regFormSubtitle}>নিচের ফরমটি পূরণ করে আপনার নিবন্ধন সম্পন্ন করুন।</p>
+                </div>
               </div>
-              <h2 className={styles.formHeading}>
-                {selectedTrack === 'men'
-                  ? 'TOT – MEN শিক্ষক নিবন্ধন ও পেমেন্ট'
-                  : 'TOT – WOMEN Batch 014 শিক্ষক নিবন্ধন ও পেমেন্ট'}
-              </h2>
-              <p className={styles.formLede}>
-                তথ্য পূরণ করে ১,০০০ টাকা ফি প্রদান করুন। পেমেন্টের সাথে সাথেই আপনার শিক্ষক অ্যাকাউন্ট সক্রিয় হবে এবং কোর্স ড্যাশবোর্ড দেখা যাবে।
-              </p>
+
+              {/* Step Progress Indicator */}
+              <div className={styles.regStepIndicator}>
+                <div className={styles.regStepItem}>
+                  <div className={styles.regStepNumActive}>1</div>
+                  <span className={styles.regStepTextActive}>ব্যক্তিগত তথ্য</span>
+                </div>
+                <div className={styles.regStepLine} />
+                <div className={styles.regStepItem}>
+                  <div className={styles.regStepNumInactive}>2</div>
+                  <span className={styles.regStepTextInactive}>কোর্স ও নিরাপত্তা</span>
+                </div>
+              </div>
             </div>
 
             {errorMsg && (
@@ -288,22 +347,22 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 padding: '12px 18px',
                 borderRadius: '10px',
                 marginBottom: '20px',
-                fontSize: '0.92rem',
+                fontSize: '0.88rem',
                 fontWeight: '600'
               }}>
                 ⚠️ {errorMsg}
               </div>
             )}
 
-            {/* Step 1: Personal & Account Info */}
-            <div className={styles.formSectionGroup}>
-              <h4 className={styles.sectionSubhead}>১. শিক্ষক প্রার্থীর প্রাথমিক ও লগইন তথ্য</h4>
-
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label className={styles.inputLabel} htmlFor="fullName">
-                    পূর্ণ নাম (Full Name) *
-                  </label>
+            {/* Form Inputs Grid (2 Columns with leading icons) */}
+            <div className={styles.regInputsGrid}>
+              {/* Full Name */}
+              <div className={styles.regFieldGroup}>
+                <label className={styles.regFieldLabel} htmlFor="fullName">
+                  পূর্ণ নাম *
+                </label>
+                <div className={styles.regInputWrapper}>
+                  <User size={17} className={styles.regInputIcon} />
                   <input
                     id="fullName"
                     name="fullName"
@@ -312,87 +371,103 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                     placeholder="আপনার পূর্ণ নাম লিখুন"
                     value={formData.fullName}
                     onChange={handleChange}
-                    className={styles.textInput}
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label className={styles.inputLabel} htmlFor="phone">
-                    WhatsApp / মোবাইল নম্বর *
-                  </label>
-                  <input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    required
-                    placeholder="01XXXXXXXXX"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className={styles.textInput}
+                    className={styles.regInputField}
                   />
                 </div>
               </div>
 
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label className={styles.inputLabel} htmlFor="email">
-                    ইমেইল ঠিকানা (Email Address) *
-                  </label>
+              {/* Email */}
+              <div className={styles.regFieldGroup}>
+                <label className={styles.regFieldLabel} htmlFor="email">
+                  ইমেইল *
+                </label>
+                <div className={styles.regInputWrapper}>
+                  <Mail size={17} className={styles.regInputIcon} />
                   <input
                     id="email"
                     name="email"
                     type="email"
                     required
-                    placeholder="teacher@example.com"
+                    placeholder="example@domain.com"
                     value={formData.email}
                     onChange={handleChange}
-                    className={styles.textInput}
+                    className={styles.regInputField}
                   />
                 </div>
+              </div>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.inputLabel} htmlFor="password">
-                    অ্যাকাউন্ট পাসওয়ার্ড (ড্যাশবোর্ড লগইনের জন্য) *
-                  </label>
+              {/* Phone */}
+              <div className={styles.regFieldGroup}>
+                <label className={styles.regFieldLabel} htmlFor="phone">
+                  মোবাইল নাম্বার *
+                </label>
+                <div className={styles.regInputWrapper}>
+                  <Phone size={17} className={styles.regInputIcon} />
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    required
+                    placeholder="মোবাইল নাম্বার লিখুন"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className={styles.regInputField}
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className={styles.regFieldGroup}>
+                <label className={styles.regFieldLabel} htmlFor="password">
+                  অ্যাকাউন্ট পাসওয়ার্ড (লগইনের জন্য) *
+                </label>
+                <div className={styles.regInputWrapper}>
+                  <Lock size={17} className={styles.regInputIcon} />
                   <input
                     id="password"
                     name="password"
                     type="password"
                     required
-                    placeholder="পাসওয়ার্ড দিন (কমপক্ষে ৬ অক্ষর)"
+                    placeholder="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন"
                     value={formData.password}
                     onChange={handleChange}
-                    className={styles.textInput}
+                    className={styles.regInputField}
                   />
                 </div>
               </div>
 
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label className={styles.inputLabel} htmlFor="education">
-                    শিক্ষাগত যোগ্যতা ও ব্যাকগ্রাউন্ড
-                  </label>
+              {/* Education */}
+              <div className={styles.regFieldGroup}>
+                <label className={styles.regFieldLabel} htmlFor="education">
+                  শিক্ষাগত যোগ্যতা ও ব্যাকগ্রাউন্ড
+                </label>
+                <div className={styles.regInputWrapper}>
+                  <GraduationCap size={17} className={styles.regInputIcon} />
                   <input
                     id="education"
                     name="education"
                     type="text"
-                    placeholder="উদাঃ স্নাতক / আলিম / ফাজিল / মাস্টার্স / অন্যান্য"
+                    placeholder="উদাঃ স্নাতক / আলিম / ফাজিল / মাস্টার্স"
                     value={formData.education}
                     onChange={handleChange}
-                    className={styles.textInput}
+                    className={styles.regInputField}
                   />
                 </div>
+              </div>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.inputLabel} htmlFor="hasLaptop">
-                    ব্যক্তিগত ল্যাপটপ / কম্পিউটার আছে কি? *
-                  </label>
+              {/* Laptop Option */}
+              <div className={styles.regFieldGroup}>
+                <label className={styles.regFieldLabel} htmlFor="hasLaptop">
+                  ব্যক্তিগত ল্যাপটপ / কম্পিউটার আছে কি? *
+                </label>
+                <div className={styles.regInputWrapper}>
+                  <Laptop size={17} className={styles.regInputIcon} />
                   <select
                     id="hasLaptop"
                     name="hasLaptop"
                     value={formData.hasLaptop}
                     onChange={handleChange}
-                    className={styles.selectInput}
+                    className={styles.regSelectField}
                   >
                     <option value="yes">হ্যাঁ, নিজস্ব ল্যাপটপ/পিসি আছে</option>
                     <option value="no">না, ফজর একাডেমির ডিভাইস সহায়তা প্রয়োজন</option>
@@ -400,17 +475,19 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 </div>
               </div>
 
-              <div className={styles.formGrid}>
-                <div className={styles.formGroup}>
-                  <label className={styles.inputLabel} htmlFor="quranSkill">
-                    কুরআন তিলাওয়াত দক্ষতা *
-                  </label>
+              {/* Quran Skill */}
+              <div className={styles.regFieldGroup}>
+                <label className={styles.regFieldLabel} htmlFor="quranSkill">
+                  কুরআন তিলাওয়াত দক্ষতা *
+                </label>
+                <div className={styles.regInputWrapper}>
+                  <BookOpen size={17} className={styles.regInputIcon} />
                   <select
                     id="quranSkill"
                     name="quranSkill"
                     value={formData.quranSkill}
                     onChange={handleChange}
-                    className={styles.selectInput}
+                    className={styles.regSelectField}
                   >
                     <option value="fluent">শুদ্ধ ও সুন্দরভাবে তিলাওয়াত করতে পারি</option>
                     <option value="tajweed">তাজবীদ ও মাখরাজসহ পারি</option>
@@ -418,17 +495,21 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                     <option value="basic">মাঝারি মানের (ইমপ্রুভমেন্ট দরকার)</option>
                   </select>
                 </div>
+              </div>
 
-                <div className={styles.formGroup}>
-                  <label className={styles.inputLabel} htmlFor="englishSkill">
-                    ইংরেজি যোগাযোগ দক্ষতা *
-                  </label>
+              {/* English Skill */}
+              <div className={styles.regFieldGroup}>
+                <label className={styles.regFieldLabel} htmlFor="englishSkill">
+                  ইংরেজি যোগাযোগ দক্ষতা *
+                </label>
+                <div className={styles.regInputWrapper}>
+                  <MessageSquare size={17} className={styles.regInputIcon} />
                   <select
                     id="englishSkill"
                     name="englishSkill"
                     value={formData.englishSkill}
                     onChange={handleChange}
-                    className={styles.selectInput}
+                    className={styles.regSelectField}
                   >
                     <option value="basic">বেসিক ইংরেজি জানি ও বুঝি</option>
                     <option value="good">সাবলীলভাবে কথা বলতে পারি</option>
@@ -438,102 +519,31 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
               </div>
             </div>
 
-            {/* Step 2: Official SSLCommerz Payment Gateway */}
-            <div className={styles.formSectionGroup}>
-              <h4 className={styles.sectionSubhead}>২. কোর্স ফি ও অফিসিয়াল পেমেন্ট গেটওয়ে</h4>
-
-              <div style={{
-                background: 'linear-gradient(135deg, #051329 0%, #081A3A 50%, #0B2545 100%)',
-                color: '#FFFFFF',
-                borderRadius: '16px',
-                padding: '24px',
-                border: '1.5px solid rgba(197, 155, 39, 0.4)',
-                boxShadow: '0 12px 30px rgba(5, 19, 41, 0.25)',
-                marginBottom: '20px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '16px',
-                  borderBottom: '1px solid rgba(197, 155, 39, 0.25)',
-                  paddingBottom: '16px',
-                  marginBottom: '16px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    {/* Official SSLCommerz Logo */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="https://securepay.sslcommerz.com/public/image/sslcommerz.png"
-                      alt="SSLCommerz Official Payment Gateway"
-                      style={{
-                        height: '38px',
-                        width: 'auto',
-                        objectFit: 'contain',
-                        background: '#FFFFFF',
-                        padding: '4px 10px',
-                        borderRadius: '8px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                      }}
-                    />
-                    <div>
-                      <div style={{ fontSize: '0.78rem', color: '#D4AF37', fontWeight: '800', letterSpacing: '0.04em' }}>
-                        OFFICIAL PAYMENT GATEWAY
-                      </div>
-                      <div style={{ fontSize: '1.05rem', fontWeight: '800', color: '#FFFFFF' }}>
-                        SSLCommerz 256-Bit Secure
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.78rem', color: '#CBD5E1' }}>রেজিস্ট্রেশন ফি</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: '900', color: '#D4AF37' }}>
-                      ৳ ১,০০০ <span style={{ fontSize: '0.85rem', color: '#FDFBF7' }}>BDT</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '10px',
-                  fontSize: '0.82rem',
-                  color: '#E2E8F0'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: '#10B981', fontSize: '1rem' }}>✓</span>
-                    <span>বিকাশ, নগদ, রকেট, ভিসা, মাস্টারকার্ড ও সকল ইন্টারনেট ব্যাংকিং সাপোর্টেড</span>
-                  </div>
-                  <div style={{
-                    fontSize: '0.75rem',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    color: '#34D399',
-                    padding: '3px 10px',
-                    borderRadius: '20px',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                    fontWeight: '700'
-                  }}>
-                    ইনস্ট্যান্ট অটো-ভেরিফিকেশন
-                  </div>
+            {/* Bottom Action / Security Bar */}
+            <div className={styles.regBottomBar}>
+              <div className={styles.regSecurityBlock}>
+                <ShieldCheck size={26} className={styles.regShieldIcon} />
+                <div className={styles.regSecurityText}>
+                  <span className={styles.regSecurityTitle}>নিরাপদ ও সহজ নিবন্ধন প্রক্রিয়া</span>
+                  <span className={styles.regSecuritySub}>আপনার তথ্য সম্পূর্ণ গোপনীয়ভাবে সংরক্ষিত থাকবে।</span>
                 </div>
               </div>
-            </div>
 
-            {/* Submit CTA */}
-            <div className={styles.formSubmitRow}>
-              <button
-                type="submit"
-                disabled={loading}
-                className={`${styles.btn} ${styles.btnGold} ${styles.btnSubmitLarge}`}
-              >
-                {loading
-                  ? '⏳ SSLCommerz পেমেন্ট গেটওয়েতে সংযোগ হচ্ছে...'
-                  : '🔒 SSLCommerz গেটওয়েতে ১,০০০৳ পরিশোধ করুন ও অ্যাকাউন্ট সক্রিয় করুন →'}
-              </button>
+              <div className={styles.regFeeActionWrap}>
+                <div className={styles.regFeePillDark}>
+                  <span className={styles.regFeePillLabel}>কোর্স ফি (এককালীন)</span>
+                  <span className={styles.regFeePillAmount}>৳১,০০০</span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={styles.regSubmitBtnGold}
+                >
+                  <span>{loading ? 'পেমেন্টে সংযোগ হচ্ছে...' : 'পরবর্তী ধাপ'}</span>
+                  <ArrowRight size={17} />
+                </button>
+              </div>
             </div>
           </form>
         )}

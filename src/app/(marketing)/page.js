@@ -720,14 +720,39 @@ export default async function TeacherRegistrationMarketingPage() {
       {/* ════════════════════════════════════════════════════════
           INTERACTIVE REGISTRATION FORM & PAYMENT (2 COURSES)
           ════════════════════════════════════════════════════════ */}
-      <section id="registration-section" className={`${styles.section} ${styles.regSectionContainer}`}>
-        <div className={styles.wrap}>
-          <div className={styles.sectionHead} data-reveal style={{ textAlign: 'center', margin: '0 auto 40px' }}>
-            <span className={styles.eyebrow}>অনলাইন ভর্তি ও পেমেন্ট</span>
-            <h2>কোর্স নির্বাচন ও শিক্ষার্থী নিবন্ধন ফর্ম</h2>
-            <p>
-              নিচে আপনার কাঙ্ক্ষিত কোর্স ট্র্যাকটি নির্বাচন করুন এবং বিকাশ / কার্ড / SSLCommerz পেমেন্ট সম্পন্ন করে কোর্স নিশ্চিত করুন।
-            </p>
+      <section id="registration-section" className={styles.regSectionContainer}>
+        <div className={styles.regSectionOverlay} />
+        <div className={styles.regContentWrap}>
+          {/* Top Header Row matching mockup */}
+          <div className={styles.regTopHeader}>
+            {/* Left: Brand Lockup */}
+            <div className={styles.regBrandLockup}>
+              <img
+                src="/fajr-logo.png"
+                alt="FAJR Academy Logo"
+                className={styles.regBrandLogo}
+              />
+              <div className={styles.regBrandText}>
+                <span className={styles.regBrandTitle}>FAJR Academy</span>
+                <span className={styles.regBrandTag}>Learn Qur'an &bull; Build Future</span>
+              </div>
+            </div>
+
+            {/* Center: Title & Subtitle */}
+            <div className={styles.regHeaderCenter}>
+              <div className={styles.regEyebrow}>—❖ আপনার দক্ষতা, আমাদের সহায়তা ❖—</div>
+              <h2 className={styles.regTitle}>কোর্স নির্বাচন ও শিক্ষার্থী নিবন্ধন ফর্ম</h2>
+              <p className={styles.regSubtitle}>
+                নির্বাচিত কোর্সে ভর্তি হয়ে আপনার ইসলামী জ্ঞান ও দক্ষতা বৃদ্ধির যাত্রা শুরু করুন।
+              </p>
+            </div>
+
+            {/* Right: Calligraphy Badge */}
+            <div className={styles.regCalligraphyBadge}>
+              <div className={styles.regCalligraphyText}>
+                আসুন<br />শিক্ষার আলো<br />ছড়াই...
+              </div>
+            </div>
           </div>
 
           <RegistrationForm initialTrack="men" courses={sanitizedCourses} />

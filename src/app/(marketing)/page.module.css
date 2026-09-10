@@ -3439,5 +3439,608 @@
   }
 }
 
+/* ============================================================
+   REGISTRATION SECTION & FORM (Image-Faithful Redesign)
+   ============================================================ */
+.regSectionContainer {
+  position: relative;
+  background-color: #061124;
+  background-image: url('/reg-bg.jpg');
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: cover;
+  padding: 80px 0 90px;
+  overflow: hidden;
+  color: #FFFFFF;
+}
+
+.regSectionOverlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 30%, rgba(6, 17, 36, 0.7) 0%, rgba(6, 17, 36, 0.94) 80%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.regContentWrap {
+  position: relative;
+  z-index: 2;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Top Header Bar */
+.regTopHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 38px;
+}
+
+.regBrandLockup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.regBrandLogo {
+  height: 46px;
+  width: auto;
+  filter: drop-shadow(0 2px 8px rgba(212, 175, 55, 0.4));
+}
+
+.regBrandText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.regBrandTitle {
+  font-family: 'Cinzel', 'Playfair Display', Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: 0.04em;
+}
+
+.regBrandTag {
+  font-size: 0.68rem;
+  color: #DFC074;
+  letter-spacing: 0.08em;
+}
+
+.regHeaderCenter {
+  text-align: center;
+  flex: 2;
+}
+
+.regEyebrow {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #E6C265;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.regTitle {
+  font-family: 'Noto Serif Bengali', 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.8rem, 2.8vw, 2.5rem);
+  font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1.25;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+}
+
+.regSubtitle {
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.regCalligraphyBadge {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.regCalligraphyText {
+  font-family: 'Noto Serif Bengali', cursive, serif;
+  color: #FFFFFF;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: right;
+  transform: rotate(-3deg);
+  border-bottom: 2px solid #E6C265;
+  padding-bottom: 4px;
+  display: inline-block;
+}
+
+/* Two Course Selection Cards */
+.regTrackChoiceGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  margin-bottom: 32px;
+}
+
+.regTrackCard {
+  background: #081736;
+  border-radius: 18px;
+  padding: 22px 24px;
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  transition: all 0.25s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.regTrackCard:hover {
+  border-color: rgba(245, 179, 53, 0.6);
+  transform: translateY(-2px);
+}
+
+.regTrackCardSelected {
+  border: 2px solid #F5B335 !important;
+  box-shadow: 0 0 26px rgba(245, 179, 53, 0.25), inset 0 0 16px rgba(245, 179, 53, 0.04);
+}
+
+.regTrackTopPills {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.regPillPopular {
+  padding: 4px 12px;
+  background: #F5B335;
+  color: #071739;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.regPillWomenTag {
+  padding: 4px 12px;
+  background: #881337;
+  color: #FFFFFF;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.regPillFeeTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(10, 24, 48, 0.8);
+  border: 1px solid rgba(223, 192, 116, 0.4);
+  color: #F8E29E;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.regTrackTitleBlock {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.regTrackAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #FFFFFF;
+}
+
+.avatarMen {
+  background: #0E3066;
+  border: 1.5px solid #2563EB;
+}
+
+.avatarWomen {
+  background: #501328;
+  border: 1.5px solid #EC4899;
+}
+
+.regTrackInfoText {
+  display: flex;
+  flex-direction: column;
+}
+
+.regTrackCardH3 {
+  font-family: 'Noto Serif Bengali', 'Playfair Display', Georgia, serif;
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1.25;
+  margin-bottom: 4px;
+}
+
+.regTrackCardDesc {
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.regTrackDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 10px 0 14px;
+}
+
+.regTrackMetaList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.regTrackMetaItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.regMetaIcon {
+  color: #F5B335;
+  flex-shrink: 0;
+}
+
+/* Card Button */
+.regCardBtnSelected {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 24px;
+  background: #F5B335;
+  color: #071739;
+  font-weight: 800;
+  font-size: 0.84rem;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(245, 179, 53, 0.4);
+}
+
+.regCardBtnUnselected {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 24px;
+  background: rgba(14, 30, 58, 0.6);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.regCardBtnUnselected:hover {
+  background: rgba(14, 30, 58, 0.95);
+  border-color: #F5B335;
+  color: #F5B335;
+}
+
+/* White Form Card */
+.regWhiteCard {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 32px 36px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  color: #0F172A;
+}
+
+.regFormHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 26px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #E2E8F0;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.regFormTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.regStepBadgeCircle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #0B1E48;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.regFormTitleBlock {
+  display: flex;
+  flex-direction: column;
+}
+
+.regFormTitleMain {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0B1E48;
+  margin-bottom: 2px;
+}
+
+.regFormSubtitle {
+  font-size: 0.78rem;
+  color: #64748B;
+}
+
+/* Step Progress Indicator */
+.regStepIndicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.regStepItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.regStepNumActive {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #1D4ED8;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+.regStepTextActive {
+  color: #1D4ED8;
+}
+
+.regStepLine {
+  width: 40px;
+  height: 2px;
+  background: #CBD5E1;
+}
+
+.regStepNumInactive {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #E2E8F0;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+.regStepTextInactive {
+  color: #94A3B8;
+}
+
+/* 2-Column Form Inputs Grid */
+.regInputsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 24px;
+  margin-bottom: 24px;
+}
+
+.regFieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.regFieldLabel {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.regInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.regInputIcon {
+  position: absolute;
+  left: 14px;
+  color: #64748B;
+  pointer-events: none;
+}
+
+.regInputField {
+  width: 100%;
+  padding: 11px 14px 11px 40px;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: #0F172A;
+  background: #FFFFFF;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.regInputField:focus {
+  border-color: #1D4ED8;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+}
+
+.regInputField::placeholder {
+  color: #94A3B8;
+  font-size: 0.84rem;
+}
+
+.regSelectField {
+  width: 100%;
+  padding: 11px 14px 11px 40px;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: #0F172A;
+  background: #FFFFFF;
+  transition: all 0.2s ease;
+  outline: none;
+  cursor: pointer;
+}
+
+.regSelectField:focus {
+  border-color: #1D4ED8;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+}
+
+/* Bottom Action Bar */
+.regBottomBar {
+  background: #F1F6FB;
+  border-radius: 14px;
+  border: 1px solid #E2EBF5;
+  padding: 14px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.regSecurityBlock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.regShieldIcon {
+  color: #1D4ED8;
+  flex-shrink: 0;
+}
+
+.regSecurityText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.regSecurityTitle {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.regSecuritySub {
+  font-size: 0.72rem;
+  color: #64748B;
+}
+
+.regFeeActionWrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.regFeePillDark {
+  background: #081C44;
+  padding: 6px 18px;
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.15;
+}
+
+.regFeePillLabel {
+  font-size: 0.62rem;
+  color: #94A3B8;
+}
+
+.regFeePillAmount {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #F8E29E;
+}
+
+.regSubmitBtnGold {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 26px;
+  border-radius: 26px;
+  background: linear-gradient(135deg, #F8CE67 0%, #F5B335 100%);
+  color: #071739;
+  font-weight: 800;
+  font-size: 0.92rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(245, 179, 53, 0.45);
+  transition: all 0.2s ease;
+}
+
+.regSubmitBtnGold:hover {
+  background: linear-gradient(135deg, #FFE08A 0%, #F8C349 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(245, 179, 53, 0.6);
+}
+
+.regSubmitBtnGold:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .regTopHeader {
+    flex-direction: column;
+    text-align: center;
+  }
+  .regBrandLockup, .regCalligraphyBadge {
+    justify-content: center;
+  }
+  .regTrackChoiceGrid {
+    grid-template-columns: 1fr;
+  }
+  .regInputsGrid {
+    grid-template-columns: 1fr;
+  }
+  .regBottomBar {
+    flex-direction: column;
+    text-align: center;
+  }
+  .regFeeActionWrap {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 
 
