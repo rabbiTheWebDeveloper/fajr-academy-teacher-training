@@ -24,9 +24,12 @@ export default function TOTLayout({ children }) {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#C59B27] via-[#D4AF37] to-[#E5B842] flex items-center justify-center text-[#051329] font-black text-xl shadow-lg shadow-[#C59B27]/30 group-hover:scale-105 transition-transform border border-[#FDFBF7]/30">
-                ف
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/fajr-logo.png"
+                alt="Fajr Academy"
+                className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-[#C59B27]/25 group-hover:scale-105 transition-transform border border-[#C59B27]/40"
+              />
               <div className="flex flex-col">
                 <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-[#FDFBF7] to-[#D4AF37] bg-clip-text text-transparent">
                   FAJR ACADEMY

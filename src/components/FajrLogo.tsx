@@ -32,42 +32,32 @@ const BRAND_NAVY_LIGHT = "#162C65";
 
 // ─── Responsive image heights per size ──────────────────────────────────────
 const IMG_HEIGHT: Record<FajrLogoSize, string> = {
-  xs:         "h-6 sm:h-7",
-  sm:         "h-7 sm:h-8 md:h-9",
-  md:         "h-9 sm:h-10 md:h-11",
-  lg:         "h-11 sm:h-12 md:h-14",
-  xl:         "h-14 sm:h-16 md:h-20",
-  responsive: "h-7 sm:h-9 md:h-10 lg:h-11",
-  custom:     "h-auto",
+  xs:         "h-7 w-7",
+  sm:         "h-9 w-9",
+  md:         "h-11 w-11",
+  lg:         "h-14 w-14",
+  xl:         "h-20 w-20",
+  responsive: "h-9 w-9 sm:h-11 sm:w-11",
+  custom:     "h-auto w-auto",
 };
 
 // ─── Min widths to stop proportional shrink below readable size ──────────────
 const IMG_MINW: Record<FajrLogoSize, string> = {
-  xs:         "min-w-[100px]",
-  sm:         "min-w-[120px]",
-  md:         "min-w-[140px]",
-  lg:         "min-w-[170px]",
-  xl:         "min-w-[220px]",
-  responsive: "min-w-[120px] sm:min-w-[150px]",
+  xs:         "min-w-[28px]",
+  sm:         "min-w-[36px]",
+  md:         "min-w-[44px]",
+  lg:         "min-w-[56px]",
+  xl:         "min-w-[80px]",
+  responsive: "min-w-[36px] sm:min-w-[44px]",
   custom:     "",
 };
 
-// ─── CSS filter treatments per variant ──────────────────────────────────────
-// The source PNG is deep navy on white — we manipulate it to:
-//   adaptive  → navy in light mode, white-inverted in dark mode
-//   navy      → always deep navy (default, no filter)
-//   white     → pure white silhouette  (dark sidebars, navy cards)
-//   gold      → warm golden shimmer
+// ─── CSS styling treatments per variant ──────────────────────────────────────
 const IMG_FILTER: Record<FajrLogoVariant, string> = {
-  // Light: show as-is (deep navy). Dark: invert to crisp white + subtle gold glow
-  adaptive:
-    "mix-blend-multiply dark:mix-blend-normal dark:brightness-0 dark:invert dark:drop-shadow-[0_0_8px_rgba(223,183,108,0.3)]",
-  // Always shows the original deep navy — clean on white backgrounds
-  navy: "mix-blend-multiply",
-  // Pure white silhouette for dark/navy/sidebar backgrounds
-  white: "brightness-0 invert drop-shadow-[0_1px_6px_rgba(0,0,0,0.4)]",
-  // Warm golden tint for premium / certificate contexts
-  gold: "brightness-0 invert sepia-[0.9] hue-rotate-[5deg] saturate-[300%] drop-shadow-[0_0_10px_rgba(223,183,108,0.45)]",
+  adaptive: "rounded-xl border border-[#C59B27]/40 shadow-sm object-cover",
+  navy: "rounded-xl border border-[#C59B27]/40 shadow-sm object-cover",
+  white: "rounded-xl border border-[#C59B27]/50 shadow-md object-cover",
+  gold: "rounded-xl border border-[#D4AF37] shadow-[0_0_12px_rgba(212,175,55,0.45)] object-cover",
 };
 
 // ─── Fallback SVG text sizes (used when image fails or layout=horizontal) ───
@@ -197,7 +187,7 @@ export function FajrLogo({
   let content: React.ReactNode;
 
   // 1) Real PNG logo — default & best for fidelity
-  if ((layout === "image" || layout === "horizontal") && !imgError) {
+  if ((layout === "image" || layout === "icon-only") && !imgError) {
     content = (
       <img
         src="/fajr-logo.png"
@@ -207,7 +197,7 @@ export function FajrLogo({
         draggable={false}
         onError={() => setImgError(true)}
         className={[
-          "w-auto object-contain select-none transition-all duration-300",
+          "object-cover select-none transition-all duration-300",
           hPx,
           minW,
           filter,
@@ -215,22 +205,51 @@ export function FajrLogo({
         ].join(" ")}
       />
     );
-
+  } else if (layout === "horizontal" && !imgError) {
+    content = (
+      <div className="inline-flex items-center gap-2.5 select-none">
+        <img
+          src="/fajr-logo.png"
+          alt={alt}
+          loading={priority ? "eager" : "lazy"}
+          decoding="async"
+          draggable={false}
+          onError={() => setImgError(true)}
+          className={[
+            "object-cover select-none transition-all duration-300",
+            hPx,
+            minW,
+            filter,
+            imgClassName,
+          ].join(" ")}
+        />
+        <div className="flex flex-col justify-center leading-tight">
+          <span className={`font-serif tracking-tight font-extrabold ${titleCol}`}>FAJR ACADEMY</span>
+          <span className={`font-sans text-[10px] tracking-wider uppercase font-semibold ${subCol}`}>Teacher Training</span>
+        </div>
+      </div>
+    );
   // 2) Stacked — emblem above brand text (login card, splash)
   } else if (layout === "stacked") {
     content = (
       <div className="flex flex-col items-center gap-2 select-none">
-        <FajrBrandMark className={svg.icon} variant={variant} />
+        <img
+          src="/fajr-logo.png"
+          alt={alt}
+          className={[
+            "object-cover select-none transition-all duration-300",
+            hPx,
+            minW,
+            filter,
+            imgClassName,
+          ].join(" ")}
+        />
         <div className="flex flex-col items-center leading-none">
           <span className={`font-serif leading-none ${svg.title} ${titleCol}`}>FAJR</span>
           <span className={`font-sans mt-1 leading-none ${svg.sub} ${subCol} uppercase`}>Academy</span>
         </div>
       </div>
     );
-
-  // 3) Icon only — collapsed sidebar, mobile tab bar
-  } else if (layout === "icon-only") {
-    content = <FajrBrandMark className={svg.icon} variant={variant} />;
 
   // 4) Fallback for PNG failure — SVG text lockup
   } else {

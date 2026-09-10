@@ -53,9 +53,12 @@ export default function AdminSidebar({ adminUser }) {
       {/* Mobile Top Bar Toggle */}
       <div className="md:hidden bg-[#070A11] border-b border-slate-800 p-4 flex items-center justify-between z-50">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 font-black flex items-center justify-center">
-            ف
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/fajr-logo.png"
+            alt="Fajr Academy"
+            className="w-8 h-8 rounded-lg object-cover border border-amber-500/40"
+          />
           <span className="font-extrabold text-sm text-white">FAJR ADMIN</span>
         </div>
         <button
@@ -75,9 +78,12 @@ export default function AdminSidebar({ adminUser }) {
         <div className="space-y-6">
           {/* Brand Logo Header */}
           <Link href="/admin" className="flex items-center gap-2.5 px-2 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
-              ف
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/fajr-logo.png"
+              alt="Fajr Academy"
+              className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform border border-amber-500/40"
+            />
             <div className="flex flex-col">
               <span className="font-extrabold text-base tracking-tight text-white">
                 FAJR ACADEMY

@@ -160,7 +160,7 @@ export default function TeacherRegistrationMarketingPage() {
         <div className={`${styles.wrap} ${styles.headerInner}`}>
           <div className={styles.brand}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={LOGO_B64} alt="Fajr Academy" className={styles.brandLogo} />
+            <img src="/fajr-logo.png" alt="Fajr Academy" className={styles.brandLogo} />
             <div className={styles.brandDivider} />
             <div>
               <div className={styles.brandName}>ফজর একাডেমি</div>
@@ -249,7 +249,7 @@ export default function TeacherRegistrationMarketingPage() {
             <div className={styles.heroArch}>
               <div className={styles.centerMark}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={LOGO_B64} alt="Fajr Academy" className={styles.heroLogo} />
+                <img src="/fajr-logo.png" alt="Fajr Academy" className={styles.heroLogo} />
                 <div className={styles.glyphBn}>কুরআন টিচার ট্রেনিং ২০২৬</div>
                 <div className={styles.heroFeaturePills}>
                   <div className={styles.featurePillItem}>✓ কোনো ট্রাফিক জ্যাম নেই</div>
@@ -727,7 +727,8 @@ export default function TeacherRegistrationMarketingPage() {
           {/* Brand Emblem & Subtitle */}
           <div className={styles.footerTopRow}>
             <div className={styles.footerBrandEmblem}>
-              <div className={styles.footerEmblemIcon}>ف</div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/fajr-logo.png" alt="Fajr Academy" className={styles.footerLogoImg} />
               <span className={styles.footerBrandName}>FAJR ACADEMY</span>
             </div>
             <p className={styles.footerTagline}>

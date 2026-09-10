@@ -210,14 +210,18 @@
 }
 
 .brandLogo {
-  height: 40px;
-  width: auto;
+  height: 44px;
+  width: 44px;
+  border-radius: 12px;
+  object-fit: cover;
   transition: var(--transition);
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2));
+  border: 1.5px solid rgba(201,162,75,0.45);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .brandLogo:hover {
-  transform: scale(1.05);
+  transform: scale(1.06);
+  border-color: var(--gold-bright);
 }
 
 .brandDivider {
@@ -2305,6 +2309,15 @@
   display: inline-flex;
   align-items: center;
   gap: 12px;
+}
+
+.footerLogoImg {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  object-fit: cover;
+  box-shadow: 0 4px 14px rgba(197, 155, 39, 0.35);
+  border: 1.5px solid rgba(197, 155, 39, 0.45);
 }
 
 .footerEmblemIcon {
