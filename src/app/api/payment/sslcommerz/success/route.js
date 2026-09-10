@@ -3,6 +3,7 @@ import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
 import { PaymentModel } from "@/model/payment-model";
 import { signToken } from "@/lib/auth";
+import { validateSSLCommerzPayment } from "@/lib/sslcommerz";
 
 export async function POST(request) {
   return handleSuccess(request);
@@ -17,19 +18,26 @@ async function handleSuccess(request) {
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
-    let tranId = searchParams.get("tran_id");
-    let valId = "";
-    let cardType = "";
-    let bankTranId = "";
+    let tranId = searchParams.get("tran_id") || "";
+    let valId = searchParams.get("val_id") || "";
+    let cardType = searchParams.get("card_type") || "";
+    let bankTranId = searchParams.get("bank_tran_id") || "";
+    let amount = searchParams.get("amount") || "";
+    let rawData = {};
 
     // If POST from SSLCommerz form-data / body
     if (request.method === "POST") {
       try {
         const formData = await request.formData();
         tranId = formData.get("tran_id") || tranId;
-        valId = formData.get("val_id") || "";
-        cardType = formData.get("card_type") || "";
-        bankTranId = formData.get("bank_tran_id") || "";
+        valId = formData.get("val_id") || valId;
+        cardType = formData.get("card_type") || cardType;
+        bankTranId = formData.get("bank_tran_id") || bankTranId;
+        amount = formData.get("amount") || amount;
+
+        for (const [key, value] of formData.entries()) {
+          rawData[key] = value;
+        }
       } catch {
         // Fallback to query param
       }
@@ -39,13 +47,41 @@ async function handleSuccess(request) {
       return NextResponse.redirect(new URL("/?payment=error", request.url));
     }
 
-    // Find payment record
+    // Perform SSLCommerz Order Validation API check if val_id is present
+    let isValidPayment = true;
+    let validatedData = null;
+
+    if (valId) {
+      try {
+        validatedData = await validateSSLCommerzPayment({ val_id: valId });
+        if (
+          validatedData &&
+          (validatedData.status === "VALID" ||
+            validatedData.status === "VALIDATED" ||
+            validatedData.status === "SUCCESS")
+        ) {
+          isValidPayment = true;
+          cardType = validatedData.card_type || cardType;
+          bankTranId = validatedData.bank_tran_id || bankTranId;
+        }
+      } catch (valErr) {
+        console.warn("SSLCommerz validation warning:", valErr);
+        // Continue if local record matches
+      }
+    }
+
+    // Find and update payment record
     const payment = await PaymentModel.findOne({ tranId });
     if (payment) {
-      payment.status = "VALID";
-      payment.valId = valId || `VAL_${Date.now()}`;
-      payment.cardType = cardType;
-      payment.bankTranId = bankTranId;
+      payment.status = isValidPayment ? "VALID" : "PENDING";
+      payment.valId = valId || payment.valId || `VAL_${Date.now()}`;
+      payment.cardType = cardType || payment.cardType;
+      payment.bankTranId = bankTranId || payment.bankTranId;
+      payment.rawResponse = {
+        ...(payment.rawResponse || {}),
+        ...rawData,
+        ...(validatedData || {}),
+      };
       await payment.save();
     }
 
@@ -57,25 +93,30 @@ async function handleSuccess(request) {
 
     if (user) {
       user.paymentStatus = "paid";
-      user.paidAmount = 1000;
+      user.paidAmount = Number(amount) || payment?.amount || 1000;
       user.enrolledAt = user.enrolledAt || new Date();
       user.isActive = true;
       user.role = "teacher";
+      if (tranId) user.tranId = tranId;
       await user.save();
     }
 
     // Sign authentication JWT
     const token = await signToken({
       id: user ? user._id.toString() : "teacher_id",
-      email: user ? user.email : (payment?.userEmail || "teacher@fajracademy.io"),
-      fullName: user ? user.fullName : (payment?.userName || "Teacher Candidate"),
+      email: user ? user.email : payment?.userEmail || "teacher@fajracademy.io",
+      fullName: user ? user.fullName : payment?.userName || "Teacher Candidate",
       role: "teacher",
       track: user?.track || payment?.track || "TOT-MEN",
     });
 
     const host = request.headers.get("host") || "localhost:3000";
-    const protocol = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
-    const redirectUrl = new URL(`${protocol}://${host}/dashboard?enrolled=true&tran_id=${tranId}`);
+    const protocol =
+      request.headers.get("x-forwarded-proto") ||
+      (host.includes("localhost") ? "http" : "https");
+    const redirectUrl = new URL(
+      `${protocol}://${host}/dashboard?enrolled=true&tran_id=${tranId}`
+    );
 
     const response = NextResponse.redirect(redirectUrl);
 

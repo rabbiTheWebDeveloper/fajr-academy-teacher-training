@@ -36,7 +36,7 @@ export default function AdminSettingsClient({ initialSettings }) {
             গ্লোবাল সিস্টেম সেটিংস ও গেটওয়ে কনফিগ
           </h1>
           <p className="text-xs text-slate-400">
-            কোর্স ফি, SSLCommerz credentials, bKash হেল্পলাইন ও সার্টিফিকেশন প্রিফিক্স
+            কোর্স ফি, SSLCommerz credentials, হেল্পলাইন ও সার্টিফিকেশন প্রিফিক্স
           </p>
         </div>
 
@@ -76,11 +76,11 @@ export default function AdminSettingsClient({ initialSettings }) {
             </div>
 
             <div>
-              <label className="text-slate-400 font-bold block mb-1">ম্যানুয়াল bKash মার্চেন্ট নম্বর</label>
+              <label className="text-slate-400 font-bold block mb-1">SSLCommerz স্টোর আইডি</label>
               <input
                 type="text"
-                value={settings.bkashManualNumber}
-                onChange={(e) => handleChange("bkashManualNumber", e.target.value)}
+                value={settings.sslStoreId || "fajra6aa249a39ddb2"}
+                onChange={(e) => handleChange("sslStoreId", e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono"
               />
             </div>

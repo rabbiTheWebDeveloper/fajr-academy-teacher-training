@@ -677,16 +677,78 @@ export default function TeacherRegistrationMarketingPage() {
       </section>
 
       {/* ════════════════════════════════════════════════════════
-          FOOTER
+          LUXURY INTEGRATED FOOTER WITH SSLCOMMERZ SHOWCASE
           ════════════════════════════════════════════════════════ */}
       <footer className={styles.footer}>
-        <div className={`${styles.wrap} ${styles.footerInner}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={LOGO_B64} alt="Fajr Academy" className={styles.footerLogo} />
-          <span>
-            ফজর একাডেমি · Balanced Education for Dunya and Akhirah — © 2026 · যোগাযোগ:{' '}
-            <a href="https://wa.me/8801641028312" target="_blank" rel="noopener noreferrer">01641028312</a>
-          </span>
+        <div className={styles.footerInner}>
+          {/* Brand Emblem & Subtitle */}
+          <div className={styles.footerTopRow}>
+            <div className={styles.footerBrandEmblem}>
+              <div className={styles.footerEmblemIcon}>ف</div>
+              <span className={styles.footerBrandName}>FAJR ACADEMY</span>
+            </div>
+            <p className={styles.footerTagline}>
+              Balanced Education for Dunya and Akhirah — Training of Trainers (TOT) Program
+            </p>
+          </div>
+
+          {/* Integrated SSLCommerz Multi-Payment Showcase Card */}
+          <div className={styles.sslPaymentCard}>
+            <div className={styles.sslCardHeader}>
+              <div className={styles.sslCardBadge}>
+                <span>🔒 OFFICIAL PAYMENT GATEWAY PARTNER</span>
+              </div>
+              <div className={styles.sslSecurityBadge}>
+                <span>256-BIT SSL ENCRYPTED & VERIFIED</span>
+              </div>
+            </div>
+
+            <div className={styles.sslWhiteContainer}>
+              <a
+                target="_blank"
+                rel="noopener noreferrer"
+                href="https://www.sslcommerz.com/"
+                title="SSLCommerz - 100% Secure Payment Gateway"
+                className={styles.sslPayWithLink}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://securepay.sslcommerz.com/public/image/SSLCommerz-Pay-With-logo-All-Size-01.png"
+                  alt="SSLCommerz Pay With - Visa, Mastercard, AMEX, bKash, Nagad, Rocket, MFS and Internet Banking"
+                  className={styles.sslPayWithImg}
+                />
+              </a>
+            </div>
+
+            <div className={styles.sslCardFooterInfo}>
+              <div className={styles.sslFeatureItem}>
+                <span className={styles.sslCheckIcon}>✓</span>
+                <span>ভিসা, মাস্টারকার্ড ও অ্যামেক্স</span>
+              </div>
+              <div className={styles.sslFeatureItem}>
+                <span className={styles.sslCheckIcon}>✓</span>
+                <span>বিকাশ, নগদ, রকেট ও সকল মোবাইল ব্যাংকিং</span>
+              </div>
+              <div className={styles.sslFeatureItem}>
+                <span className={styles.sslCheckIcon}>✓</span>
+                <span>ইন্টারনেট ব্যাংকিং ও ইনস্ট্যান্ট ভেরিফিকেশন</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact & Copyright Info */}
+          <div className={styles.footerBottomRow}>
+            <div className={styles.footerContactLinks}>
+              <span>হটলাইন: <a href="https://wa.me/8801641028312" target="_blank" rel="noopener noreferrer">01641028312</a></span>
+              <span>•</span>
+              <span>হেল্পলাইন: <a href="https://wa.me/8801857381244" target="_blank" rel="noopener noreferrer">+880 1857-381244</a></span>
+              <span>•</span>
+              <span>ইমেইল: <a href="mailto:info@fajracademy.io">info@fajracademy.io</a></span>
+            </div>
+            <span>
+              © 2026 Fajr Academy. All rights reserved. Registered Islamic Education Institute.
+            </span>
+          </div>
         </div>
       </footer>
     </div>

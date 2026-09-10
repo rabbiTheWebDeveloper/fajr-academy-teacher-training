@@ -1,8 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Fajr Academy Official Royal Brand Palette */
+  --fajr-navy-950: #051329;
+  --fajr-navy-900: #081A3A;
+  --fajr-navy-800: #0B2545;
+  --fajr-navy-700: #134074;
+  --fajr-navy-600: #1D5C96;
+  
+  --fajr-gold-500: #C59B27;
+  --fajr-gold-400: #D4AF37;
+  --fajr-gold-300: #E5B842;
+  --fajr-gold-600: #B8860B;
+  --fajr-gold-100: #FBF4E0;
+  --fajr-gold-50:  #FFFDF9;
+
+  --fajr-cream-50:  #FDFBF7;
+  --fajr-cream-100: #F8F5EE;
+  --fajr-cream-200: #F3EDE2;
+  --fajr-cream-300: #EADFC9;
+
+  --background: #081A3A;
+  --foreground: #FDFBF7;
 }
 
 @theme inline {
@@ -12,15 +31,37 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #051329;
+}
+::-webkit-scrollbar-thumb {
+  background: #0B2545;
+  border-radius: 4px;
+  border: 1px solid rgba(197, 155, 39, 0.3);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C59B27;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: #081A3A;
+  color: #FDFBF7;
   font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Print styling for crisp invoices & receipts */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
 }

@@ -98,7 +98,7 @@ export default function AdminDashboardClient({ initialStats }) {
             ৳ {stats.totalRevenue.toLocaleString()} <span className="text-xs text-slate-400 font-sans">BDT</span>
           </div>
           <div className="mt-2 text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" /> SSLCommerz & bKash ভেরিফায়েড
+            <CheckCircle2 className="w-3.5 h-3.5" /> SSLCommerz 256-Bit ভেরিফায়েড
           </div>
         </div>
 

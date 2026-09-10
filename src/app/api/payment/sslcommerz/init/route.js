@@ -71,7 +71,7 @@ export async function POST(request) {
     }
 
     // Save pending payment record
-    await PaymentModel.create({
+    const paymentRecord = await PaymentModel.create({
       tranId,
       amount: Number(amount) || 1000,
       currency: "BDT",
@@ -84,29 +84,49 @@ export async function POST(request) {
     });
 
     const host = request.headers.get("host") || "localhost:3000";
-    const protocol = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    const protocol =
+      request.headers.get("x-forwarded-proto") ||
+      (host.includes("localhost") ? "http" : "https");
     const baseUrl = `${protocol}://${host}`;
 
     const paymentResult = await initSSLCommerzPayment({
       tranId,
       amount: Number(amount) || 1000,
-      productName: track === "TOT-MEN" ? "TOT - MEN Training Course" : "TOT - WOMEN Training Course (Batch 014)",
+      productName:
+        track === "TOT-MEN"
+          ? "TOT - MEN Training Course"
+          : "TOT - WOMEN Training Course (Batch 014)",
       cusName: fullName,
       cusEmail: cleanEmail,
       cusPhone: phone,
       baseUrl,
     });
 
+    // Update payment record with session key if returned
+    if (paymentResult.sessionkey) {
+      paymentRecord.rawResponse = {
+        sessionkey: paymentResult.sessionkey,
+        status: paymentResult.status,
+      };
+      await paymentRecord.save();
+    }
+
     return NextResponse.json({
       success: true,
       tranId,
       gatewayUrl: paymentResult.gatewayUrl,
-      isSimulation: paymentResult.isSimulation,
+      sessionKey: paymentResult.sessionkey,
+      status: paymentResult.status,
     });
   } catch (error) {
     console.error("SSLCommerz Init Error:", error);
     return NextResponse.json(
-      { success: false, message: error.message || "পেমেন্ট গেটওয়ে ইনিশিয়ালাইজেশনে সমস্যা হয়েছে।" },
+      {
+        success: false,
+        message:
+          error.message ||
+          "পেমেন্ট গেটওয়ে ইনিশিয়ালাইজেশনে সমস্যা হয়েছে।",
+      },
       { status: 500 }
     );
   }

@@ -69,7 +69,7 @@ export default function AdminPaymentsClient({ initialPayments }) {
             পেমেন্ট ভেরিফিকেশন ও ট্রানজেকশন লেজার
           </h1>
           <p className="text-xs text-slate-400">
-            SSLCommerz ও ম্যানুয়াল bKash পেমেন্ট ট্রানজেকশন অডিট ও ১-ক্লিক ভেরিফিকেশন
+            SSLCommerz গেটওয়ে পেমেন্ট ট্রানজেকশন অডিট ও ১-ক্লিক ভেরিফিকেশন
           </p>
         </div>
 

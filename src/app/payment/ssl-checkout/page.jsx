@@ -52,21 +52,36 @@ function SSLCheckoutContent() {
       }}>
         {/* Header */}
         <div style={{
-          background: 'linear-gradient(135deg, #0B1A45 0%, #1E3A8A 100%)',
+          background: 'linear-gradient(135deg, #051329 0%, #081A3A 50%, #0B2545 100%)',
           color: '#FFFFFF',
           padding: '20px 28px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '12px'
+          gap: '12px',
+          borderBottom: '1.5px solid rgba(197, 155, 39, 0.4)'
         }}>
-          <div>
-            <div style={{ fontSize: '1.25rem', fontWeight: '800', letterSpacing: '0.02em' }}>
-              SSLCOMMERZ <span style={{ fontSize: '0.8rem', background: '#22C55E', color: '#000', padding: '2px 8px', borderRadius: '10px', marginLeft: '6px' }}>SECURE 256-BIT</span>
-            </div>
-            <div style={{ fontSize: '0.85rem', opacity: 0.85, marginTop: '2px' }}>
-              Merchant: Fajr Academy (Teacher Training)
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://securepay.sslcommerz.com/public/image/sslcommerz.png"
+              alt="SSLCommerz Official"
+              style={{
+                height: '36px',
+                background: '#FFFFFF',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+              }}
+            />
+            <div>
+              <div style={{ fontSize: '1.05rem', fontWeight: '800', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                SSLCOMMERZ <span style={{ fontSize: '0.75rem', background: '#22C55E', color: '#000', padding: '2px 8px', borderRadius: '10px', fontWeight: '800' }}>256-BIT SECURE</span>
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#D4AF37', marginTop: '2px', fontWeight: '600' }}>
+                Merchant: Fajr Academy (Teacher Training)
+              </div>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>

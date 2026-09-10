@@ -7,7 +7,6 @@ import styles from './page.module.css'
 export default function RegistrationForm({ initialTrack = 'men' }) {
   const router = useRouter()
   const [selectedTrack, setSelectedTrack] = useState(initialTrack)
-  const [paymentMethod, setPaymentMethod] = useState('sslcommerz') // 'sslcommerz' | 'bkash_manual'
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -19,14 +18,16 @@ export default function RegistrationForm({ initialTrack = 'men' }) {
     quranSkill: 'fluent',
     englishSkill: 'basic',
     education: '',
-    bkashNumber: '',
-    trxId: '',
   })
 
-  const [copied, setCopied] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+
+  const handleWhatsAppConfirm = () => {
+    const msg = `আসসালামু আলাইকুম। আমি ফজর একাডেমি TOT শিক্ষক প্রশিক্ষণের জন্য আবেদন করেছি।\nনাম: ${formData.fullName}\nমোবাইল: ${formData.phone}\nকোর্স: ${selectedTrack === 'men' ? 'TOT - MEN' : 'TOT - WOMEN Batch 014'}`
+    window.open(`https://wa.me/8801410764581?text=${encodeURIComponent(msg)}`, '_blank')
+  }
 
   const handleTrackChange = (track) => {
     setSelectedTrack(track)
@@ -41,13 +42,7 @@ export default function RegistrationForm({ initialTrack = 'men' }) {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleCopyBkash = () => {
-    navigator.clipboard.writeText('01410764581')
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2500)
-  }
-
-  // Handle Form Submission with SSLCommerz or bKash
+  // Handle Form Submission with SSLCommerz Gateway
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErrorMsg('')
@@ -55,69 +50,38 @@ export default function RegistrationForm({ initialTrack = 'men' }) {
 
     const trackKey = selectedTrack === 'men' ? 'TOT-MEN' : 'TOT-WOMEN-014'
 
-    if (paymentMethod === 'sslcommerz') {
-      try {
-        const res = await fetch('/api/payment/sslcommerz/init', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fullName: formData.fullName,
-            email: formData.email,
-            phone: formData.phone,
-            password: formData.password || 'Fajr@Teacher2026',
-            gender: selectedTrack === 'women' ? 'female' : 'male',
-            track: trackKey,
-            hasLaptop: formData.hasLaptop,
-            quranSkill: formData.quranSkill,
-            englishSkill: formData.englishSkill,
-            education: formData.education,
-            amount: 1000,
-          }),
-        })
+    try {
+      const res = await fetch('/api/payment/sslcommerz/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password || 'Fajr@Teacher2026',
+          gender: selectedTrack === 'women' ? 'female' : 'male',
+          track: trackKey,
+          hasLaptop: formData.hasLaptop,
+          quranSkill: formData.quranSkill,
+          englishSkill: formData.englishSkill,
+          education: formData.education,
+          amount: 1000,
+        }),
+      })
 
-        const data = await res.json()
+      const data = await res.json()
 
-        if (data.success && data.gatewayUrl) {
-          window.location.href = data.gatewayUrl
-          return
-        } else {
-          setErrorMsg(data.message || 'SSLCommerz পেমেন্ট গেটওয়েতে সংযোগ করতে ব্যর্থ হয়েছে।')
-          setLoading(false)
-        }
-      } catch (err) {
-        setErrorMsg('সার্ভারে সমস্যা হয়েছে। দয়া করে পুনরায় চেষ্টা করুন।')
+      if (data.success && data.gatewayUrl) {
+        window.location.href = data.gatewayUrl
+        return
+      } else {
+        setErrorMsg(data.message || 'SSLCommerz পেমেন্ট গেটওয়েতে সংযোগ করতে ব্যর্থ হয়েছে।')
         setLoading(false)
       }
-    } else {
-      // Manual bKash TrxID submission
-      setTimeout(() => {
-        setLoading(false)
-        setSubmitted(true)
-      }, 600)
+    } catch (err) {
+      setErrorMsg('সার্ভারে সমস্যা হয়েছে। দয়া করে পুনরায় চেষ্টা করুন।')
+      setLoading(false)
     }
-  }
-
-  const handleWhatsAppConfirm = () => {
-    const trackTitle =
-      selectedTrack === 'men'
-        ? 'TOT - MEN (Orientation: 20 Sep, 8 PM)'
-        : 'TOT - WOMEN Batch 014 (Orientation: 21 Sep, 8 PM)'
-
-    const message = `*Fajr Academy TOT Teacher Registration*%0A%0A` +
-      `*কোর্স:* ${trackTitle}%0A` +
-      `*নাম:* ${formData.fullName}%0A` +
-      `*মোবাইল/WhatsApp:* ${formData.phone}%0A` +
-      `*ইমেইল:* ${formData.email || 'N/A'}%0A` +
-      `*ল্যাপটপ স্ট্যাটাস:* ${formData.hasLaptop === 'yes' ? 'ল্যাপটপ আছে' : 'ল্যাপটপ নেই (ডিভাইস সহায়তা প্রয়োজন)'}%0A` +
-      `*কুরআন পাঠ দক্ষতা:* ${formData.quranSkill}%0A` +
-      `*ইংরেজি দক্ষতা:* ${formData.englishSkill}%0A` +
-      `*শিক্ষাগত ব্যাকগ্রাউন্ড:* ${formData.education || 'N/A'}%0A` +
-      `*রেজিস্ট্রেশন ফি:* ১,০০০ ৳%0A` +
-      `*পেমেন্ট মেথড:* ${paymentMethod === 'sslcommerz' ? 'SSLCommerz Online Gateway' : 'bKash Manual'}%0A` +
-      `*বিকাশ নম্বর / TrxID:* ${formData.bkashNumber || 'N/A'} / ${formData.trxId || 'N/A'}%0A%0A` +
-      `আমার অ্যাকাউন্ট সক্রিয় করে ক্লাসরুমে যুক্ত করুন। ধন্যবাদ!`
-
-    window.open(`https://wa.me/8801641028312?text=${message}`, '_blank')
   }
 
   return (
@@ -246,8 +210,8 @@ export default function RegistrationForm({ initialTrack = 'men' }) {
                 <strong className={styles.goldText}>৳১,০০০ (পরিশোধিত)</strong>
               </div>
               <div className={styles.receiptRow}>
-                <span>বিকাশ TrxID:</span>
-                <code>{formData.trxId || 'N/A'}</code>
+                <span>ট্রানজেকশন ID (SSLCommerz):</span>
+                <code>{formData.trxId || 'Auto Verified'}</code>
               </div>
               <div className={styles.receiptRow}>
                 <span>ল্যাপটপ স্ট্যাটাস:</span>
@@ -446,156 +410,89 @@ export default function RegistrationForm({ initialTrack = 'men' }) {
               </div>
             </div>
 
-            {/* Step 2: Payment Gateway Selection */}
+            {/* Step 2: Official SSLCommerz Payment Gateway */}
             <div className={styles.formSectionGroup}>
-              <h4 className={styles.sectionSubhead}>২. পেমেন্ট মেথড ও কোর্স ফি (৳১,০০০)</h4>
+              <h4 className={styles.sectionSubhead}>২. কোর্স ফি ও অফিসিয়াল পেমেন্ট গেটওয়ে</h4>
 
-              {/* Payment Method Switcher */}
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '14px',
+                background: 'linear-gradient(135deg, #051329 0%, #081A3A 50%, #0B2545 100%)',
+                color: '#FFFFFF',
+                borderRadius: '16px',
+                padding: '24px',
+                border: '1.5px solid rgba(197, 155, 39, 0.4)',
+                boxShadow: '0 12px 30px rgba(5, 19, 41, 0.25)',
                 marginBottom: '20px'
               }}>
-                <div
-                  onClick={() => setPaymentMethod('sslcommerz')}
-                  style={{
-                    border: paymentMethod === 'sslcommerz' ? '2px solid #059669' : '1.5px solid #D1D5DB',
-                    background: paymentMethod === 'sslcommerz' ? '#ECFDF5' : '#FFFFFF',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <div style={{ fontWeight: '800', color: '#065F46', fontSize: '0.98rem' }}>
-                    💳 SSLCommerz অনলাইন পেমেন্ট (১,০০০৳)
-                  </div>
-                  <div style={{ fontSize: '0.82rem', color: '#047857', marginTop: '4px' }}>
-                    বিকাশ, নগদ, রকেট, ভিসা, মাস্টারকার্ড — ইনস্ট্যান্ট স্বয়ংক্রিয় কোর্স অ্যাক্সেস
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => setPaymentMethod('bkash_manual')}
-                  style={{
-                    border: paymentMethod === 'bkash_manual' ? '2px solid #C9A24B' : '1.5px solid #D1D5DB',
-                    background: paymentMethod === 'bkash_manual' ? '#FFFBEB' : '#FFFFFF',
-                    borderRadius: '12px',
-                    padding: '16px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <div style={{ fontWeight: '800', color: '#92400E', fontSize: '0.98rem' }}>
-                    📱 বিকাশ মার্চেন্ট পেমেন্ট (ম্যানুয়াল TrxID)
-                  </div>
-                  <div style={{ fontSize: '0.82rem', color: '#B45309', marginTop: '4px' }}>
-                    01410764581 নম্বরে পেমেন্ট করে TrxID দিয়ে সাবমিট
-                  </div>
-                </div>
-              </div>
-
-              {paymentMethod === 'sslcommerz' ? (
                 <div style={{
-                  background: 'linear-gradient(135deg, #0B1A45 0%, #1E3A8A 100%)',
-                  color: '#FFFFFF',
-                  borderRadius: '14px',
-                  padding: '20px 24px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
-                  gap: '14px',
+                  gap: '16px',
+                  borderBottom: '1px solid rgba(197, 155, 39, 0.25)',
+                  paddingBottom: '16px',
                   marginBottom: '16px'
                 }}>
-                  <div>
-                    <div style={{ fontSize: '0.82rem', color: '#F0D97A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      অফিসিয়াল পেমেন্ট গেটওয়ে
-                    </div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '800' }}>
-                      SSLCommerz Secure Checkout
-                    </div>
-                    <div style={{ fontSize: '0.86rem', opacity: 0.85, marginTop: '4px' }}>
-                      পেমেন্ট সফল হওয়ামাত্রই আপনার টিচার আইডি ও কোর্স অ্যাকাউন্ট তৈরি হবে।
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    {/* Official SSLCommerz Logo */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="https://securepay.sslcommerz.com/public/image/sslcommerz.png"
+                      alt="SSLCommerz Official Payment Gateway"
+                      style={{
+                        height: '38px',
+                        width: 'auto',
+                        objectFit: 'contain',
+                        background: '#FFFFFF',
+                        padding: '4px 10px',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                      }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '0.78rem', color: '#D4AF37', fontWeight: '800', letterSpacing: '0.04em' }}>
+                        OFFICIAL PAYMENT GATEWAY
+                      </div>
+                      <div style={{ fontSize: '1.05rem', fontWeight: '800', color: '#FFFFFF' }}>
+                        SSLCommerz 256-Bit Secure
+                      </div>
                     </div>
                   </div>
+
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>কোর্স ফি</div>
-                    <div style={{ fontSize: '1.8rem', fontWeight: '800', color: '#F0D97A' }}>
-                      ৳১,০০০
+                    <div style={{ fontSize: '0.78rem', color: '#CBD5E1' }}>রেজিস্ট্রেশন ফি</div>
+                    <div style={{ fontSize: '1.8rem', fontWeight: '900', color: '#D4AF37' }}>
+                      ৳ ১,০০০ <span style={{ fontSize: '0.85rem', color: '#FDFBF7' }}>BDT</span>
                     </div>
                   </div>
                 </div>
-              ) : (
-                <>
-                  <div className={styles.paymentInstructionBox}>
-                    <div className={styles.paymentBoxLeft}>
-                      <div className={styles.bkashLogoBadge}>bKash Merchant</div>
-                      <div className={styles.paymentAmountTag}>
-                        <span>কোর্স ফি:</span>
-                        <strong>১,০০০ ৳</strong>
-                      </div>
-                      <div className={styles.paymentNumberDisplay}>
-                        <span>বিকাশ মার্চেন্ট নম্বর:</span>
-                        <strong className={styles.bkashNumberText}>01410764581</strong>
-                        <button
-                          type="button"
-                          onClick={handleCopyBkash}
-                          className={styles.copyBtn}
-                        >
-                          {copied ? '✓ কপি হয়েছে' : '📋 কপি করুন'}
-                        </button>
-                      </div>
-                    </div>
 
-                    <div className={styles.paymentBoxRight}>
-                      <p className={styles.instructionStepTitle}>💡 কীভাবে বিকাশ পেমেন্ট করবেন:</p>
-                      <ol className={styles.instructionList}>
-                        <li>বিকাশ অ্যাপ ওপেন করে <strong>Make Payment</strong> সিলেক্ট করুন।</li>
-                        <li>নম্বর দিন: <strong>01410764581</strong></li>
-                        <li>টাকার পরিমাণ লিখুন: <strong>1000</strong></li>
-                        <li>রেফারেন্সে লিখুন: <strong>{selectedTrack === 'men' ? 'TOT-MEN' : 'TOT-WOMEN'}</strong></li>
-                        <li>পেমেন্ট সফল হলে প্রাপ্ত <strong>Transaction ID (TrxID)</strong> নিচের বক্সে লিখুন।</li>
-                      </ol>
-                    </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                  fontSize: '0.82rem',
+                  color: '#E2E8F0'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#10B981', fontSize: '1rem' }}>✓</span>
+                    <span>বিকাশ, নগদ, রকেট, ভিসা, মাস্টারকার্ড ও সকল ইন্টারনেট ব্যাংকিং সাপোর্টেড</span>
                   </div>
-
-                  <div className={styles.formGrid}>
-                    <div className={styles.formGroup}>
-                      <label className={styles.inputLabel} htmlFor="bkashNumber">
-                        যে বিকাশ নম্বর থেকে টাকা পাঠিয়েছেন *
-                      </label>
-                      <input
-                        id="bkashNumber"
-                        name="bkashNumber"
-                        type="tel"
-                        required={paymentMethod === 'bkash_manual'}
-                        placeholder="01XXXXXXXXX"
-                        value={formData.bkashNumber}
-                        onChange={handleChange}
-                        className={styles.textInput}
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.inputLabel} htmlFor="trxId">
-                        Transaction ID (TrxID) *
-                      </label>
-                      <input
-                        id="trxId"
-                        name="trxId"
-                        type="text"
-                        required={paymentMethod === 'bkash_manual'}
-                        placeholder="উদাঃ BAF71829XQ"
-                        value={formData.trxId}
-                        onChange={handleChange}
-                        className={styles.textInput}
-                      />
-                    </div>
+                  <div style={{
+                    fontSize: '0.75rem',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: '#34D399',
+                    padding: '3px 10px',
+                    borderRadius: '20px',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    fontWeight: '700'
+                  }}>
+                    ইনস্ট্যান্ট অটো-ভেরিফিকেশন
                   </div>
-                </>
-              )}
+                </div>
+              </div>
             </div>
 
             {/* Submit CTA */}
@@ -606,10 +503,8 @@ export default function RegistrationForm({ initialTrack = 'men' }) {
                 className={`${styles.btn} ${styles.btnGold} ${styles.btnSubmitLarge}`}
               >
                 {loading
-                  ? 'পেমেন্ট গেটওয়েতে সংযোগ হচ্ছে...'
-                  : paymentMethod === 'sslcommerz'
-                  ? '🔒 SSLCommerz-এ ১,০০০৳ পে করুন ও অ্যাকাউন্ট সক্রিয় করুন →'
-                  : '✓ ম্যানুয়াল রেজিস্ট্রেশন সম্পন্ন করুন (১,০০০৳)'}
+                  ? '⏳ SSLCommerz পেমেন্ট গেটওয়েতে সংযোগ হচ্ছে...'
+                  : '🔒 SSLCommerz গেটওয়েতে ১,০০০৳ পরিশোধ করুন ও অ্যাকাউন্ট সক্রিয় করুন →'}
               </button>
             </div>
           </form>

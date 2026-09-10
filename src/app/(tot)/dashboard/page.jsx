@@ -16,7 +16,7 @@ export default async function TOTDashboardPage({ searchParams }) {
   const trackQuery = params?.track || "";
 
   let user = null;
-  let payment = null;
+  let payments = [];
 
   try {
     await dbConnect();
@@ -25,7 +25,18 @@ export default async function TOTDashboardPage({ searchParams }) {
     }
     if (!user && tranIdParam) {
       user = await UserModel.findOne({ tranId: tranIdParam }).lean();
-      payment = await PaymentModel.findOne({ tranId: tranIdParam }).lean();
+    }
+
+    if (user?.email) {
+      payments = await PaymentModel.find({
+        $or: [{ userEmail: user.email }, { tranId: user.tranId }],
+      })
+        .sort({ createdAt: -1 })
+        .lean();
+    } else if (tranIdParam) {
+      payments = await PaymentModel.find({ tranId: tranIdParam })
+        .sort({ createdAt: -1 })
+        .lean();
     }
   } catch (error) {
     console.error("Dashboard user lookup error:", error);
@@ -50,9 +61,28 @@ export default async function TOTDashboardPage({ searchParams }) {
     paymentStatus: isEnrolled ? "paid" : "paid",
     paidAmount: user?.paidAmount || 1000,
     role: user?.role || "teacher",
-    enrolledAt: user?.enrolledAt || new Date().toISOString(),
+    enrolledAt: user?.enrolledAt ? new Date(user.enrolledAt).toISOString() : new Date().toISOString(),
     _id: user?._id?.toString() || "TOT-TR-014",
   };
 
-  return <DashboardClient trainee={initialTrainee} isNewlyEnrolled={params?.enrolled === "true"} />;
+  const formattedPayments = payments.map((p) => ({
+    _id: p._id?.toString(),
+    tranId: p.tranId,
+    valId: p.valId,
+    amount: p.amount,
+    currency: p.currency || "BDT",
+    status: p.status,
+    cardType: p.cardType || "SSLCommerz Direct",
+    bankTranId: p.bankTranId,
+    paymentMethod: p.paymentMethod || "SSLCOMMERZ",
+    createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
+  }));
+
+  return (
+    <DashboardClient
+      trainee={initialTrainee}
+      payments={formattedPayments}
+      isNewlyEnrolled={params?.enrolled === "true"}
+    />
+  );
 }

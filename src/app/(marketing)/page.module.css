@@ -2220,3 +2220,211 @@
   }
 }
 
+/* ════════════════════════════════════════════════════════
+   LUXURY INTEGRATED FOOTER & PAYMENT SHOWCASE STYLES
+   ════════════════════════════════════════════════════════ */
+.footer {
+  background: linear-gradient(180deg, #030C19 0%, #051329 50%, #020813 100%);
+  border-top: 1.5px solid rgba(197, 155, 39, 0.4);
+  padding: 56px 20px 40px;
+  color: #FDFBF7;
+  position: relative;
+  overflow: hidden;
+}
+
+.footerInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  text-align: center;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.footerTopRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.footerBrandEmblem {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footerEmblemIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #C59B27 0%, #D4AF37 50%, #E5B842 100%);
+  color: #051329;
+  font-size: 1.6rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(197, 155, 39, 0.35);
+  border: 1px solid rgba(253, 251, 247, 0.4);
+}
+
+.footerBrandName {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #FFFFFF;
+  letter-spacing: -0.02em;
+}
+
+.footerTagline {
+  font-size: 0.95rem;
+  color: rgba(253, 251, 247, 0.82);
+  font-weight: 500;
+  max-width: 620px;
+  line-height: 1.6;
+}
+
+/* Integrated Payment Showcase Card */
+.sslPaymentCard {
+  width: 100%;
+  max-width: 980px;
+  background: rgba(8, 26, 58, 0.75);
+  border: 1.5px solid rgba(197, 155, 39, 0.35);
+  border-radius: 24px;
+  padding: 24px 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.sslPaymentCard:hover {
+  border-color: rgba(212, 175, 55, 0.6);
+  transform: translateY(-2px);
+}
+
+.sslCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(197, 155, 39, 0.2);
+}
+
+.sslCardBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #D4AF37;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sslSecurityBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #34D399;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.sslWhiteContainer {
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 14px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.sslPayWithLink {
+  display: block;
+  width: 100%;
+  text-align: center;
+  transition: opacity 0.2s ease;
+}
+
+.sslPayWithLink:hover {
+  opacity: 0.95;
+}
+
+.sslPayWithImg {
+  width: 100%;
+  max-width: 900px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.sslCardFooterInfo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  font-size: 0.78rem;
+  color: rgba(253, 251, 247, 0.75);
+}
+
+.sslFeatureItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sslCheckIcon {
+  color: #10B981;
+  font-weight: bold;
+}
+
+.footerBottomRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: rgba(253, 251, 247, 0.65);
+  border-top: 1px solid rgba(253, 251, 247, 0.1);
+  padding-top: 24px;
+  width: 100%;
+}
+
+.footerContactLinks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  color: var(--gold-bright, #D4AF37);
+  font-weight: 600;
+}
+
+.footerContactLinks a {
+  color: var(--gold-bright, #D4AF37);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footerContactLinks a:hover {
+  color: #FFFFFF;
+  text-decoration: underline;
+}
+
+

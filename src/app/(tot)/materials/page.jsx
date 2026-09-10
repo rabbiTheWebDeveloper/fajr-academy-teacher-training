@@ -57,22 +57,25 @@ export default function MaterialsPage() {
       <div className="flex items-center justify-between">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-[#D4AF37] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> ড্যাশবোর্ডে ফিরে যান
         </Link>
 
-        <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-          <Sparkles className="w-3.5 h-3.5" /> OFFICIAL TOT RESOURCES
+        <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#C59B27]/20 text-[#D4AF37] border border-[#C59B27]/40 flex items-center gap-1 shadow-sm">
+          <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" /> OFFICIAL TOT RESOURCES
         </span>
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+      <div className="bg-gradient-to-br from-[#051329] via-[#081A3A] to-[#0B2545] border border-[#C59B27]/35 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
         <div>
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#D4AF37] bg-[#C59B27]/15 px-3 py-1 rounded-full border border-[#C59B27]/30 mb-2">
+            <BookOpen className="w-3.5 h-3.5" /> Better Teachers, Brighter Generations
+          </div>
           <h1 className="text-xl sm:text-2xl font-black text-white">
             কোর্স হ্যান্ডআউটস ও ডাউনলোড হাব
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-300 mt-1">
             ফজর একাডেমি ট্রেনিং অব ট্রেইনার্স (TOT) কোর্সের সকল অনুমোদিত রেফারেন্স শিট ও বইসমূহ
           </p>
         </div>
@@ -81,26 +84,26 @@ export default function MaterialsPage() {
           {materials.map((item, idx) => (
             <div
               key={idx}
-              className="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-5 hover:border-slate-700 transition-all flex flex-col justify-between gap-4"
+              className="bg-[#051329] border border-[#C59B27]/30 rounded-2xl p-5 hover:border-[#C59B27]/60 transition-all flex flex-col justify-between gap-4 shadow-lg"
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#081A3A] text-[#D4AF37] border border-[#C59B27]/30">
                     {item.category}
                   </span>
                   <span className="text-[11px] font-mono text-slate-400">{item.format} • {item.size}</span>
                 </div>
                 <h3 className="text-sm font-bold text-white leading-snug">{item.title}</h3>
-                <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+                <p className="text-xs text-slate-300 leading-relaxed">{item.desc}</p>
               </div>
 
-              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+              <div className="pt-3 border-t border-[#C59B27]/20 flex items-center justify-between">
                 <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" /> ফ্রি এক্সেস
                 </span>
                 <a
                   href="#"
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 transition-colors"
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C59B27] via-[#D4AF37] to-[#B8860B] hover:from-[#D4AF37] hover:to-[#C59B27] text-[#051329] font-black text-xs flex items-center gap-1.5 transition-all shadow border border-[#FDFBF7]/30"
                 >
                   <Download className="w-3.5 h-3.5" /> ডাউনলোড ফাইল
                 </a>

@@ -9,8 +9,8 @@ export default function AdminSettingsPage() {
   const initialSettings = {
     coursePrice: 1000,
     currency: "BDT",
-    sslcommerzMode: "LIVE / Sandbox",
-    bkashManualNumber: "01410764581",
+    sslcommerzMode: "Sandbox / Live",
+    sslStoreId: "fajra6aa249a39ddb2",
     helplinePhone: "01410764581",
     supportEmail: "support@fajracademy.io",
     whatsappSupport: "https://wa.me/8801410764581",

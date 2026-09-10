@@ -24,11 +24,18 @@ import {
   Layers,
   HelpCircle,
   Flame,
-  AlertCircle
+  AlertCircle,
+  Receipt,
+  LogOut,
+  Printer,
+  Globe,
+  Phone,
+  GraduationCap,
 } from "lucide-react";
 import { OfficialIDCard } from "@/components/TeacherOfficialIDCard";
+import TOTLogoutButton from "@/components/TOTLogoutButton";
 
-export default function DashboardClient({ trainee, isNewlyEnrolled }) {
+export default function DashboardClient({ trainee, payments = [], isNewlyEnrolled }) {
   const [activeTrack, setActiveTrack] = useState(trainee.track || "TOT-MEN");
   const [activeTab, setActiveTab] = useState("overview");
   const [copiedLink, setCopiedLink] = useState(false);
@@ -36,37 +43,49 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
 
   const isMen = activeTrack === "TOT-MEN" || activeTrack.toLowerCase().includes("men");
 
-  // Track specific information
+  // Official Poster Branded Information
   const trackInfo = isMen
     ? {
-        name: "Training of Trainers (TOT) – MEN",
-        badge: "পুরুষদের ডেডিকেটেড ব্যাচ",
-        orientationDateStr: "2026-09-20T20:00:00+06:00",
-        orientationDisplay: "২০ সেপ্টেম্বর ২০২৬ (রবিবার)",
-        orientationTime: "রাত ৮:০০ টা – ৯:৩০ টা",
-        days: "রবিবার, মঙ্গলবার ও বৃহস্পতিবার (রাত ৮:০০)",
-        instructor: "উস্তাদ আব্দুল্লাহ মাহমুদ ও ট্রেইনার প্যানেল",
-        coordinator: "উস্তাদ তারিকুল ইসলাম (01410-764581)",
+        name: "TRAINING OF TRAINERS (TOT) — Men",
+        scriptTitle: "Men",
+        batchBadge: "BATCH 013",
+        sessionNum: "SESSION 01",
+        sessionTitle: "THE QUR'ANIC TEACHER",
+        sessionSubtitle: "Purpose, Mindset & the Art of Inspiring",
+        sessionTheme:
+          "“A Qur’anic teacher does not merely teach children to read and memorize the Qur’an. They nurture hearts, build confidence, inspire love and respect for the Qur’an, and help children develop a lifelong connection with it.”",
+        trainerName: "Kazi Shakhawat Hossain",
+        trainerRole: "Senior Operation Executive, Fajr Academy",
+        trainerEdu1: "BA (Hons) in Qur'anic Sciences & Islamic Studies (IIUC)",
+        trainerEdu2: "MA in Islamic Studies, Bangladesh Islami University (BIU)",
+        orientationDateStr: "2026-08-20T20:00:00+06:00",
+        orientationDisplay: "20 AUGUST 2026 (THURSDAY)",
+        orientationTime: "8:00 PM",
         meetLink: "https://meet.google.com/tot-fajr-men-2026",
         whatsappGroup: "https://chat.whatsapp.com/tot-fajr-men-batch",
-        whatsappDisplay: "Fajr TOT (Men) Official Community",
-        accentColor: "from-blue-600 to-indigo-700",
-        tagColor: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+        helpline: "+880 1857-381244",
+        tagline: "Better Teachers, Brighter Generations",
       }
     : {
-        name: "Training of Trainers (TOT) – WOMEN (Batch 014)",
-        badge: "মহিলাদের এক্সক্লুসিভ ব্যাচ (০১8)",
-        orientationDateStr: "2026-09-21T20:00:00+06:00",
-        orientationDisplay: "২১ সেপ্টেম্বর ২০২৬ (সোমবার)",
-        orientationTime: "রাত ৮:০০ টা – ৯:৩০ টা",
-        days: "শনিবার, সোমবার ও বুধবার (রাত ৮:০০)",
-        instructor: "উস্তাজা ফারহানা চৌধুরী ও সিনিয়র ফিমেল ট্রেইনার প্যানেল",
-        coordinator: "উস্তাজা সাদিয়া আক্তার (01410-764581)",
+        name: "TOT FOR WOMEN",
+        scriptTitle: "Women",
+        batchBadge: "FIRST BATCH",
+        sessionNum: "SESSION 01",
+        sessionTitle: "THE QUR'ANIC TEACHER",
+        sessionSubtitle: "Purpose, Mindset & the Art of Inspiring",
+        sessionTheme:
+          "“A Qur’anic teacher does not merely teach children to read and memorize the Qur’an. They nurture hearts, build confidence, inspire love and respect for the Qur’an, and help children develop a lifelong connection with it.”",
+        trainerName: "Kazi Shakhawat Hossain",
+        trainerRole: "Senior Operation Executive, Fajr Academy",
+        trainerEdu1: "BA (Hons) in Qur'anic Sciences & Islamic Studies (IIUC)",
+        trainerEdu2: "MA in Islamic Studies, Bangladesh Islami University (BIU)",
+        orientationDateStr: "2026-08-23T20:00:00+06:00",
+        orientationDisplay: "23 AUGUST 2026 (SUNDAY)",
+        orientationTime: "8:00 PM",
         meetLink: "https://meet.google.com/tot-fajr-women-014",
         whatsappGroup: "https://chat.whatsapp.com/tot-fajr-women-batch014",
-        whatsappDisplay: "Fajr TOT (Sisters Only) Private Hub",
-        accentColor: "from-emerald-600 to-teal-700",
-        tagColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+        helpline: "+880 1857-381244",
+        tagline: "Better Teachers, Brighter Generations",
       };
 
   // Countdown timer logic
@@ -122,29 +141,29 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
     <div className="space-y-6">
       {/* Newly Enrolled Welcome Alert */}
       {isNewlyEnrolled && (
-        <div className="bg-gradient-to-r from-emerald-950/80 via-emerald-900/60 to-slate-900 border border-emerald-500/50 rounded-2xl p-4 sm:p-5 flex items-start gap-4 shadow-xl animate-fadeIn">
-          <div className="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl">
-            <Sparkles className="w-6 h-6" />
+        <div className="bg-gradient-to-r from-[#051329] via-[#0B2545] to-[#081A3A] border border-[#C59B27]/60 rounded-3xl p-4 sm:p-5 flex items-start gap-4 shadow-2xl animate-fadeIn">
+          <div className="p-2.5 bg-[#C59B27]/20 text-[#D4AF37] rounded-2xl border border-[#C59B27]/40">
+            <Sparkles className="w-6 h-6 text-[#D4AF37]" />
           </div>
           <div className="flex-1">
-            <h3 className="text-base sm:text-lg font-bold text-emerald-200">
-              🎉 অভিনন্দন! আপনার রেজিস্ট্রেশন ও ১,০০০ টাকা পেমেন্ট নিশ্চিত হয়েছে
+            <h3 className="text-base sm:text-lg font-bold text-[#D4AF37]">
+              🎉 অভিনন্দন! আপনার রেজিস্ট্রেশন ও ১,০০০ টাকা কোর্স ফি নিশ্চিত হয়েছে
             </h3>
             <p className="text-xs sm:text-sm text-slate-300 mt-1">
-              আপনার টিচার আইডি এবং কোর্স এক্সেস সক্রিয় করা হয়েছে। নিচের লাইভ ক্লাস লিঙ্কে ক্লিক করে হোয়াটসঅ্যাপ গ্রুপে যুক্ত হয়ে নিন।
+              আপনার টিচার আইডি এবং কোর্স এক্সেস সক্রিয় করা হয়েছে। নিচের ওরিয়েন্টেশন ক্লাসে যোগ দিন এবং হোয়াটসঅ্যাপ গ্রুপে যুক্ত হয়ে নিন।
             </p>
           </div>
         </div>
       )}
 
-      {/* Trainee Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900/90 border border-slate-800 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Trainee Header Banner with Royal Brand Palette */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#051329] via-[#081A3A] to-[#0B2545] border border-[#C59B27]/35 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-[#C59B27]/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-[#134074]/30 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="flex items-start sm:items-center gap-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-amber-200 text-slate-950 font-black text-2xl sm:text-3xl flex items-center justify-center shadow-xl shadow-amber-500/20 border-2 border-amber-300">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-[#C59B27] via-[#D4AF37] to-[#E5B842] text-[#051329] font-black text-2xl sm:text-3xl flex items-center justify-center shadow-xl shadow-[#C59B27]/25 border-2 border-[#FDFBF7]/40">
               {trainee.fullName ? trainee.fullName[0].toUpperCase() : "T"}
             </div>
             <div className="space-y-1">
@@ -152,14 +171,14 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-white">
                   {trainee.fullName}
                 </h1>
-                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${trackInfo.tagColor}`}>
-                  {trackInfo.badge}
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#081A3A] text-[#D4AF37] border border-[#C59B27]/40">
+                  {trackInfo.batchBadge}
                 </span>
                 <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3" /> VERIFIED TRAINEE
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-400 flex flex-wrap items-center gap-3">
+              <p className="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center gap-3">
                 <span><strong>ID:</strong> {trainee.tranId.replace("TOT-PAID-", "TOT-TR-")}</span>
                 <span>•</span>
                 <span><strong>Email:</strong> {trainee.email}</span>
@@ -169,13 +188,13 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
             </div>
           </div>
 
-          {/* Track Switcher & Quick Action */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
-            <div className="bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800 flex items-center gap-1 text-xs">
+          {/* Track Switcher & Quick Actions */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full lg:w-auto">
+            <div className="bg-[#051329] p-1.5 rounded-2xl border border-[#C59B27]/30 flex items-center gap-1 text-xs">
               <button
                 onClick={() => setActiveTrack("TOT-MEN")}
                 className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                  isMen ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "text-slate-400 hover:text-white"
+                  isMen ? "bg-gradient-to-r from-[#C59B27] to-[#D4AF37] text-[#051329] shadow-md shadow-[#C59B27]/20" : "text-slate-400 hover:text-white"
                 }`}
               >
                 👨 MEN Track
@@ -183,27 +202,36 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
               <button
                 onClick={() => setActiveTrack("TOT-WOMEN-014")}
                 className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-                  !isMen ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20" : "text-slate-400 hover:text-white"
+                  !isMen ? "bg-gradient-to-r from-[#C59B27] to-[#D4AF37] text-[#051329] shadow-md shadow-[#C59B27]/20" : "text-slate-400 hover:text-white"
                 }`}
               >
                 🧕 WOMEN Track
               </button>
             </div>
 
+            <Link
+              href="/payments"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#081A3A] hover:bg-[#0B2545] text-[#D4AF37] border border-[#C59B27]/40 flex items-center justify-center gap-1.5 transition-all shadow-sm"
+            >
+              <Receipt className="w-4 h-4 text-[#D4AF37]" /> ইনভয়েস
+            </Link>
+
             <button
               onClick={() => setActiveTab("idcard")}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 flex items-center justify-center gap-2 transition-all"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#C59B27]/20 hover:bg-[#C59B27]/30 text-[#D4AF37] border border-[#C59B27]/40 flex items-center justify-center gap-1.5 transition-all"
             >
-              <CreditCard className="w-4 h-4" /> আইডি কার্ড ভিউ
+              <CreditCard className="w-4 h-4" /> আইডি কার্ড
             </button>
+
+            <TOTLogoutButton variant="header" className="!py-2 !px-3" />
           </div>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-800 overflow-x-auto pb-2 scrollbar-none">
+      <div className="flex items-center gap-2 border-b border-[#C59B27]/20 overflow-x-auto pb-2 scrollbar-none">
         {[
-          { id: "overview", label: "লাইভ হাব ও ওভারভিউ", icon: Layers },
+          { id: "overview", label: "লাইভ সেশন হাব", icon: Layers },
           { id: "curriculum", label: "কোর্স কারিকুলাম ও মডিউলস", icon: BookOpen },
           { id: "idcard", label: "ট্রেইনি আইডি কার্ড", icon: CreditCard },
           { id: "materials", label: "বুকস ও স্টাডি শিটস", icon: FileText },
@@ -217,8 +245,8 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap transition-all ${
                 isActive
-                  ? "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md shadow-amber-500/20"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                  ? "bg-gradient-to-r from-[#C59B27] via-[#D4AF37] to-[#B8860B] text-[#051329] shadow-md shadow-[#C59B27]/20 border border-[#FDFBF7]/30"
+                  : "text-slate-300 hover:text-white hover:bg-[#0B2545]/60"
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -228,44 +256,127 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
         })}
       </div>
 
-      {/* TAB CONTENT: Overview */}
+      {/* TAB CONTENT: Overview / Official Session Card */}
       {activeTab === "overview" && (
         <div className="space-y-6">
-          {/* Hero Live Orientation Countdown Card */}
-          <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-amber-500/30 p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-              <div className="space-y-3 max-w-xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
-                  <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                  গ্র্যান্ড ওরিয়েন্টেশন লাইভ ক্লাস
+          {/* Main Official Banner Card */}
+          <div className="rounded-3xl bg-gradient-to-br from-[#051329] via-[#081A3A] to-[#0B2545] border-2 border-[#C59B27]/40 p-6 sm:p-8 shadow-2xl relative overflow-hidden space-y-6">
+            
+            {/* Top Session Tag & Batch */}
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#C59B27]/25 pb-4">
+              <div className="flex items-center gap-3">
+                <span className="px-3.5 py-1.5 rounded-full bg-[#081A3A] text-white text-xs font-black uppercase tracking-wider border border-[#C59B27]/40 shadow-sm flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-[#D4AF37]" /> {trackInfo.sessionNum}
+                </span>
+                <span className="text-xs font-bold text-[#D4AF37] tracking-widest uppercase bg-[#C59B27]/15 px-3 py-1 rounded-full border border-[#C59B27]/30">
+                  {trackInfo.batchBadge}
+                </span>
+              </div>
+
+              {/* Tagline */}
+              <div className="text-xs italic font-serif text-[#D4AF37] tracking-wide flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+                {trackInfo.tagline}
+              </div>
+            </div>
+
+            {/* Session Headline */}
+            <div className="space-y-2">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight font-serif">
+                {trackInfo.sessionTitle} <span className="text-[#D4AF37]">:</span>
+              </h2>
+              <p className="text-base sm:text-xl font-bold text-[#D4AF37]">
+                {trackInfo.sessionSubtitle}
+              </p>
+            </div>
+
+            {/* Session Theme Box */}
+            <div className="bg-[#051329]/80 border-l-4 border-[#C59B27] p-5 sm:p-6 rounded-r-2xl border-y border-r border-[#C59B27]/20 relative">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="p-1 rounded bg-[#C59B27]/20 text-[#D4AF37]">
+                  <BookOpen className="w-3.5 h-3.5 text-[#D4AF37]" />
+                </span>
+                <span className="text-[11px] uppercase tracking-widest font-black text-[#D4AF37]">
+                  SESSION THEME
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-serif italic">
+                {trackInfo.sessionTheme}
+              </p>
+            </div>
+
+            {/* Session Trainer Card */}
+            <div className="bg-[#051329] border border-[#C59B27]/35 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xl">
+              <div className="flex items-center gap-4">
+                {/* Trainer Avatar with Golden Ring */}
+                <div className="relative">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-[#0B2545] to-[#134074] border-2 border-[#C59B27] p-0.5 shadow-lg flex items-center justify-center text-white font-bold text-2xl">
+                    <UserCheck className="w-10 h-10 text-[#D4AF37]" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#C59B27] text-[#051329] flex items-center justify-center text-[10px] font-black shadow">
+                    ✓
+                  </div>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-white">
-                  {trackInfo.name}
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  তারিখ: <strong className="text-amber-400">{trackInfo.orientationDisplay}</strong> • সময়:{" "}
-                  <strong className="text-amber-400">{trackInfo.orientationTime}</strong>
-                </p>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 pt-1">
-                  <span>প্রধান ট্রেইনার: <strong className="text-slate-200">{trackInfo.instructor}</strong></span>
-                  <span>•</span>
-                  <span>সমন্বয়ক: <strong className="text-slate-200">{trackInfo.coordinator}</strong></span>
+
+                <div className="space-y-1">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#081A3A] text-[#D4AF37] border border-[#C59B27]/30 text-[10px] font-bold">
+                    <GraduationCap className="w-3 h-3 text-[#D4AF37]" /> SESSION TRAINER
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-black text-white font-serif">
+                    {trackInfo.trainerName}
+                  </h3>
+                  <p className="text-xs text-[#D4AF37] font-semibold">
+                    {trackInfo.trainerRole}
+                  </p>
+                  <p className="text-[11px] text-slate-300">
+                    • {trackInfo.trainerEdu1}
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    • {trackInfo.trainerEdu2}
+                  </p>
                 </div>
               </div>
 
-              {/* Countdown Clocks */}
-              <div className="bg-slate-950/80 border border-slate-800 p-4 sm:p-5 rounded-2xl flex items-center gap-3 text-center">
+              {/* Date & Time Pill Box */}
+              <div className="bg-[#081A3A] border border-[#C59B27]/30 rounded-2xl p-4 flex flex-col sm:items-end justify-center min-w-[200px] text-left sm:text-right space-y-2">
+                <div>
+                  <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center sm:justify-end gap-1">
+                    <Calendar className="w-3 h-3 text-[#D4AF37]" /> SESSION DATE
+                  </div>
+                  <div className="text-sm font-black text-white font-mono">
+                    {trackInfo.orientationDisplay}
+                  </div>
+                </div>
+
+                <div className="border-t border-[#C59B27]/20 pt-1.5">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center sm:justify-end gap-1">
+                    <Clock className="w-3 h-3 text-[#D4AF37]" /> TIME
+                  </div>
+                  <div className="text-sm font-black text-[#D4AF37] font-mono">
+                    {trackInfo.orientationTime}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Countdown Clocks */}
+            <div className="bg-[#051329]/90 border border-[#C59B27]/25 p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-xs font-bold text-[#D4AF37] flex items-center gap-1.5">
+                <Flame className="w-4 h-4 text-[#D4AF37] animate-pulse" /> লাইভ ক্লাস শুরুর সময় গণনা:
+              </div>
+
+              <div className="flex items-center gap-2.5 text-center">
                 {[
                   { label: "দিন", value: timeLeft.days },
                   { label: "ঘণ্টা", value: timeLeft.hours },
                   { label: "মিনিট", value: timeLeft.minutes },
                   { label: "সেকেন্ড", value: timeLeft.seconds },
                 ].map((item, idx) => (
-                  <div key={idx} className="bg-slate-900 border border-slate-800 px-3 py-2 sm:px-4 sm:py-3 rounded-xl min-w-[55px] sm:min-w-[65px]">
-                    <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono">
+                  <div key={idx} className="bg-[#081A3A] border border-[#C59B27]/30 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl min-w-[55px] sm:min-w-[65px]">
+                    <div className="text-lg sm:text-xl font-black text-[#D4AF37] font-mono">
                       {String(item.value).padStart(2, "0")}
                     </div>
-                    <div className="text-[10px] uppercase font-bold text-slate-400 mt-0.5">
+                    <div className="text-[9px] uppercase font-bold text-slate-400 mt-0.5">
                       {item.label}
                     </div>
                   </div>
@@ -274,107 +385,44 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
             </div>
 
             {/* Action Buttons */}
-            <div className="mt-8 pt-6 border-t border-slate-800/80 flex flex-wrap items-center gap-3.5">
-              <a
-                href={trackInfo.meetLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition-all transform hover:-translate-y-0.5"
-              >
-                <Video className="w-4 h-4" /> লাইভ ক্লাসরুমে প্রবেশ করুন
-              </a>
-
-              <a
-                href={trackInfo.whatsappGroup}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-5 py-3.5 rounded-xl bg-gradient-to-r from-green-700 to-emerald-700 hover:from-green-600 hover:to-emerald-600 text-white font-bold text-sm flex items-center gap-2 shadow-md transition-all"
-              >
-                <MessageCircle className="w-4 h-4" /> অফিসিয়াল হোয়াটসঅ্যাপ গ্রুপ
-              </a>
-
-              <button
-                onClick={copyMeetLink}
-                className="px-4 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition-colors"
-              >
-                {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                {copiedLink ? "কপি করা হয়েছে!" : "ক্লাস লিঙ্ক কপি"}
-              </button>
-            </div>
-          </div>
-
-          {/* 3 Quick Action Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Card 1: Routine */}
-            <div className="bg-slate-900/70 border border-slate-800 p-5 rounded-2xl hover:border-slate-700 transition-colors">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2.5 rounded-xl bg-blue-500/20 text-blue-400">
-                  <Calendar className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">সাপ্তাহিক ক্লাস রুটিন</h3>
-                  <p className="text-[11px] text-slate-400">অনলাইন লাইভ সেশন</p>
-                </div>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                সপ্তাহে ৩ দিন: <strong className="text-blue-300">{trackInfo.days}</strong>
-              </p>
-              <div className="mt-4 pt-3 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
-                <span>মোট ক্লাস: ১৮টি লাইভ সেশন</span>
-                <span className="text-emerald-400 font-bold">Zoom / Meet</span>
-              </div>
-            </div>
-
-            {/* Card 2: Curriculum Progress */}
-            <div className="bg-slate-900/70 border border-slate-800 p-5 rounded-2xl hover:border-slate-700 transition-colors">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400">
-                  <BookOpen className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">কারিকুলাম অগ্রগতি</h3>
-                  <p className="text-[11px] text-slate-400">১০টি মূল মডিউল</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-slate-300 font-semibold">
-                  <span>সম্পূর্ণ: {completedModules.length}/১০ মডিউল</span>
-                  <span className="text-amber-400">{Math.round((completedModules.length / 10) * 100)}%</span>
-                </div>
-                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-amber-500 to-amber-300 rounded-full transition-all duration-500"
-                    style={{ width: `${(completedModules.length / 10) * 100}%` }}
-                  />
-                </div>
-              </div>
-              <div className="mt-4 pt-3 border-t border-slate-800 text-xs flex justify-between items-center">
-                <button
-                  onClick={() => setActiveTab("curriculum")}
-                  className="text-amber-400 font-bold hover:underline flex items-center gap-1"
+            <div className="pt-4 border-t border-[#C59B27]/25 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href={trackInfo.meetLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#C59B27] via-[#D4AF37] to-[#B8860B] hover:from-[#D4AF37] hover:to-[#C59B27] text-[#051329] font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-[#C59B27]/30 transition-all transform hover:-translate-y-0.5 border border-[#FDFBF7]/30"
                 >
-                  মডিউলগুলো দেখুন <ChevronRight className="w-3 h-3" />
+                  <Video className="w-4 h-4" /> লাইভ ক্লাসরুমে প্রবেশ করুন
+                </a>
+
+                <a
+                  href={trackInfo.whatsappGroup}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-3.5 rounded-xl bg-[#081A3A] hover:bg-[#0B2545] text-[#D4AF37] font-bold text-xs sm:text-sm flex items-center gap-2 border border-[#C59B27]/40 shadow-md transition-all"
+                >
+                  <MessageCircle className="w-4 h-4 text-[#D4AF37]" /> অফিসিয়াল হোয়াটসঅ্যাপ গ্রুপ
+                </a>
+
+                <button
+                  onClick={copyMeetLink}
+                  className="px-4 py-3.5 rounded-xl bg-[#051329] hover:bg-[#081A3A] text-slate-300 font-semibold text-xs flex items-center gap-1.5 transition-colors border border-[#C59B27]/25"
+                >
+                  {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  {copiedLink ? "কপি হয়েছে!" : "মিট লিংক কপি"}
                 </button>
               </div>
-            </div>
 
-            {/* Card 3: Certification */}
-            <div className="bg-slate-900/70 border border-slate-800 p-5 rounded-2xl hover:border-slate-700 transition-colors">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400">
-                  <Award className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white">অফিসিয়াল সার্টিফিকেশন</h3>
-                  <p className="text-[11px] text-slate-400">ফজর একাডেমি ট্রেইন্ড টিচার</p>
-                </div>
-              </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                কোর্স সমাপনী ও অ্যাসেসমেন্ট সম্পন্ন হলে ভেরিফায়েড কিউআর কোডসহ সার্টিফিকেট প্রদান করা হবে।
-              </p>
-              <div className="mt-4 pt-3 border-t border-slate-800 text-xs flex justify-between items-center text-slate-400">
-                <span>স্ট্যাটাস: <strong className="text-amber-400">ইন-প্রগ্রেস</strong></span>
-                <span className="text-emerald-400 font-bold">কোর্সের পর</span>
+              {/* Bottom Official Link Bar */}
+              <div className="flex items-center gap-4 text-xs text-slate-400">
+                <span className="flex items-center gap-1 text-[#D4AF37]">
+                  <Globe className="w-3.5 h-3.5" /> www.fajracademy.io
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1 text-slate-300">
+                  <Phone className="w-3.5 h-3.5 text-[#D4AF37]" /> {trackInfo.helpline}
+                </span>
               </div>
             </div>
           </div>
@@ -386,49 +434,56 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg sm:text-xl font-bold text-white">
-              ট্রেইনিং অব ট্রেইনার্স (TOT) পূর্ণাঙ্গ কারিকুলাম ও মডিউলসমূহ
+              ১০টি কমপ্লিট মডিউল ও প্র্যাকটিকাম সিলেবাস
             </h2>
-            <span className="text-xs text-slate-400">
-              চেকবক্সে ক্লিক করে প্রগ্রেস ট্র্যাক করুন
+            <span className="text-xs font-bold text-[#D4AF37] bg-[#C59B27]/15 px-3 py-1 rounded-full border border-[#C59B27]/30">
+              ৬ সপ্তাহের কমপ্লিট পেডাগজি কোর্স
             </span>
           </div>
 
           <div className="space-y-3">
-            {modules.map((mod) => {
-              const isDone = completedModules.includes(mod.id);
+            {modules.map((m) => {
+              const isDone = completedModules.includes(m.id);
               return (
                 <div
-                  key={mod.id}
-                  onClick={() => toggleModule(mod.id)}
-                  className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                  key={m.id}
+                  className={`p-4 sm:p-5 rounded-2xl border transition-all ${
                     isDone
-                      ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-100"
-                      : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-200"
+                      ? "bg-[#051329] border-[#C59B27]/40 shadow-md"
+                      : "bg-[#081A3A]/70 border-[#C59B27]/20 hover:border-[#C59B27]/40"
                   }`}
                 >
-                  <div className="flex items-center gap-3.5">
-                    <div
-                      className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all ${
+                  <div className="flex items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <button
+                        onClick={() => toggleModule(m.id)}
+                        className={`mt-0.5 sm:mt-0 p-1 rounded-lg transition-colors ${
+                          isDone ? "text-[#D4AF37]" : "text-slate-500 hover:text-slate-300"
+                        }`}
+                      >
+                        <CheckCircle2 className="w-5 h-5" />
+                      </button>
+                      <div>
+                        <h4 className="text-xs sm:text-sm font-bold text-white leading-snug">
+                          {m.title}
+                        </h4>
+                        <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-1">
+                          <span>সময়কাল: {m.duration}</span>
+                          <span>•</span>
+                          <span>স্টাডি রিসোর্স: {m.docs}টি ফাইল</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${
                         isDone
-                          ? "bg-emerald-500 border-emerald-400 text-slate-950"
-                          : "border-slate-700 bg-slate-800"
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                          : "bg-slate-800 text-slate-400"
                       }`}
                     >
-                      {isDone && <Check className="w-4 h-4 font-black" />}
-                    </div>
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-bold">{mod.title}</h4>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        সময়কাল: {mod.duration} • রিসোর্স ম্যাটেরিয়াল: {mod.docs} টি ফাইল
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-semibold text-slate-400 hidden sm:inline">
-                      {isDone ? "সম্পন্ন" : "বাকি আছে"}
+                      {isDone ? "সম্পন্ন" : "আসন্ন"}
                     </span>
-                    <ChevronRight className="w-4 h-4 text-slate-500" />
                   </div>
                 </div>
               );
@@ -440,18 +495,18 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
       {/* TAB CONTENT: ID Card */}
       {activeTab === "idcard" && (
         <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white">
-                অফিসিয়াল ডিজিটাল ট্রেইনি আইডি কার্ড
+              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-[#D4AF37]" /> আপনার অফিসিয়াল টিচার্স ট্রেনিং আইডি কার্ড
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                ফজর একাডেমি ট্রেইনার ট্রেইনিং প্রোগ্রামের অফিসিয়াল শনাক্তকরণ কার্ড
+              <p className="text-xs text-slate-300 mt-1">
+                ফজর একাডেমি ট্রেনিং বোর্ডের অনুমোদিত ডিজিটাল ট্রেইনি পরিচিতিপত্র
               </p>
             </div>
             <button
               onClick={() => window.print()}
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-md transition-all"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C59B27] to-[#D4AF37] hover:from-[#D4AF37] hover:to-[#C59B27] text-[#051329] font-black text-xs flex items-center gap-2 shadow-md transition-all border border-[#FDFBF7]/30"
             >
               <Download className="w-4 h-4" /> কার্ড প্রিন্ট / সেভ করুন
             </button>
@@ -461,7 +516,7 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
             <OfficialIDCard
               profile={{
                 fullName: trainee.fullName,
-                designation: isMen ? "TOT TRAINEE (MEN)" : "TOT TRAINEE (WOMEN)",
+                designation: isMen ? "TOT TRAINEE (MEN - BATCH 013)" : "TOT TRAINEE (WOMEN - BATCH 014)",
                 teacherId: trainee.tranId.replace("TOT-PAID-", "TOT-TR-"),
                 bloodGroup: "B+",
                 department: "Teacher Training Division",
@@ -471,8 +526,8 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
             />
 
             <div className="max-w-sm space-y-4 text-xs text-slate-300">
-              <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2">
-                <h4 className="font-bold text-amber-400 flex items-center gap-1.5">
+              <div className="bg-[#051329] border border-[#C59B27]/30 p-4 rounded-2xl space-y-2 shadow-lg">
+                <h4 className="font-bold text-[#D4AF37] flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4" /> ভেরিফিকেশন তথ্য
                 </h4>
                 <p><strong>আইডি নম্বর:</strong> {trainee.tranId.replace("TOT-PAID-", "TOT-TR-")}</p>
@@ -537,10 +592,10 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
             ].map((doc, idx) => (
               <div
                 key={idx}
-                className="bg-slate-900/70 border border-slate-800 p-4 rounded-2xl hover:border-slate-700 transition-all flex flex-col justify-between gap-3"
+                className="bg-[#051329] border border-[#C59B27]/25 p-4 rounded-2xl hover:border-[#C59B27]/50 transition-all flex flex-col justify-between gap-3 shadow-lg"
               >
                 <div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-800 text-amber-400">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#081A3A] text-[#D4AF37] border border-[#C59B27]/30">
                     {doc.category}
                   </span>
                   <h4 className="text-xs sm:text-sm font-bold text-white mt-2 leading-snug">
@@ -551,7 +606,7 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
 
                 <a
                   href={doc.link}
-                  className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  className="w-full py-2 rounded-xl bg-[#081A3A] hover:bg-[#0B2545] text-[#D4AF37] font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border border-[#C59B27]/30"
                 >
                   <Download className="w-3.5 h-3.5" /> ডাউনলোড করুন
                 </a>
@@ -561,20 +616,75 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
         </div>
       )}
 
-      {/* TAB CONTENT: Receipt */}
+      {/* TAB CONTENT: Receipt / Payment History */}
       {activeTab === "receipt" && (
         <div className="space-y-6">
-          <h2 className="text-lg sm:text-xl font-bold text-white">
-            অফিসিয়াল পেমেন্ট রিসিপ্ট ও ভেরিফিকেশন
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-[#D4AF37]" /> অফিসিয়াল পেমেন্ট রিসিপ্ট ও হিস্টোরি
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                আপনার কোর্স রেজিস্ট্রেশন ফি, ট্রানজেকশন বিবরণ ও ডাউনলোডযোগ্য মানি রিসিপ্ট
+              </p>
+            </div>
 
-          <div className="max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div>
-                <span className="text-xs uppercase font-extrabold text-amber-400 tracking-wider">
-                  FAJR ACADEMY INVOICE
-                </span>
-                <h3 className="text-lg font-black text-white mt-0.5">টাকা প্রাপ্তি রসিদ</h3>
+            <Link
+              href="/payments"
+              className="px-4 py-2 rounded-xl bg-[#081A3A] hover:bg-[#0B2545] text-[#D4AF37] font-bold text-xs border border-[#C59B27]/40 flex items-center gap-1.5 transition-all shadow-sm"
+            >
+              <ExternalLink className="w-3.5 h-3.5" /> ফুল পেমেন্ট পেজ খুলুন
+            </Link>
+          </div>
+
+          {/* Quick Payment History Summary Table */}
+          {payments.length > 0 && (
+            <div className="bg-[#051329] border border-[#C59B27]/30 rounded-3xl p-5 shadow-xl space-y-3">
+              <h3 className="text-xs font-bold text-[#D4AF37] uppercase tracking-wider flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-[#D4AF37]" /> ট্রানজেকশন রেকর্ড তালিকা
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-[#081A3A] text-[10px] uppercase text-[#D4AF37] border-b border-[#C59B27]/20">
+                    <tr>
+                      <th className="py-2.5 px-4">ট্রানজেকশন আইডি</th>
+                      <th className="py-2.5 px-4">গেটওয়ে / চ্যানেল</th>
+                      <th className="py-2.5 px-4">পরিমাণ</th>
+                      <th className="py-2.5 px-4">স্ট্যাটাস</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#C59B27]/15">
+                    {payments.map((p, idx) => (
+                      <tr key={idx} className="hover:bg-[#0B2545]/40">
+                        <td className="py-3 px-4 font-mono font-bold text-[#D4AF37]">{p.tranId}</td>
+                        <td className="py-3 px-4 text-slate-300">SSLCommerz ({p.cardType || "Direct"})</td>
+                        <td className="py-3 px-4 font-bold text-[#D4AF37]">৳ {p.amount || 1000} BDT</td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            ✓ {p.status || "VALID"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Printable Invoice Card */}
+          <div className="max-w-2xl mx-auto bg-[#051329] border-2 border-[#C59B27]/35 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-[#C59B27]/25 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#C59B27] via-[#D4AF37] to-[#E5B842] flex items-center justify-center text-[#051329] font-black text-xl shadow-lg border border-[#FDFBF7]/30">
+                  ف
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-extrabold text-[#D4AF37] tracking-wider">
+                    FAJR ACADEMY INVOICE
+                  </span>
+                  <h3 className="text-lg font-black text-white mt-0.5">টাকা প্রাপ্তি রসিদ</h3>
+                </div>
               </div>
               <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-bold">
                 ✓ পরিশোধিত (PAID)
@@ -592,35 +702,42 @@ export default function DashboardClient({ trainee, isNewlyEnrolled }) {
               </div>
               <div>
                 <p className="text-slate-400">ট্রানজেকশন আইডি:</p>
-                <p className="font-mono font-bold text-amber-400 mt-0.5">{trainee.tranId}</p>
+                <p className="font-mono font-bold text-[#D4AF37] mt-0.5">{trainee.tranId}</p>
               </div>
               <div>
                 <p className="text-slate-400">পেমেন্ট গেটওয়ে:</p>
-                <p className="font-bold text-white mt-0.5">SSLCommerz 256-Bit</p>
+                <p className="font-bold text-white mt-0.5">SSLCommerz 256-Bit Gateway</p>
               </div>
             </div>
 
-            <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
+            <div className="bg-[#081A3A] p-4 rounded-2xl border border-[#C59B27]/25 space-y-2 text-xs">
               <div className="flex justify-between text-slate-300">
-                <span>টিচার্স ট্রেনিং (TOT) ফুল কোর্স ফি:</span>
+                <span>{trackInfo.name} রেজিস্ট্রেশন ফি:</span>
                 <span>৳ ১,০০০</span>
               </div>
               <div className="flex justify-between text-slate-300">
                 <span>লজিস্টিকস ও ডিজিটাল রিসোর্স ফি:</span>
                 <span className="text-emerald-400">ফ্রি (স্কলারশিপ)</span>
               </div>
-              <div className="border-t border-slate-800 pt-2 flex justify-between font-bold text-white text-sm">
+              <div className="border-t border-[#C59B27]/20 pt-2 flex justify-between font-bold text-white text-sm">
                 <span>মোট পরিশোধিত:</span>
-                <span className="text-amber-400">৳ ১,০০০ BDT</span>
+                <span className="text-[#D4AF37]">৳ ১,০০০ BDT</span>
               </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <Link
+                href="/payments"
+                className="text-xs font-bold text-slate-300 hover:text-[#D4AF37] flex items-center gap-1 transition-colors"
+              >
+                <Receipt className="w-4 h-4 text-[#D4AF37]" /> সম্পূর্ণ ইনভয়েস পেজে যান →
+              </Link>
+
               <button
                 onClick={() => window.print()}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#C59B27] via-[#D4AF37] to-[#B8860B] hover:from-[#D4AF37] hover:to-[#C59B27] text-[#051329] font-black text-xs flex items-center gap-2 shadow-lg shadow-[#C59B27]/20 transition-all border border-[#FDFBF7]/30"
               >
-                <Download className="w-4 h-4" /> ইনভয়েস প্রিন্ট / PDF
+                <Printer className="w-4 h-4" /> ইনভয়েস প্রিন্ট / PDF
               </button>
             </div>
           </div>
