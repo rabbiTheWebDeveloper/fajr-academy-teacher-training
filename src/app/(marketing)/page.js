@@ -20,6 +20,12 @@ import {
   CreditCard,
   Tag,
   User,
+  GraduationCap,
+  Monitor,
+  Handshake,
+  Sprout,
+  BookMarked,
+  Sparkles,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -474,121 +480,238 @@ export default async function TeacherRegistrationMarketingPage() {
       {/* ════════════════════════════════════════════════════════
           2 SESSIONS / DUAL TRACKS SHOWCASE (MEN & WOMEN)
           ════════════════════════════════════════════════════════ */}
-      <section className={`${styles.section} ${styles.tracksSection}`}>
-        <div className={styles.wrap}>
-          <div className={styles.sectionHead} data-reveal>
-            <span className={styles.eyebrow}>২টি বিশেষায়িত কোর্স সেশন</span>
-            <h2>ছেলে ও নারীদের জন্য ২টি আলাদা ট্রেনিং ট্র্যাক</h2>
-            <p>
-              আপনার সুবিধাজনক ট্র্যাকটি বেছে নিন। প্রতিটি কোর্সে রয়েছে ৪টি লাইভ ইন্টারেক্টিভ ট্রেনিং সেশন, ভেরিফায়েড সার্টিফিকেট এবং ফজর একাডেমিতে সরাসরি শিক্ষক নিয়োগের সুযোগ।
-            </p>
-          </div>
+      <section id="tracks-section" className={styles.tracksSection}>
+        <div className={styles.tracksOverlay} />
 
-          <div className={styles.dualTrackGrid}>
-            {/* ──────── TRACK 1: TOT - MEN ──────── */}
-            <div className={`${styles.courseCard} ${styles.menCourseCard}`} data-reveal>
-              <div className={styles.courseCardHeader}>
-                <div className={styles.courseTagMen}>{menCourse.tag || '👨‍🏫 পুরুষদের জন্য বিশেষায়িত'}</div>
-                <div className={styles.courseFeePill}>ফি: ৳{menCourse.fee || 1000}</div>
+        <div className={styles.tracksContentWrap}>
+          <div className={styles.tracksGrid3Col}>
+            {/* ──────── COLUMN 1: INTRO & VALUE PROPOSITIONS ──────── */}
+            <div className={styles.tracksIntroCol} data-reveal>
+              <div className={styles.tracksIntroBadge}>
+                <GraduationCap size={15} />
+                <span>প্রফেশনাল ট্রেনিং প্রোগ্রাম</span>
               </div>
 
-              <h3 className={styles.courseTitle}>{menCourse.name || 'Training of Trainers (TOT) – MEN'}</h3>
-              <p className={styles.courseSummary}>
-                {menCourse.summary || 'ছেলেদের জন্য ঘরে বসে চাকরির বিশেষ সুযোগ। বাচ্চাদের আধুনিক পদ্ধতিতে কুরআন পাঠদানের আন্তর্জাতিক টিওটি পেডাগোজি প্রশিক্ষণ।'}
+              <h2 className={styles.tracksMainH2}>
+                <span className={styles.tracksH2Line}>ইসলামের আলো ছড়াতে</span>
+                <span className={styles.tracksH2Line}>
+                  <span className={styles.tracksH2Gold}>দ্বীনি</span> প্রশিক্ষণ গ্রহণ করুন
+                </span>
+              </h2>
+
+              <p className={styles.tracksIntroP}>
+                আলেমা প্রশিক্ষকদের মাধ্যমে আপনি গড়ে তুলুন দক্ষ, দায়িত্বশীল ও আত্মবিশ্বাসী শিক্ষক—যারা সমাজে ইসলামি জ্ঞান ছড়াতে সক্ষম।
               </p>
 
-              <div className={styles.orientationAlert}>
-                <span className={styles.orientIcon}>🔔</span>
-                <div>
-                  <strong>First Orientation Class:</strong>
-                  <div className={styles.orientDate}>{menCourse.orientationDate} · {menCourse.orientationTime}</div>
+              {/* 4 Feature Circles Row */}
+              <div className={styles.tracksFeaturesRow}>
+                <div className={styles.tracksFeatureItem}>
+                  <div className={styles.tracksFeatureCircle}>
+                    <UserCheck size={20} />
+                  </div>
+                  <span className={styles.tracksFeatureTitle}>প্রফেশনাল<br />ট্রেনিং সেশন</span>
+                </div>
+
+                <div className={styles.tracksFeatureItem}>
+                  <div className={styles.tracksFeatureCircle}>
+                    <Award size={20} />
+                  </div>
+                  <span className={styles.tracksFeatureTitle}>অভিজ্ঞ<br />ট্রেইনার প্যানেল</span>
+                </div>
+
+                <div className={styles.tracksFeatureItem}>
+                  <div className={styles.tracksFeatureCircle}>
+                    <Monitor size={20} />
+                  </div>
+                  <span className={styles.tracksFeatureTitle}>সম্পূর্ণ<br />অনলাইন</span>
+                </div>
+
+                <div className={styles.tracksFeatureItem}>
+                  <div className={styles.tracksFeatureCircle}>
+                    <ShieldCheck size={20} />
+                  </div>
+                  <span className={styles.tracksFeatureTitle}>প্রমাণপত্র<br />প্রদান</span>
                 </div>
               </div>
 
-              <div className={styles.perksList}>
-                <div className={styles.perkItem}>
-                  <span className={styles.perkCheck}>✓</span>
-                  <span><strong>মাসিক সম্মানী:</strong> ১৫,০০০ থেকে ২২,০০০ টাকা অফার</span>
+              {/* Hadith Card */}
+              <div className={styles.tracksHadithBox}>
+                <span className={styles.tracksHadithGlyph}>“</span>
+                <div className={styles.tracksHadithInner}>
+                  <span className={styles.tracksHadithArabic}>خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ</span>
+                  <p className={styles.tracksHadithBengali}>
+                    &ldquo;তোমাদের মধ্যে সর্বোত্তম ব্যক্তি সে, যে নিজে কুরআন শিখে এবং অন্যকে শেখায়।&rdquo; — সহীহ বুখারী
+                  </p>
                 </div>
-                <div className={styles.perkItem}>
-                  <span className={styles.perkCheck}>✓</span>
-                  <span><strong>১ মাসে ৪টি প্রফেশনাল ট্রেনিং:</strong> বাচ্চাদের পড়ানোর কৌশল ও ক্লাসরুম ম্যানেজমেন্ট</span>
-                </div>
-                <div className={styles.perkItem}>
-                  <span className={styles.perkCheck}>✓</span>
-                  <span><strong>ল্যাপটপ / ডিভাইস সহায়তা:</strong> কুরআন ও ইংরেজিতে দক্ষ কিন্তু ল্যাপটপ নেই? ফজর একাডেমি থেকে ল্যাপটপ সাপোর্ট সুবিধা</span>
-                </div>
-                <div className={styles.perkItem}>
-                  <span className={styles.perkCheck}>✓</span>
-                  <span><strong>হাফিজ/আলেম হওয়া বাধ্যতামূলক নয়:</strong> শুদ্ধ কুরআন তিলাওয়াত ও বেসিক ইংরেজি জানা থাকলেই যথেষ্ট</span>
-                </div>
-                <div className={styles.perkItem}>
-                  <span className={styles.perkCheck}>✓</span>
-                  <span><strong>কন্টিনিউয়াস ট্রেনিং:</strong> প্রথম ধাপে নির্বাচিত না হলেও স্কিল গ্রুমিং ও ট্রেনিং চলমান থাকবে</span>
-                </div>
-              </div>
-
-              <div className={styles.courseCardFooter}>
-                <a href="#registration-section" className={`${styles.btn} ${styles.btnGold} ${styles.btnFull}`}>
-                  {menCourse.name} কোর্সে নিবন্ধন করুন (৳{menCourse.fee || 1000}) →
-                </a>
-                <a href="#program-videos" className={styles.btnWatchVideo}>
-                  ▶️ পুরুষদের ওরিয়েন্টেশন ভিডিও দেখুন
-                </a>
               </div>
             </div>
 
-            {/* ──────── TRACK 2: TOT - WOMEN (Batch 014) ──────── */}
-            <div className={`${styles.courseCard} ${styles.womenCourseCard}`} data-reveal>
-              <div className={styles.courseCardHeader}>
-                <div className={styles.courseTagWomen}>{womenCourse.tag || '🧕 নারীদের জন্য · Batch 014 (Batch 013 চলমান)'}</div>
-                <div className={styles.courseFeePill}>ফি: ৳{womenCourse.fee || 1000}</div>
+            {/* ──────── COLUMN 2: MEN BATCH CARD ──────── */}
+            <div className={styles.trackCard} data-reveal>
+              <div className={styles.cardImgHeader}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/men-batch.jpg" alt="TOT Men Batch" className={styles.cardImg} />
+                <div className={`${styles.cardBadgeLeft} ${styles.cardBadgeLeftMen}`}>
+                  <User size={13} />
+                  <span>MEN BATCH</span>
+                </div>
+                <div className={`${styles.cardBadgeRight} ${styles.cardBadgeRightMen}`}>
+                  <span className={styles.feeAmount}>৳ ১,০০০</span>
+                  <span className={styles.feeSub}>কোর্স ফি</span>
+                </div>
               </div>
 
-              <h3 className={styles.courseTitle}>{womenCourse.name || 'Training of Trainers (TOT) – WOMEN'}</h3>
-              <p className={styles.courseSummary}>
-                {womenCourse.summary || 'জেনারেল লাইনে পড়ালিখা করা দ্বীনে ফেরা আপুদের জন্য ঘরে বসেই আন্তর্জাতিক মানের অনলাইন কুরআন টিচার হওয়ার সুযোগ।'}
-              </p>
+              <div className={`${styles.cardMidBanner} ${styles.cardMidMen}`}>
+                <h3 className={styles.cardMidTitle}>Training of Trainers (TOT) – MEN BATCH</h3>
+                <p className={styles.cardMidSub}>
+                  দক্ষ ও প্রফেশনাল ইসলামি শিক্ষক তৈরির লক্ষ্যে বিশেষভাবে নির্ধারিত এই প্রশিক্ষণ প্রোগ্রাম।
+                </p>
+              </div>
 
-              <div className={styles.orientationAlert}>
-                <span className={styles.orientIcon}>🔔</span>
+              <div className={styles.cardBody}>
                 <div>
-                  <strong>First Orientation Class:</strong>
-                  <div className={styles.orientDate}>{womenCourse.orientationDate} · {womenCourse.orientationTime}</div>
+                  <div className={`${styles.cardOrientationBox} ${styles.cardOrientMen}`}>
+                    <Calendar size={18} className={styles.orientCalendarIcon} />
+                    <div className={styles.orientTextCol}>
+                      <span className={styles.orientHeading}>First Orientation Class:</span>
+                      <span className={styles.orientDateTime}>
+                        {menCourse.orientationDate || '২১ সেপ্টেম্বর ২০২৬'} — {menCourse.orientationTime || 'রাত ৮:০০ টা – ৯:৩০ টা'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.cardPerksList}>
+                    <div className={styles.cardPerkItem}>
+                      <div className={`${styles.perkCheckCircle} ${styles.perkCheckMen}`}>✓</div>
+                      <span><strong>মাসিক সম্মানী:</strong> ১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত</span>
+                    </div>
+                    <div className={styles.cardPerkItem}>
+                      <div className={`${styles.perkCheckCircle} ${styles.perkCheckMen}`}>✓</div>
+                      <span><strong>৪টি প্রফেশনাল সেশন:</strong> ইসলামিক জ্ঞান ও শিক্ষাদানের কৌশল</span>
+                    </div>
+                    <div className={styles.cardPerkItem}>
+                      <div className={`${styles.perkCheckCircle} ${styles.perkCheckMen}`}>✓</div>
+                      <span><strong>অভিজ্ঞ ট্রেইনার:</strong> বিশিষ্ট আলেম ও শিক্ষাবিদ</span>
+                    </div>
+                    <div className={styles.cardPerkItem}>
+                      <div className={`${styles.perkCheckCircle} ${styles.perkCheckMen}`}>✓</div>
+                      <span><strong>সার্টিফিকেট প্রদান:</strong> কোর্স শেষে সার্টিফিকেট ও মূল্যায়ন</span>
+                    </div>
+                    <div className={styles.cardPerkItem}>
+                      <div className={`${styles.perkCheckCircle} ${styles.perkCheckMen}`}>✓</div>
+                      <span><strong>Training &amp; Development:</strong> ক্যারিয়ার গ্রোথের সুযোগ</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className={`${styles.trackStripPill} ${styles.stripMen}`}>
+                    <Users size={14} />
+                    <span>Training of Trainers (TOT) – MEN BATCH (কোর্স ফি: ৳১,০০০)</span>
+                  </div>
+
+                  <a
+                    href="#registration-section"
+                    className={`${styles.btnTrackAction} ${styles.btnTrackMen}`}
+                  >
+                    <span>নিবন্ধন করুন এখনই</span>
+                    <ArrowRight size={16} />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* ──────── COLUMN 3: WOMEN BATCH CARD ──────── */}
+            <div className={styles.trackCard} data-reveal>
+              <div className={styles.cardImgHeader}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/women-batch.jpg" alt="TOT Women Batch" className={styles.cardImg} />
+                <div className={`${styles.cardBadgeLeft} ${styles.cardBadgeLeftWomen}`}>
+                  <User size={13} />
+                  <span>WOMEN BATCH</span>
+                </div>
+                <div className={`${styles.cardBadgeRight} ${styles.cardBadgeRightWomen}`}>
+                  <span className={styles.feeAmount}>৳ ১,০০০</span>
+                  <span className={styles.feeSub}>কোর্স ফি</span>
                 </div>
               </div>
 
-              <div className={styles.perksList}>
-                <div className={styles.perkItem}>
-                  <span className={styles.perkCheck}>✓</span>
-                  <span><strong>মাসিক সম্মানী:</strong> ১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত জব অপরচুনিটি</span>
-                </div>
-                <div className={styles.perkItem}>
-                  <span className={styles.perkCheck}>✓</span>
-                  <span><strong>১ মাসে ৪টি প্রফেশনাল ট্রেনিং:</strong> অনলাইনে বাচ্চাদের সাইকোলজি অনুযায়ী পাঠদান</span>
-                </div>
-                <div className={styles.perkItem}>
-                  <span className={styles.perkCheck}>✓</span>
-                  <span><strong>স্বীকৃত সার্টিফিকেট:</strong> প্রতিটি ট্রেনিং সফলভাবে সম্পন্ন করলে অফিসিয়াল সার্টিফিকেট প্রদান</span>
-                </div>
-                <div className={styles.perkItem}>
-                  <span className={styles.perkCheck}>✓</span>
-                  <span><strong>সরাসরি শিক্ষক নিয়োগ:</strong> ট্রেনিং শেষে ভালো পারফর্ম করা ট্রেইনারদের Fajr Academy-তে নিয়োগ</span>
-                </div>
-                <div className={styles.perkItem}>
-                  <span className={styles.perkCheck}>✓</span>
-                  <span><strong>Training &amp; Development:</strong> যারা প্রথম ধাপে নির্বাচিত হবেন না, তাদের নিয়েও ডেভেলপমেন্ট চলতে থাকবে</span>
-                </div>
+              <div className={`${styles.cardMidBanner} ${styles.cardMidWomen}`}>
+                <h3 className={styles.cardMidTitle}>Training of Trainers (TOT) – WOMEN BATCH</h3>
+                <p className={styles.cardMidSub}>
+                  দক্ষ ও প্রফেশনাল ইসলামি শিক্ষক তৈরির লক্ষ্যে বিশেষভাবে নির্ধারিত এই প্রশিক্ষণ প্রোগ্রাম।
+                </p>
               </div>
 
-              <div className={styles.courseCardFooter}>
-                <a href="#registration-section" className={`${styles.btn} ${styles.btnGold} ${styles.btnFull}`}>
-                  {womenCourse.name} কোর্সে নিবন্ধন করুন (৳{womenCourse.fee || 1000}) →
-                </a>
-                <a href="#program-videos" className={styles.btnWatchVideo}>
-                  ▶️ নারীদের ওরিয়েন্টেশন ভিডিও দেখুন
-                </a>
+              <div className={styles.cardBody}>
+                <div>
+                  <div className={`${styles.cardOrientationBox} ${styles.cardOrientWomen}`}>
+                    <Calendar size={18} className={styles.orientCalendarIcon} />
+                    <div className={styles.orientTextCol}>
+                      <span className={styles.orientHeading}>First Orientation Class:</span>
+                      <span className={styles.orientDateTime}>
+                        {womenCourse.orientationDate || '২১ সেপ্টেম্বর ২০২৬'} — {womenCourse.orientationTime || 'রাত ৮:০০ টা – ৯:৩০ টা'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.cardPerksList}>
+                    <div className={styles.cardPerkItem}>
+                      <div className={`${styles.perkCheckCircle} ${styles.perkCheckWomen}`}>✓</div>
+                      <span><strong>মাসিক সম্মানী:</strong> ১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত</span>
+                    </div>
+                    <div className={styles.cardPerkItem}>
+                      <div className={`${styles.perkCheckCircle} ${styles.perkCheckWomen}`}>✓</div>
+                      <span><strong>৪টি প্রফেশনাল সেশন:</strong> ইসলামিক জ্ঞান ও শিক্ষাদানের কৌশল</span>
+                    </div>
+                    <div className={styles.cardPerkItem}>
+                      <div className={`${styles.perkCheckCircle} ${styles.perkCheckWomen}`}>✓</div>
+                      <span><strong>অভিজ্ঞ ট্রেইনার:</strong> বিশিষ্ট আলেমা ও শিক্ষাবিদ</span>
+                    </div>
+                    <div className={styles.cardPerkItem}>
+                      <div className={`${styles.perkCheckCircle} ${styles.perkCheckWomen}`}>✓</div>
+                      <span><strong>সার্টিফিকেট প্রদান:</strong> কোর্স শেষে সার্টিফিকেট ও মূল্যায়ন</span>
+                    </div>
+                    <div className={styles.cardPerkItem}>
+                      <div className={`${styles.perkCheckCircle} ${styles.perkCheckWomen}`}>✓</div>
+                      <span><strong>Training &amp; Development:</strong> ক্যারিয়ার গ্রোথের সুযোগ</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className={`${styles.trackStripPill} ${styles.stripWomen}`}>
+                    <Users size={14} />
+                    <span>Training of Trainers (TOT) – WOMEN BATCH (কোর্স ফি: ৳১,০০০)</span>
+                  </div>
+
+                  <a
+                    href="#registration-section"
+                    className={`${styles.btnTrackAction} ${styles.btnTrackWomen}`}
+                  >
+                    <span>নিবন্ধন করুন এখনই</span>
+                    <ArrowRight size={16} />
+                  </a>
+                </div>
               </div>
+            </div>
+          </div>
+
+          {/* ──────── BOTTOM 3-PILL BAR ──────── */}
+          <div className={styles.tracksBottomPillBar} data-reveal>
+            <div className={styles.tracksPillItem}>
+              <BookMarked size={16} className={styles.tracksPillIcon} />
+              <span>Build Islamic Educator</span>
+            </div>
+            <div className={styles.tracksPillSep} />
+            <div className={styles.tracksPillItem}>
+              <Handshake size={16} className={styles.tracksPillIcon} />
+              <span>Better Community</span>
+            </div>
+            <div className={styles.tracksPillSep} />
+            <div className={styles.tracksPillItem}>
+              <Sprout size={16} className={styles.tracksPillIcon} />
+              <span>A Brighter Future</span>
             </div>
           </div>
         </div>

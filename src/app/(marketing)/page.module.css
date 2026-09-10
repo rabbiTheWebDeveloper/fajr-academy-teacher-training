@@ -807,13 +807,18 @@
   width: 100%;
   padding: 12px 20px;
   background: linear-gradient(135deg, #F8CE67 0%, #F5B335 100%);
-  color: #071326;
+  color: #071326 !important;
   font-weight: 800;
   font-size: 0.92rem;
   border-radius: 30px;
   text-decoration: none;
   box-shadow: 0 6px 20px rgba(245, 179, 53, 0.4);
   transition: var(--transition);
+}
+
+.btnArchGold svg {
+  color: #071326;
+  stroke: #071326;
 }
 
 .btnArchGold:hover {
@@ -2897,6 +2902,541 @@
   border-color: #D4AF37;
   color: #051329;
   transform: translateY(-1px);
+}
+
+/* ============================================================
+   DUAL TRACKS SECTION (Image-Faithful Redesign)
+   ============================================================ */
+.tracksSection {
+  position: relative;
+  background-color: #FAF7F2;
+  background-image: url('/tracks-bg.jpg');
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: cover;
+  padding: 80px 0 60px;
+  overflow: hidden;
+}
+
+.tracksOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(250, 247, 242, 0.3) 0%,
+    rgba(250, 247, 242, 0.75) 30%,
+    rgba(250, 247, 242, 0.95) 55%,
+    #FAF7F2 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tracksContentWrap {
+  position: relative;
+  z-index: 2;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+.tracksGrid3Col {
+  display: grid;
+  grid-template-columns: 1.05fr 0.98fr 0.98fr;
+  gap: 28px;
+  align-items: stretch;
+  margin-bottom: 40px;
+}
+
+/* Left Column - Intro & Value Props */
+.tracksIntroCol {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-right: 12px;
+}
+
+.tracksIntroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(223, 183, 108, 0.12);
+  border: 1px solid rgba(201, 162, 75, 0.4);
+  color: #976E1A;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 18px;
+  align-self: flex-start;
+}
+
+.tracksMainH2 {
+  font-family: 'Noto Serif Bengali', 'Playfair Display', Georgia, serif;
+  font-size: clamp(2rem, 3.2vw, 2.7rem);
+  line-height: 1.25;
+  font-weight: 800;
+  color: #071739;
+  margin-bottom: 18px;
+}
+
+.tracksH2Line {
+  display: block;
+}
+
+.tracksH2Gold {
+  color: #C58F2C;
+}
+
+.tracksIntroP {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #4A5568;
+  margin-bottom: 26px;
+  max-width: 440px;
+}
+
+/* 4 Feature Circles Row */
+.tracksFeaturesRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.tracksFeatureItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.tracksFeatureCircle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #FFF9EE;
+  border: 1px solid rgba(223, 183, 108, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #071739;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+}
+
+.tracksFeatureTitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #071739;
+}
+
+/* Hadith Card */
+.tracksHadithBox {
+  position: relative;
+  background: #FFFFFF;
+  border-radius: 12px;
+  border: 1px solid rgba(223, 183, 108, 0.3);
+  padding: 14px 18px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  max-width: 440px;
+}
+
+.tracksHadithGlyph {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  font-family: Georgia, serif;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: #DFB76C;
+}
+
+.tracksHadithInner {
+  padding-left: 24px;
+}
+
+.tracksHadithArabic {
+  font-family: 'Amiri', 'Traditional Arabic', serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0B1E48;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.tracksHadithBengali {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #556072;
+  margin: 0;
+}
+
+/* Card Common Styles */
+.trackCard {
+  background: #FFFFFF;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 16px 44px rgba(7, 23, 57, 0.08);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.trackCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 50px rgba(7, 23, 57, 0.14);
+}
+
+/* Card Header Image */
+.cardImgHeader {
+  position: relative;
+  height: 155px;
+  overflow: hidden;
+}
+
+.cardImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.trackCard:hover .cardImg {
+  transform: scale(1.04);
+}
+
+/* Top Left Overlay Badge */
+.cardBadgeLeft {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(4px);
+}
+
+.cardBadgeLeftMen {
+  background: #0B1E48;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cardBadgeLeftWomen {
+  background: #701A35;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Top Right Overlay Fee Badge */
+.cardBadgeRight {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 18px;
+  color: #FFFFFF;
+  line-height: 1.1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(4px);
+}
+
+.cardBadgeRightMen {
+  background: #0B1E48;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cardBadgeRightWomen {
+  background: #701A35;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.feeAmount {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #FFFFFF;
+}
+
+.feeSub {
+  font-size: 0.58rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Card Middle Dark Banner */
+.cardMidBanner {
+  padding: 16px 20px;
+}
+
+.cardMidMen {
+  background: #0D234A;
+}
+
+.cardMidWomen {
+  background: #701A35;
+}
+
+.cardMidTitle {
+  font-family: 'Noto Serif Bengali', 'Playfair Display', Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin-bottom: 5px;
+  line-height: 1.25;
+}
+
+.cardMidSub {
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+/* Card Body */
+.cardBody {
+  padding: 18px 20px 22px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-between;
+}
+
+/* Orientation Class Alert Box */
+.cardOrientationBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-bottom: 18px;
+}
+
+.cardOrientMen {
+  background: #FFF9ED;
+  border: 1px solid #FBE7C3;
+}
+
+.cardOrientWomen {
+  background: #FFF5F7;
+  border: 1px solid #FED7E2;
+}
+
+.orientCalendarIcon {
+  color: #0B1E48;
+  flex-shrink: 0;
+}
+
+.cardOrientWomen .orientCalendarIcon {
+  color: #701A35;
+}
+
+.orientTextCol {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.orientHeading {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.orientDateTime {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #071739;
+}
+
+.cardOrientWomen .orientDateTime {
+  color: #701A35;
+}
+
+/* Checklist Items */
+.cardPerksList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.cardPerkItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: #2D3748;
+  font-weight: 500;
+}
+
+.perkCheckCircle {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.62rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.perkCheckMen {
+  background: #0B1E48;
+}
+
+.perkCheckWomen {
+  background: #701A35;
+}
+
+/* Pill Strip */
+.trackStripPill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 24px;
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.stripMen {
+  background: #0B1E48;
+}
+
+.stripWomen {
+  background: #701A35;
+}
+
+/* Card Button */
+.btnTrackAction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 18px;
+  border-radius: 28px;
+  font-weight: 800;
+  font-size: 0.88rem;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btnTrackMen {
+  background: linear-gradient(135deg, #F8CE67 0%, #F5B335 100%);
+  color: #071326;
+  box-shadow: 0 4px 14px rgba(245, 179, 53, 0.4);
+}
+
+.btnTrackMen:hover {
+  background: linear-gradient(135deg, #FFE08A 0%, #F8C349 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(245, 179, 53, 0.55);
+}
+
+.btnTrackWomen {
+  background: #F9A8BA;
+  color: #58142D;
+  box-shadow: 0 4px 14px rgba(249, 168, 186, 0.45);
+}
+
+.btnTrackWomen:hover {
+  background: #F8B4C3;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(249, 168, 186, 0.65);
+}
+
+/* Bottom 3-Pill Bar */
+.tracksBottomPillBar {
+  max-width: 600px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(223, 183, 108, 0.35);
+  border-radius: 30px;
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(8px);
+}
+
+.tracksPillItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #071739;
+}
+
+.tracksPillIcon {
+  color: #C58F2C;
+}
+
+.tracksPillSep {
+  width: 1px;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .tracksGrid3Col {
+    grid-template-columns: 1fr;
+    max-width: 580px;
+    margin: 0 auto 40px;
+  }
+  .tracksIntroCol {
+    padding-right: 0;
+    text-align: center;
+    align-items: center;
+  }
+  .tracksIntroBadge {
+    align-self: center;
+  }
+  .tracksIntroP {
+    max-width: 100%;
+  }
+  .tracksHadithBox {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .tracksFeaturesRow {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .tracksBottomPillBar {
+    flex-direction: column;
+    gap: 8px;
+    border-radius: 16px;
+  }
+  .tracksPillSep {
+    display: none;
+  }
 }
 
 
