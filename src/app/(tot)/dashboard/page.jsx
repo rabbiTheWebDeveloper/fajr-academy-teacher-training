@@ -2,6 +2,7 @@ import { getSessionUser } from "@/lib/auth";
 import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
 import { PaymentModel } from "@/model/payment-model";
+import { CourseModel } from "@/model/course-model";
 import DashboardClient from "./DashboardClient";
 
 export const metadata = {
@@ -17,6 +18,7 @@ export default async function TOTDashboardPage({ searchParams }) {
 
   let user = null;
   let payments = [];
+  let availableCourses = [];
 
   try {
     await dbConnect();
@@ -38,6 +40,9 @@ export default async function TOTDashboardPage({ searchParams }) {
         .sort({ createdAt: -1 })
         .lean();
     }
+
+    const rawCourses = await CourseModel.find({ isPublished: true }).sort({ createdAt: 1 }).lean();
+    availableCourses = JSON.parse(JSON.stringify(rawCourses || []));
   } catch (error) {
     console.error("Dashboard user lookup error:", error);
   }
@@ -82,6 +87,7 @@ export default async function TOTDashboardPage({ searchParams }) {
     <DashboardClient
       trainee={initialTrainee}
       payments={formattedPayments}
+      availableCourses={availableCourses}
       isNewlyEnrolled={params?.enrolled === "true"}
     />
   );

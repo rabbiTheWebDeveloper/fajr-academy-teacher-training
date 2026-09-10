@@ -3,35 +3,28 @@
 import React, { useState } from "react";
 import Link from "next/link";
 
-export type FajrLogoSize = "xs" | "sm" | "md" | "lg" | "xl" | "responsive" | "custom";
-export type FajrLogoVariant = "adaptive" | "navy" | "white" | "gold";
-export type FajrLogoLayout = "horizontal" | "stacked" | "icon-only" | "image";
-
-export interface FajrLogoProps {
-  /** Size preset or responsive scale */
-  size?: FajrLogoSize;
-  /** Color theme variant */
-  variant?: FajrLogoVariant;
-  /** Layout: image = real PNG logo (default), horizontal = SVG lockup, stacked = stacked SVG, icon-only = emblem only */
-  layout?: FajrLogoLayout;
-  /** Optional link destination (null = no link) */
-  href?: string | null;
-  /** Extra CSS classes for the outer container */
-  className?: string;
-  /** Extra CSS classes applied directly to the <img> element */
-  imgClassName?: string;
-  /** Accessible label */
-  alt?: string;
-  /** Priority loading for above-the-fold logos */
-  priority?: boolean;
-}
+/**
+ * @typedef {"xs" | "sm" | "md" | "lg" | "xl" | "responsive" | "custom"} FajrLogoSize
+ * @typedef {"adaptive" | "navy" | "white" | "gold"} FajrLogoVariant
+ * @typedef {"horizontal" | "stacked" | "icon-only" | "image"} FajrLogoLayout
+ *
+ * @typedef {Object} FajrLogoProps
+ * @property {FajrLogoSize} [size] - Size preset or responsive scale
+ * @property {FajrLogoVariant} [variant] - Color theme variant
+ * @property {FajrLogoLayout} [layout] - Layout: image = real PNG logo (default), horizontal = SVG lockup, stacked = stacked SVG, icon-only = emblem only
+ * @property {string | null} [href] - Optional link destination (null = no link)
+ * @property {string} [className] - Extra CSS classes for the outer container
+ * @property {string} [imgClassName] - Extra CSS classes applied directly to the <img> element
+ * @property {string} [alt] - Accessible label
+ * @property {boolean} [priority] - Priority loading for above-the-fold logos
+ */
 
 // ─── Logo-specific deep navy from the original brand asset ─────────────────
 const BRAND_NAVY = "#0B1A45";
 const BRAND_NAVY_LIGHT = "#162C65";
 
 // ─── Responsive image heights per size ──────────────────────────────────────
-const IMG_HEIGHT: Record<FajrLogoSize, string> = {
+const IMG_HEIGHT = {
   xs:         "h-7 w-7",
   sm:         "h-9 w-9",
   md:         "h-11 w-11",
@@ -42,7 +35,7 @@ const IMG_HEIGHT: Record<FajrLogoSize, string> = {
 };
 
 // ─── Min widths to stop proportional shrink below readable size ──────────────
-const IMG_MINW: Record<FajrLogoSize, string> = {
+const IMG_MINW = {
   xs:         "min-w-[28px]",
   sm:         "min-w-[36px]",
   md:         "min-w-[44px]",
@@ -53,7 +46,7 @@ const IMG_MINW: Record<FajrLogoSize, string> = {
 };
 
 // ─── CSS styling treatments per variant ──────────────────────────────────────
-const IMG_FILTER: Record<FajrLogoVariant, string> = {
+const IMG_FILTER = {
   adaptive: "rounded-xl border border-[#C59B27]/40 shadow-sm object-cover",
   navy: "rounded-xl border border-[#C59B27]/40 shadow-sm object-cover",
   white: "rounded-xl border border-[#C59B27]/50 shadow-md object-cover",
@@ -61,7 +54,7 @@ const IMG_FILTER: Record<FajrLogoVariant, string> = {
 };
 
 // ─── Fallback SVG text sizes (used when image fails or layout=horizontal) ───
-const SVG_SIZES: Record<FajrLogoSize, { title: string; sub: string; icon: string; gap: string }> = {
+const SVG_SIZES = {
   xs:         { title: "text-sm font-extrabold tracking-widest",              sub: "text-[8px]  tracking-[0.25em] font-bold", icon: "w-5 h-5",                gap: "gap-1.5" },
   sm:         { title: "text-base sm:text-lg font-extrabold tracking-widest", sub: "text-[9px]  sm:text-[10px] tracking-[0.25em] font-bold", icon: "w-6 h-6 sm:w-7 sm:h-7", gap: "gap-2" },
   md:         { title: "text-xl sm:text-2xl font-extrabold tracking-widest",  sub: "text-[10px] sm:text-xs tracking-[0.28em] font-bold", icon: "w-8 h-8 sm:w-9 sm:h-9", gap: "gap-2.5" },
@@ -75,9 +68,6 @@ const SVG_SIZES: Record<FajrLogoSize, { title: string; sub: string; icon: string
 function FajrBrandMark({
   className = "w-8 h-8",
   variant = "adaptive",
-}: {
-  className?: string;
-  variant?: FajrLogoVariant;
 }) {
   const isWhite = variant === "white";
   const isGold  = variant === "gold";
@@ -162,7 +152,7 @@ export function FajrLogo({
   imgClassName = "",
   alt      = "FAJR Academy",
   priority = false,
-}: FajrLogoProps) {
+}) {
   const [imgError, setImgError] = useState(false);
 
   const hPx   = IMG_HEIGHT[size]  || IMG_HEIGHT.responsive;
@@ -184,7 +174,7 @@ export function FajrLogo({
     : "text-[#DFB76C] dark:text-amber-400";
 
   // ── Content selection ────────────────────────────────────────────────────
-  let content: React.ReactNode;
+  let content;
 
   // 1) Real PNG logo — default & best for fidelity
   if ((layout === "image" || layout === "icon-only") && !imgError) {

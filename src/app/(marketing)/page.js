@@ -2,15 +2,31 @@ import styles from './page.module.css'
 import RevealObserver from './RevealObserver'
 import RegistrationForm from './RegistrationForm'
 import { BASE_URL } from '@/constant'
+import { dbConnect } from '@/service/mongo'
+import { CourseModel } from '@/model/course-model'
+import {
+  Home,
+  BookOpen,
+  UserCheck,
+  Award,
+  Clock,
+  ShieldCheck,
+  Users,
+  Calendar,
+  Heart,
+  Check,
+  ArrowRight,
+  MessageCircle,
+  CreditCard,
+  Tag,
+  User,
+} from 'lucide-react'
+
+export const dynamic = 'force-dynamic'
 
 const SITE_URL = `https://${BASE_URL}`
 const PAGE_URL = `${SITE_URL}/`
 
-/* ------------------------------------------------------------------ */
-/*  Fajr Academy logo — inline base64 so no external image request    */
-/* ------------------------------------------------------------------ */
-const LOGO_B64 =
-  'data:image/png;base64,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'
 
 /* ------------------------------------------------------------------ */
 /*  Page-level SEO metadata                                            */
@@ -126,7 +142,37 @@ const jsonLd = {
 /* ------------------------------------------------------------------ */
 /*  Page Component (Server Component)                                  */
 /* ------------------------------------------------------------------ */
-export default function TeacherRegistrationMarketingPage() {
+export default async function TeacherRegistrationMarketingPage() {
+  let courses = []
+  try {
+    await dbConnect()
+    courses = await CourseModel.find({ isPublished: true }).sort({ createdAt: 1 }).lean()
+  } catch (err) {
+    console.error('Error fetching courses in page.js:', err)
+  }
+
+  const menCourse = courses?.find((c) => c.track === 'men' || c.courseId === 'TOT-MEN') || {
+    name: 'Training of Trainers (TOT) – MEN',
+    tag: '👨‍🏫 পুরুষদের জন্য বিশেষায়িত',
+    fee: 1000,
+    orientationDate: '২০ সেপ্টেম্বর',
+    orientationTime: 'রাত ৮:০০ টা',
+    summary:
+      'ছেলেদের জন্য ঘরে বসে চাকরির বিশেষ সুযোগ। বাচ্চাদের আধুনিক পদ্ধতিতে কুরআন পাঠদানের আন্তর্জাতিক টিওটি পেডাগোজি প্রশিক্ষণ।',
+  }
+
+  const womenCourse = courses?.find((c) => c.track === 'women' || c.courseId?.includes('WOMEN')) || {
+    name: 'Training of Trainers (TOT) – WOMEN',
+    tag: '🧕 নারীদের জন্য · Batch 014 (Batch 013 চলমান)',
+    fee: 1000,
+    orientationDate: '২১ সেপ্টেম্বর',
+    orientationTime: 'রাত ৮:০০ টা',
+    summary:
+      'জেনারেল লাইনে পড়ালিখা করা দ্বীনে ফেরা আপুদের জন্য ঘরে বসেই আন্তর্জাতিক মানের অনলাইন কুরআন টিচার হওয়ার সুযোগ।',
+  }
+
+  const sanitizedCourses = JSON.parse(JSON.stringify(courses || []))
+
   return (
     <div className={styles.pageRoot}>
       {/* ── JSON-LD Structured Data ─── */}
@@ -141,127 +187,285 @@ export default function TeacherRegistrationMarketingPage() {
       {/* ════════════════════════════════════════════════════════
           TOP BAR
           ════════════════════════════════════════════════════════ */}
-      <div className={styles.topbar}>
-        <div className={`${styles.wrap} ${styles.topbarInner}`}>
-          <div className={styles.topbarAnnouncement}>
-            <span className={styles.liveDot} />
-            <span>ছেলে ও নারীদের জন্য সম্পূর্ণ অনলাইন কুরআন টিচার ট্রেনিং (TOT) · মাসিক সম্মানী ১৫,০০০ – ২২,০০০৳</span>
-          </div>
-          <a className={styles.topbarPhone} href="https://wa.me/8801641028312" target="_blank" rel="noopener noreferrer">
-            <span>WhatsApp: 01641028312</span>
-          </a>
-        </div>
-      </div>
-
       {/* ════════════════════════════════════════════════════════
-          HEADER
+          HEADER (Matching Reference Image)
           ════════════════════════════════════════════════════════ */}
       <header className={styles.header}>
-        <div className={`${styles.wrap} ${styles.headerInner}`}>
-          <div className={styles.brand}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/fajr-logo.png" alt="Fajr Academy" className={styles.brandLogo} />
-            <div className={styles.brandDivider} />
-            <div>
-              <div className={styles.brandName}>ফজর একাডেমি</div>
-              <div className={styles.brandTag}>Balanced Education for Dunya &amp; Akhirah</div>
+        <div className={styles.headerInner}>
+          {/* ── Brand Logo & Slogan ── */}
+          <a href="#" className={styles.brand}>
+            <div className={styles.brandCrest}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/fajr-logo.png" alt="FAJR Academy" className={styles.brandLogoImg} />
+              <div className={styles.brandLogoText}>
+                <span className={styles.brandLogoTitle}>FAJR</span>
+                <span className={styles.brandLogoSub}>Academy</span>
+              </div>
             </div>
-          </div>
-          <div className={styles.pillTags}>
-            <span className={styles.pill}>👨‍🏫 TOT for Men</span>
-            <span className={styles.pill}>🧕 TOT for Women (Batch 014)</span>
-            <span className={`${styles.pill} ${styles.pillGold}`}>ফি ৳১,০০০</span>
+            <div className={styles.brandDivider} />
+            <div className={styles.brandSlogan}>
+              <span className={styles.brandSloganMain}>Balanced Education for</span>
+              <span className={styles.brandSloganAccent}>Dunya &amp; Akhirah</span>
+            </div>
+          </a>
+
+          {/* ── Center Nav Menu ── */}
+          <nav className={styles.navMenu}>
+            <a href="#" className={`${styles.navItem} ${styles.navItemActive}`}>
+              <Home size={15} color="#F5B335" />
+              <span>Home</span>
+            </a>
+            <a href="#tracks-section" className={styles.navItem}>
+              Courses
+            </a>
+            <a href="#why-fajr" className={styles.navItem}>
+              About
+            </a>
+            <a href="#footer-section" className={styles.navItem}>
+              Contact
+            </a>
+          </nav>
+
+          {/* ── Right Actions & WhatsApp ── */}
+          <div className={styles.headerActions}>
+            <a href="#course-men" className={styles.pillBadge}>
+              <div className={`${styles.badgeIconCircle} ${styles.badgeIconBlue}`}>
+                <User size={12} />
+              </div>
+              <div className={styles.badgeTextCol}>
+                <span className={styles.badgeTitle}>TOT for Men</span>
+                <span className={styles.badgeSub}>Batch 014</span>
+              </div>
+            </a>
+
+            <a href="#course-women" className={styles.pillBadge}>
+              <div className={`${styles.badgeIconCircle} ${styles.badgeIconPink}`}>
+                <User size={12} />
+              </div>
+              <div className={styles.badgeTextCol}>
+                <span className={styles.badgeTitle}>TOT for Women</span>
+                <span className={styles.badgeSub}>Batch 014</span>
+              </div>
+            </a>
+
+            <div className={styles.pillPrice}>
+              <Tag size={14} color="#F8CE67" />
+              <span>৳ 19,000</span>
+            </div>
+
+            <a
+              href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20ফজর%20একাডেমির%20কুরআন%20টিচার%20ট্রেনিং%20সম্পর্কে%20জানতে%20চাই।"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.headerWhatsappBtn}
+            >
+              <div className={styles.whatsappIconBox}>
+                <MessageCircle size={16} fill="#fff" color="#25D366" />
+              </div>
+              <div className={styles.whatsappTextBox}>
+                <span className={styles.whatsappNum}>01641028312</span>
+                <span className={styles.whatsappLabel}>WhatsApp Us</span>
+              </div>
+            </a>
           </div>
         </div>
       </header>
 
       {/* ════════════════════════════════════════════════════════
-          HERO SECTION
+          HERO SECTION (Cinematic Islamic Design matching reference)
           ════════════════════════════════════════════════════════ */}
       <section className={styles.hero}>
-        <div className={`${styles.wrap} ${styles.heroGrid}`}>
-          {/* ── Left column ── */}
-          <div>
-            <div className={styles.heroBadgeRow}>
-              <span className={styles.eyebrow}>Training of Trainers (TOT) · 2 Sessions</span>
-              <span className={styles.heroBatchTag}>Men &amp; Women Tracks</span>
-            </div>
+        <div className={styles.heroOverlay} />
 
-            <h1 className={styles.heroH1}>
-              শুদ্ধভাবে কুরআন ও ইংরেজি জানেন?{' '}
-              <span className={styles.heroH1Accent}>ঘরে বসেই</span> হয়ে উঠুন প্রফেশনাল কুরআন টিচার
-            </h1>
+        <div className={styles.heroContentWrap}>
+          <div className={styles.heroGrid}>
+            {/* ── Left Column ── */}
+            <div className={styles.heroLeft}>
+              <div className={styles.heroBadgeRow}>
+                <span className={styles.heroPillGold}>TRAINING OF TRAINERS (TOT) • 2 SESSIONS</span>
+                <span className={styles.heroPillGroup}>
+                  <Users size={14} color="#F8E29E" />
+                  <span>Men &amp; Women Tracks</span>
+                </span>
+              </div>
 
-            <p className={styles.heroLede}>
-              ফজর একাডেমি নিয়ে এসেছে ছেলে ও দ্বীনে ফেরা আপুদের জন্য ১ মাসের প্রফেশনাল টিচার ট্রেনিং প্রোগ্রাম (TOT)।
-              মাত্র ৪টি সেশন সম্পন্ন করে অর্জন করুন অফিসিয়াল সার্টিফিকেট এবং ঘরে বসেই <strong>মাসিক ১৫,০০০ থেকে ২২,০০০ টাকা</strong> সম্মানীতে কাজ করার সুযোগ।
-            </p>
+              <h1 className={styles.heroH1}>
+                <span className={styles.heroH1Line}>শুদ্ধভাবে কুরআন ও</span>
+                <span className={styles.heroH1Line}>ইংরেজি জানেন?</span>
+                <span className={`${styles.heroH1Line} ${styles.heroH1Accent}`}>ঘরে বসেই হয়ে উঠুন</span>
+                <span className={styles.heroH1Line}>প্রফেশনাল কুরআন টিচার</span>
+              </h1>
 
-            {/* Hadith Callout */}
-            <div className={styles.hadithHeroCard}>
-              <span className={styles.hadithArabic}>خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ</span>
-              <p className={styles.hadithTranslation}>
-                &ldquo;তোমাদের মধ্যে সর্বোত্তম ব্যক্তি সে, যে নিজে কুরআন শিখে এবং অন্যকে শেখায়।&rdquo; — আল হাদিস
+              <p className={styles.heroLede}>
+                ফজর একাডেমি নিয়ে এসেছে মাত্র ২ দিনের অনলাইন প্রশিক্ষণ (TOT) কোর্স, যেখানে আপনি শিখবেন কুরআন শিক্ষাদানের আধুনিক পদ্ধতি, সহজ টেকনিক এবং প্রফেশনাল স্কিল। ঘরে বসেই গড়ে তুলুন একটি সম্মানজনক ক্যারিয়ার — আল্লাহর পথে, মানুষের কাছে।
               </p>
+
+              {/* ── 4 Feature highlight pills ── */}
+              <div className={styles.heroFeaturePillRow}>
+                <div className={styles.heroFeatureItem}>
+                  <div className={styles.heroFeatureIcon}>
+                    <BookOpen size={18} />
+                  </div>
+                  <div className={styles.heroFeatureText}>
+                    কুরআন শিক্ষার<br />আধুনিক পদ্ধতি
+                  </div>
+                </div>
+
+                <div className={styles.heroFeatureItem}>
+                  <div className={styles.heroFeatureIcon}>
+                    <UserCheck size={18} />
+                  </div>
+                  <div className={styles.heroFeatureText}>
+                    প্রফেশনাল<br />টিচার ট্রেনিং
+                  </div>
+                </div>
+
+                <div className={styles.heroFeatureItem}>
+                  <div className={styles.heroFeatureIcon}>
+                    <Award size={18} />
+                  </div>
+                  <div className={styles.heroFeatureText}>
+                    সার্টিফিকেট<br />প্রদান করা হবে
+                  </div>
+                </div>
+
+                <div className={styles.heroFeatureItem}>
+                  <div className={styles.heroFeatureIcon}>
+                    <Clock size={18} />
+                  </div>
+                  <div className={styles.heroFeatureText}>
+                    ২ দিনের<br />ইন্টেনসিভ ট্রেনিং
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Hadith Callout Box ── */}
+              <div className={styles.hadithHeroCard}>
+                <span className={styles.hadithQuoteGlyph}>“</span>
+                <div className={styles.hadithBody}>
+                  <span className={styles.hadithArabic}>خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ</span>
+                  <p className={styles.hadithTranslation}>
+                    &ldquo;তোমাদের মধ্যে সর্বোত্তম ব্যক্তি সে, যে নিজে কুরআন শিখে এবং অন্যকে শেখায়।&rdquo; — হাদিস শরীফ
+                  </p>
+                </div>
+              </div>
+
+              {/* ── CTA Row ── */}
+              <div className={styles.ctaRow}>
+                <a
+                  id="hero-register-cta"
+                  className={styles.btnHeroGold}
+                  href="#registration-section"
+                >
+                  <MessageCircle size={18} fill="#071326" color="#071326" />
+                  <span>এখনই কোর্স রেজিস্ট্রেশন করুন (৳১৯,০০০)</span>
+                  <ArrowRight size={17} />
+                </a>
+
+                <a
+                  id="hero-whatsapp-cta"
+                  className={styles.btnHeroDark}
+                  href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageCircle size={18} color="#25D366" />
+                  <span>WhatsApp-এ বিস্তারিত করুন</span>
+                </a>
+              </div>
             </div>
 
-            <div className={styles.ctaRow}>
-              <a
-                id="hero-register-cta"
-                className={`${styles.btn} ${styles.btnGold}`}
-                href="#registration-section"
-              >
-                এখনই কোর্স নির্বাচন ও রেজিস্ট্রেশন করুন (৳১,০০০) ↓
-              </a>
-              <a
-                id="hero-whatsapp-cta"
-                className={`${styles.btn} ${styles.btnOutline}`}
-                href="https://wa.me/8801641028312"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                💬 WhatsApp-এ জিজ্ঞাসা করুন
-              </a>
-            </div>
+            {/* ── Right Column — Islamic Arched Card ── */}
+            <div className={styles.heroRight}>
+              <div className={styles.islamicArchCard}>
+                <div className={styles.archTopEmblem}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/fajr-logo.png" alt="FAJR Academy" className={styles.archLogoImg} />
+                  <div className={styles.archBrandTitle}>FAJR</div>
+                  <div className={styles.archBrandSub}>Academy</div>
+                </div>
 
-            <div className={styles.heroStats}>
-              <div className={styles.stat}>
-                <b className={styles.statValue}>১৫k–২২k৳</b>
-                <span className={styles.statLabel}>মাসিক সম্মানী</span>
-              </div>
-              <div className={styles.stat}>
-                <b className={styles.statValue}>৪টি</b>
-                <span className={styles.statLabel}>প্রফেশনাল সেশন</span>
-              </div>
-              <div className={styles.stat}>
-                <b className={styles.statValue}>১,০০০৳</b>
-                <span className={styles.statLabel}>কোর্স ফি</span>
-              </div>
-              <div className={styles.stat}>
-                <b className={styles.statValue}>১০০%</b>
-                <span className={styles.statLabel}>অনলাইন (ঘরে বসে)</span>
+                <div className={styles.archCourseTitle}>কুরআন টিচার ট্রেনিং</div>
+                <div className={styles.archCourseYear}>২০২৬</div>
+
+                <div className={styles.archChecklist}>
+                  <div className={styles.archCheckItem}>
+                    <div className={styles.archCheckCircle}>
+                      <Check size={12} strokeWidth={3} />
+                    </div>
+                    <span>কুরআন শিক্ষার আধুনিক কৌশল</span>
+                  </div>
+
+                  <div className={styles.archCheckItem}>
+                    <div className={styles.archCheckCircle}>
+                      <Check size={12} strokeWidth={3} />
+                    </div>
+                    <span>প্রফেশনাল মেন্টরগাইডেন্স</span>
+                  </div>
+
+                  <div className={styles.archCheckItem}>
+                    <div className={styles.archCheckCircle}>
+                      <Check size={12} strokeWidth={3} />
+                    </div>
+                    <span>সাপোর্টেড কমিউনিটি</span>
+                  </div>
+
+                  <div className={styles.archCheckItem}>
+                    <div className={styles.archCheckCircle}>
+                      <Check size={12} strokeWidth={3} />
+                    </div>
+                    <span>সার্টিফিকেট প্রদান</span>
+                  </div>
+                </div>
+
+                <div className={styles.archActions}>
+                  <a href="#registration-section" className={styles.btnArchGold}>
+                    <CreditCard size={17} />
+                    <span>রেজিস্ট্রেশন করুন</span>
+                    <ArrowRight size={16} />
+                  </a>
+
+                  <a
+                    href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.btnArchDark}
+                  >
+                    <MessageCircle size={16} color="#25D366" />
+                    <span>WhatsApp-এ বিস্তারিত করুন</span>
+                  </a>
+                </div>
+
+                <div className={styles.archFooter}>
+                  <span>— আপনার উজ্জ্বল ভবিষ্যতের জন্য —</span>
+                  <span className={styles.archFooterStar}>✦</span>
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* ── Right column — Course Highlights Card ── */}
-          <div className={styles.heroVisual}>
-            <div className={styles.heroArch}>
-              <div className={styles.centerMark}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/fajr-logo.png" alt="Fajr Academy" className={styles.heroLogo} />
-                <div className={styles.glyphBn}>কুরআন টিচার ট্রেনিং ২০২৬</div>
-                <div className={styles.heroFeaturePills}>
-                  <div className={styles.featurePillItem}>✓ কোনো ট্রাফিক জ্যাম নেই</div>
-                  <div className={styles.featurePillItem}>✓ ল্যাপটপ সাপোর্ট সুবিধা</div>
-                  <div className={styles.featurePillItem}>✓ কন্টিনিউয়াস মেন্টরিং</div>
-                </div>
-              </div>
-              <div className={styles.miniArches}>
-                <div className={styles.miniArch} />
-                <div className={styles.miniArch} />
-                <div className={styles.miniArch} />
-              </div>
+        {/* ── Full-width Bottom Ribbon Bar ── */}
+        <div className={styles.heroBottomRibbon}>
+          <div className={styles.ribbonGrid}>
+            <div className={styles.ribbonItem}>
+              <ShieldCheck size={18} className={styles.ribbonIcon} />
+              <span>বিশ্বস্ত ও অভিজ্ঞ প্রশিক্ষক</span>
+            </div>
+
+            <div className={styles.ribbonItem}>
+              <Users size={18} className={styles.ribbonIcon} />
+              <span>মহিলা ও পুরুষ – আলাদা ব্যাচ</span>
+            </div>
+
+            <div className={styles.ribbonItem}>
+              <Calendar size={18} className={styles.ribbonIcon} />
+              <span>অনলাইন (ঘরে বসে)</span>
+            </div>
+
+            <div className={styles.ribbonItem}>
+              <Heart size={18} className={styles.ribbonIcon} />
+              <span>দুনিয়া ও আখিরাতের জন্য উপকারী</span>
             </div>
           </div>
         </div>
@@ -284,20 +488,20 @@ export default function TeacherRegistrationMarketingPage() {
             {/* ──────── TRACK 1: TOT - MEN ──────── */}
             <div className={`${styles.courseCard} ${styles.menCourseCard}`} data-reveal>
               <div className={styles.courseCardHeader}>
-                <div className={styles.courseTagMen}>👨‍🏫 পুরুষদের জন্য বিশেষায়িত</div>
-                <div className={styles.courseFeePill}>ফি: ৳১,০০০</div>
+                <div className={styles.courseTagMen}>{menCourse.tag || '👨‍🏫 পুরুষদের জন্য বিশেষায়িত'}</div>
+                <div className={styles.courseFeePill}>ফি: ৳{menCourse.fee || 1000}</div>
               </div>
 
-              <h3 className={styles.courseTitle}>Training of Trainers (TOT) – MEN</h3>
+              <h3 className={styles.courseTitle}>{menCourse.name || 'Training of Trainers (TOT) – MEN'}</h3>
               <p className={styles.courseSummary}>
-                ছেলেদের জন্য ঘরে বসে চাকরির বিশেষ সুযোগ। বাচ্চাদের আধুনিক পদ্ধতিতে কুরআন পাঠদানের আন্তর্জাতিক টিওটি পেডাগোজি প্রশিক্ষণ।
+                {menCourse.summary || 'ছেলেদের জন্য ঘরে বসে চাকরির বিশেষ সুযোগ। বাচ্চাদের আধুনিক পদ্ধতিতে কুরআন পাঠদানের আন্তর্জাতিক টিওটি পেডাগোজি প্রশিক্ষণ।'}
               </p>
 
               <div className={styles.orientationAlert}>
                 <span className={styles.orientIcon}>🔔</span>
                 <div>
                   <strong>First Orientation Class:</strong>
-                  <div className={styles.orientDate}>২০ সেপ্টেম্বর · রাত ৮:০০ টা</div>
+                  <div className={styles.orientDate}>{menCourse.orientationDate} · {menCourse.orientationTime}</div>
                 </div>
               </div>
 
@@ -326,7 +530,7 @@ export default function TeacherRegistrationMarketingPage() {
 
               <div className={styles.courseCardFooter}>
                 <a href="#registration-section" className={`${styles.btn} ${styles.btnGold} ${styles.btnFull}`}>
-                  TOT - MEN কোর্সে নিবন্ধন করুন (৳১,০০০) →
+                  {menCourse.name} কোর্সে নিবন্ধন করুন (৳{menCourse.fee || 1000}) →
                 </a>
                 <a href="#program-videos" className={styles.btnWatchVideo}>
                   ▶️ পুরুষদের ওরিয়েন্টেশন ভিডিও দেখুন
@@ -337,20 +541,20 @@ export default function TeacherRegistrationMarketingPage() {
             {/* ──────── TRACK 2: TOT - WOMEN (Batch 014) ──────── */}
             <div className={`${styles.courseCard} ${styles.womenCourseCard}`} data-reveal>
               <div className={styles.courseCardHeader}>
-                <div className={styles.courseTagWomen}>🧕 নারীদের জন্য · Batch 014 (Batch 013 চলমান)</div>
-                <div className={styles.courseFeePill}>ফি: ৳১,০০০</div>
+                <div className={styles.courseTagWomen}>{womenCourse.tag || '🧕 নারীদের জন্য · Batch 014 (Batch 013 চলমান)'}</div>
+                <div className={styles.courseFeePill}>ফি: ৳{womenCourse.fee || 1000}</div>
               </div>
 
-              <h3 className={styles.courseTitle}>Training of Trainers (TOT) – WOMEN</h3>
+              <h3 className={styles.courseTitle}>{womenCourse.name || 'Training of Trainers (TOT) – WOMEN'}</h3>
               <p className={styles.courseSummary}>
-                জেনারেল লাইনে পড়ালিখা করা দ্বীনে ফেরা আপুদের জন্য ঘরে বসেই আন্তর্জাতিক মানের অনলাইন কুরআন টিচার হওয়ার সুযোগ।
+                {womenCourse.summary || 'জেনারেল লাইনে পড়ালিখা করা দ্বীনে ফেরা আপুদের জন্য ঘরে বসেই আন্তর্জাতিক মানের অনলাইন কুরআন টিচার হওয়ার সুযোগ।'}
               </p>
 
               <div className={styles.orientationAlert}>
                 <span className={styles.orientIcon}>🔔</span>
                 <div>
                   <strong>First Orientation Class:</strong>
-                  <div className={styles.orientDate}>২১ সেপ্টেম্বর · রাত ৮:০০ টা</div>
+                  <div className={styles.orientDate}>{womenCourse.orientationDate} · {womenCourse.orientationTime}</div>
                 </div>
               </div>
 
@@ -379,7 +583,7 @@ export default function TeacherRegistrationMarketingPage() {
 
               <div className={styles.courseCardFooter}>
                 <a href="#registration-section" className={`${styles.btn} ${styles.btnGold} ${styles.btnFull}`}>
-                  TOT - WOMEN Batch 014-এ নিবন্ধন করুন (৳১,০০০) →
+                  {womenCourse.name} কোর্সে নিবন্ধন করুন (৳{womenCourse.fee || 1000}) →
                 </a>
                 <a href="#program-videos" className={styles.btnWatchVideo}>
                   ▶️ নারীদের ওরিয়েন্টেশন ভিডিও দেখুন
@@ -393,17 +597,17 @@ export default function TeacherRegistrationMarketingPage() {
       {/* ════════════════════════════════════════════════════════
           INTERACTIVE REGISTRATION FORM & PAYMENT (2 COURSES)
           ════════════════════════════════════════════════════════ */}
-      <section className={`${styles.section} ${styles.regSectionContainer}`}>
+      <section id="registration-section" className={`${styles.section} ${styles.regSectionContainer}`}>
         <div className={styles.wrap}>
           <div className={styles.sectionHead} data-reveal style={{ textAlign: 'center', margin: '0 auto 40px' }}>
             <span className={styles.eyebrow}>অনলাইন ভর্তি ও পেমেন্ট</span>
             <h2>কোর্স নির্বাচন ও শিক্ষার্থী নিবন্ধন ফর্ম</h2>
             <p>
-              নিচে আপনার কাঙ্ক্ষিত কোর্স ট্র্যাকটি নির্বাচন করুন এবং বিকাশ পেমেন্টের ট্রানজেকশন আইডি (TrxID) দিয়ে ফর্মটি সাবমিট করুন।
+              নিচে আপনার কাঙ্ক্ষিত কোর্স ট্র্যাকটি নির্বাচন করুন এবং বিকাশ / কার্ড / SSLCommerz পেমেন্ট সম্পন্ন করে কোর্স নিশ্চিত করুন।
             </p>
           </div>
 
-          <RegistrationForm initialTrack="men" />
+          <RegistrationForm initialTrack="men" courses={sanitizedCourses} />
         </div>
       </section>
 

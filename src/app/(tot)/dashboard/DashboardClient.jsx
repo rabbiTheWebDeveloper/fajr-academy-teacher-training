@@ -35,11 +35,25 @@ import {
 import { OfficialIDCard } from "@/components/TeacherOfficialIDCard";
 import TOTLogoutButton from "@/components/TOTLogoutButton";
 
-export default function DashboardClient({ trainee, payments = [], isNewlyEnrolled }) {
+export default function DashboardClient({ trainee, payments = [], availableCourses = [], isNewlyEnrolled }) {
+  const [coursesList, setCoursesList] = useState(availableCourses);
   const [activeTrack, setActiveTrack] = useState(trainee.track || "TOT-MEN");
   const [activeTab, setActiveTab] = useState("overview");
   const [copiedLink, setCopiedLink] = useState(false);
   const [completedModules, setCompletedModules] = useState([1]);
+
+  useEffect(() => {
+    if (!availableCourses || availableCourses.length === 0) {
+      fetch("/api/courses")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.courses?.length > 0) {
+            setCoursesList(data.courses);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [availableCourses]);
 
   const isMen = activeTrack === "TOT-MEN" || activeTrack.toLowerCase().includes("men");
 
@@ -232,6 +246,7 @@ export default function DashboardClient({ trainee, payments = [], isNewlyEnrolle
       <div className="flex items-center gap-2 border-b border-[#C59B27]/20 overflow-x-auto pb-2 scrollbar-none">
         {[
           { id: "overview", label: "লাইভ সেশন হাব", icon: Layers },
+          { id: "courses", label: "কোর্স ক্যাটালগ ও নতুন কোর্স ক্রয়", icon: GraduationCap },
           { id: "curriculum", label: "কোর্স কারিকুলাম ও মডিউলস", icon: BookOpen },
           { id: "idcard", label: "ট্রেইনি আইডি কার্ড", icon: CreditCard },
           { id: "materials", label: "বুকস ও স্টাডি শিটস", icon: FileText },
@@ -740,6 +755,119 @@ export default function DashboardClient({ trainee, payments = [], isNewlyEnrolle
                 <Printer className="w-4 h-4" /> ইনভয়েস প্রিন্ট / PDF
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT: Courses Catalog & Purchase */}
+      {activeTab === "courses" && (
+        <div className="space-y-6 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-white flex items-center gap-2">
+                <GraduationCap className="w-6 h-6 text-[#F59E0B]" /> ফজর একাডেমি কোর্স ক্যাটালগ ও ভর্তি পোর্টাল
+              </h2>
+              <p className="text-xs text-slate-300 mt-1">
+                আপনার সক্রিয় কোর্সসমূহ পর্যবেক্ষণ করুন অথবা নতুন বিশেষায়িত ব্যাচে সরাসরি এনরোল করুন।
+              </p>
+            </div>
+            <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-[#081A3A] text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4" /> SSLCommerz ভেরিফাইড কোর্স পেমেন্ট
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {coursesList.map((course) => {
+              const courseKey = course._id || course.courseId;
+              const isEnrolledInCourse =
+                trainee.track === course.courseId ||
+                (isMen && (course.courseId === "TOT-MEN" || course.track === "men")) ||
+                (!isMen && (course.courseId?.includes("WOMEN") || course.track === "women"));
+
+              return (
+                <div
+                  key={courseKey}
+                  className={`relative rounded-3xl p-6 border shadow-2xl transition-all flex flex-col justify-between ${
+                    isEnrolledInCourse
+                      ? "bg-gradient-to-br from-[#061B3B] to-[#08224D] border-[#C59B27]/50 shadow-[#C59B27]/10"
+                      : "bg-[#071328]/90 border-slate-700/60 hover:border-amber-500/50"
+                  }`}
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-[#D4AF37] border border-[#C59B27]/30">
+                        {course.tag || "প্রফেশনাল কোর্স"}
+                      </span>
+                      {isEnrolledInCourse ? (
+                        <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> সক্রিয় এনরোলমেন্ট (Paid)
+                        </span>
+                      ) : (
+                        <span className="text-xs font-bold text-amber-400">
+                          ভর্তি চলমান
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-black text-white">{course.name}</h3>
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                        {course.summary || "বাচ্চাদের আধুনিক পদ্ধতিতে কুরআন পাঠদানের আন্তর্জাতিক পেডাগোজি কোর্স।"}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 bg-[#030c1d]/60 p-3.5 rounded-2xl border border-slate-800 text-xs">
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">ওরিয়েন্টেশন তারিখ:</span>
+                        <strong className="text-slate-200">{course.orientationDate}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">সময়:</span>
+                        <strong className="text-amber-300">{course.orientationTime}</strong>
+                      </div>
+                      <div className="col-span-2 pt-1 border-t border-slate-800/80">
+                        <span className="text-slate-400 block text-[11px]">ক্লাস রুটিন:</span>
+                        <span className="text-slate-300 font-medium">{course.routine}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>ইন্সট্রাক্টর: <strong className="text-white">{course.instructor}</strong></span>
+                      <span className="text-sm font-black text-[#FACC15]">৳ {course.fee || 1000} BDT</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-5 mt-4 border-t border-slate-800/80">
+                    {isEnrolledInCourse ? (
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setActiveTab("overview")}
+                          className="flex-1 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <Video className="w-4 h-4" /> লাইভ ক্লাস হাবে যান
+                        </button>
+                        <a
+                          href={course.whatsappLink || trackInfo.whatsappGroup}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5"
+                        >
+                          <MessageCircle className="w-4 h-4 text-emerald-400" /> WhatsApp
+                        </a>
+                      </div>
+                    ) : (
+                      <Link
+                        href={`/payment/ssl-checkout?tran_id=TOT-${Date.now()}&amount=${course.fee || 1000}&name=${encodeURIComponent(trainee.fullName)}&email=${encodeURIComponent(trainee.email)}&phone=${encodeURIComponent(trainee.phone)}`}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 active:scale-[0.99] text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                      >
+                        <CreditCard className="w-4 h-4 stroke-[2.5]" />
+                        কোর্সটি কিনুন (৳{course.fee || 1000}) →
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

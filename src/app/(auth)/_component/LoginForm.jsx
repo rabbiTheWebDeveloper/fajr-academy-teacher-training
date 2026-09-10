@@ -6,14 +6,11 @@ import Link from "next/link";
 import {
   Lock,
   Mail,
-  Phone,
   Eye,
   EyeOff,
   ArrowRight,
-  ShieldCheck,
   AlertCircle,
   Sparkles,
-  HelpCircle,
   CreditCard,
   CheckCircle2,
 } from "lucide-react";
@@ -29,7 +26,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [unpaidInfo, setUnpaidInfo] = useState(null);
-  const [useTrxMode, setUseTrxMode] = useState(false);
+  const [defaultPwdNotice, setDefaultPwdNotice] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,7 +61,7 @@ export default function LoginForm() {
         }
       }
     } catch (err) {
-      setErrorMsg("নেটওয়ার্ক সংযোগ ত্রুটি। দয়া করে আপনার ইন্টারনেট চেক করে আবার চেষ্টা করুন।");
+      setErrorMsg("নেটওয়ার্ক সংযোগ ত্রুটি। দয়া করে আপনার ইন্টারনেট চেক করে আবার চেষ্টা করুন।");
     } finally {
       setLoading(false);
     }
@@ -72,61 +69,75 @@ export default function LoginForm() {
 
   const handleUseDefaultPassword = () => {
     setPassword("Fajr@Teacher2026");
+    setDefaultPwdNotice(true);
+    setTimeout(() => setDefaultPwdNotice(false), 4000);
   };
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-6">
-      {/* Form Box */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-        {/* Glow accent */}
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-40 h-40 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+    <div className="w-full max-w-[430px] mx-auto">
+      {/* Card Container */}
+      <div className="bg-[#071328]/85 border border-slate-700/50 rounded-3xl p-7 sm:p-8 backdrop-blur-xl shadow-2xl shadow-black/60 relative overflow-hidden">
+        {/* Glow Accent */}
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="space-y-2 mb-6 text-center">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            TOT Trainee Login
+        {/* Header Content */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full border border-amber-500/40 bg-amber-950/30 text-[#F59E0B] text-xs font-semibold shadow-inner">
+            <span>🎓</span>
+            <span>TOT Trainee Login</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-            টিচার পোর্টালে লগইন
-          </h2>
-          <p className="text-xs text-slate-400">
-            আপনার নিবন্ধিত ইমেইল/মোবাইল ও পাসওয়ার্ড দিয়ে প্রবেশ করুন
+
+          <h1 className="text-2xl sm:text-[26px] font-black text-white tracking-tight mt-3 mb-1.5">
+            টিচার ট্রেইনি লগইন
+          </h1>
+
+          <p className="text-xs text-slate-300/85 font-medium leading-relaxed">
+            আপনার নির্ধারিত ইউজার (ইমেইল) ও পাসওয়ার্ড দিয়ে লগইন করুন
           </p>
         </div>
 
         {/* Error Alert */}
         {errorMsg && (
-          <div className="p-3.5 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-rose-200 text-xs flex items-start gap-2.5 mb-5 animate-fadeIn">
+          <div className="p-3.5 rounded-xl bg-rose-950/70 border border-rose-500/40 text-rose-200 text-xs flex items-start gap-2.5 mb-4 animate-fadeIn">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-            <div className="flex-1">{errorMsg}</div>
+            <div className="flex-1 font-medium">{errorMsg}</div>
           </div>
         )}
 
-        {/* Unpaid Alert with Direct Payment link */}
+        {/* Default Password Copied Alert */}
+        {defaultPwdNotice && (
+          <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2 mb-4 animate-fadeIn">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>ডিফল্ট পাসওয়ার্ড <strong className="text-white font-mono">Fajr@Teacher2026</strong> বসানো হয়েছে!</span>
+          </div>
+        )}
+
+        {/* Unpaid Alert */}
         {unpaidInfo && (
-          <div className="p-4 rounded-2xl bg-amber-950/60 border border-amber-500/40 text-amber-200 text-xs space-y-3 mb-5 animate-fadeIn">
+          <div className="p-4 rounded-xl bg-amber-950/80 border border-amber-500/50 text-amber-200 text-xs space-y-3 mb-4 animate-fadeIn">
             <div className="flex items-start gap-2">
               <CreditCard className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold text-amber-300">পেমেন্ট পেন্ডিং রয়েছে!</p>
+                <p className="font-bold text-amber-300">পেমেন্ট পেন্ডিং রয়েছে!</p>
                 <p className="text-slate-300 mt-1 leading-relaxed">{unpaidInfo.message}</p>
               </div>
             </div>
 
             <Link
               href={`/payment/ssl-checkout?tran_id=${unpaidInfo.tranId || "TOT-PENDING"}&amount=1000&email=${unpaidInfo.email || ""}`}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all"
+              className="w-full py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all"
             >
               ৳ ১,০০০ পেমেন্ট সম্পন্ন করুন <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         )}
 
+        {/* Form Fields */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Identifier Input */}
+          {/* Email / Mobile Field */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-300 block">
-              {useTrxMode ? "ট্রানজেকশন আইডি (TrxID)" : "ইমেইল অথবা মোবাইল নম্বর"}
+            <label className="text-[11px] sm:text-xs font-bold text-slate-200 block">
+              ইমেইল অথবা মোবাইল নম্বর
             </label>
             <div className="relative">
               <input
@@ -134,27 +145,27 @@ export default function LoginForm() {
                 required
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder={useTrxMode ? "TOT-17415..." : "01XXXXXXXXX অথবা example@mail.com"}
-                className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-3 pl-10 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all font-sans"
+                placeholder="admin@fajracademy.io"
+                className="w-full bg-white text-slate-900 placeholder-slate-400 rounded-xl px-4 py-3 pl-10 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all shadow-sm"
               />
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
-                {useTrxMode ? <CreditCard className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <Mail className="w-4 h-4" />
               </div>
             </div>
           </div>
 
-          {/* Password Input */}
+          {/* Password Field */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-300 block">
-                {useTrxMode ? "পুনরায় TrxID অথবা পাসওয়ার্ড" : "পাসওয়ার্ড"}
+              <label className="text-[11px] sm:text-xs font-bold text-slate-200 block">
+                পাসওয়ার্ড
               </label>
               <button
                 type="button"
                 onClick={handleUseDefaultPassword}
-                className="text-[11px] text-amber-400 hover:text-amber-300 font-semibold"
+                className="text-[11px] text-[#F59E0B] hover:text-amber-300 font-semibold transition-colors cursor-pointer"
               >
-                ডিফল্ট পাসওয়ার্ড ব্যবহার করুন
+                ডিফল্ট পাসওয়ার্ড জানতে ক্লিক
               </button>
             </div>
 
@@ -164,16 +175,17 @@ export default function LoginForm() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="আপনার পাসওয়ার্ড লিখুন"
-                className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-3 pl-10 pr-10 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
+                placeholder="••••••••••••"
+                className="w-full bg-white text-slate-900 placeholder-slate-400 rounded-xl px-4 py-3 pl-10 pr-10 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all shadow-sm"
               />
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                 <Lock className="w-4 h-4" />
               </div>
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                title={showPassword ? "পাসওয়ার্ড লুকান" : "পাসওয়ার্ড দেখুন"}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -184,7 +196,7 @@ export default function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all disabled:opacity-50 mt-2 cursor-pointer"
+            className="w-full mt-2 py-3 rounded-xl bg-gradient-to-r from-[#e67e00] via-[#f59e0b] to-[#d97706] hover:brightness-110 active:scale-[0.99] text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-amber-600/30 transition-all disabled:opacity-60 cursor-pointer"
           >
             {loading ? (
               <span className="flex items-center gap-2">
@@ -193,117 +205,31 @@ export default function LoginForm() {
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                ড্যাশবোর্ডে প্রবেশ করুন <ArrowRight className="w-4 h-4" />
+                লগইন করুন <ArrowRight className="w-4 h-4 stroke-[2.5]" />
               </span>
             )}
           </button>
         </form>
 
-        {/* Quick Helper Notes */}
-        <div className="mt-6 pt-5 border-t border-slate-800/80 space-y-3">
-          <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400 leading-relaxed flex items-start gap-2">
-            <HelpCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <strong className="text-slate-300">পাসওয়ার্ড ভুলে গেছেন?</strong>
-              <p className="mt-0.5">
-                রেজিস্ট্রেশনের সময় আলাদা পাসওয়ার্ড না দিয়ে থাকলে আপনার ডিফল্ট পাসওয়ার্ড:{" "}
-                <code className="bg-slate-900 text-amber-400 px-1 py-0.5 rounded font-mono">
-                  Fajr@Teacher2026
-                </code>{" "}
-                অথবা আপনার মোবাইল নম্বরের শেষ ৬ ডিজিট।
-              </p>
-            </div>
-          </div>
-
-            <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
-            <Link href="/#apply" className="text-emerald-400 hover:underline font-semibold">
-              নতুন আবেদন করুন
-            </Link>
-            <a
-              href="https://wa.me/8801410764581?text=Login%20Help%20Fajr%20TOT"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-amber-400 hover:underline"
-            >
-              সাপোর্ট হেল্পলাইন
-            </a>
-          </div>
-        </div>
-
-        {/* 1-Click Demo / Seed Login Panel */}
-        <div className="mt-5 pt-4 border-t border-slate-800/80 space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              ১-ক্লিক ডেমো লগইন:
-            </span>
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const res = await fetch("/api/seed");
-                  const d = await res.json();
-                  alert(d.message || "সিড সম্পন্ন!");
-                } catch {
-                  alert("সিডিং কল ব্যর্থ");
-                }
-              }}
-              className="text-[10px] font-bold text-amber-400 hover:underline cursor-pointer"
-            >
-              ⚡ ডাটাবেজ সিড করুন
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <button
-              type="button"
-              onClick={() => {
-                setIdentifier("admin@fajracademy.io");
-                setPassword("Fajr@Admin2026");
-              }}
-              className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-amber-500/50 text-left transition-all"
-            >
-              <div className="font-bold text-amber-400">👑 অ্যাডমিন (Admin)</div>
-              <div className="text-[10px] text-slate-500 font-mono mt-0.5">admin@fajracademy.io</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setIdentifier("instructor.men@fajracademy.io");
-                setPassword("Fajr@Instructor2026");
-              }}
-              className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500/50 text-left transition-all"
-            >
-              <div className="font-bold text-indigo-400">👨 ইনস্ট্রাক্টর (Men)</div>
-              <div className="text-[10px] text-slate-500 font-mono mt-0.5">instructor.men@...</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setIdentifier("teacher.men@fajracademy.io");
-                setPassword("Fajr@Teacher2026");
-              }}
-              className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-blue-500/50 text-left transition-all"
-            >
-              <div className="font-bold text-blue-400">🎓 ট্রেইনি (Men Track)</div>
-              <div className="text-[10px] text-slate-500 font-mono mt-0.5">teacher.men@...</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setIdentifier("teacher.women@fajracademy.io");
-                setPassword("Fajr@Teacher2026");
-              }}
-              className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 text-left transition-all"
-            >
-              <div className="font-bold text-emerald-400">🧕 ট্রেইনি (Women 014)</div>
-              <div className="text-[10px] text-slate-500 font-mono mt-0.5">teacher.women@...</div>
-            </button>
-          </div>
+        {/* Bottom Links */}
+        <div className="flex items-center justify-between text-xs pt-6 mt-4 border-t border-slate-700/40">
+          <Link
+            href="/#apply"
+            className="text-[#10B981] hover:underline font-bold transition-colors"
+          >
+            নতুন আবেদন করুন
+          </Link>
+          <a
+            href="https://wa.me/8801410764581?text=Login%20Help%20Fajr%20TOT"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#F59E0B] hover:underline font-bold transition-colors"
+          >
+            সাপোর্ট হেল্পলাইন
+          </a>
         </div>
       </div>
     </div>
   );
 }
+

@@ -1,12 +1,40 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 
-export default function RegistrationForm({ initialTrack = 'men' }) {
+export default function RegistrationForm({ initialTrack = 'men', courses: initialCourses = [] }) {
   const router = useRouter()
   const [selectedTrack, setSelectedTrack] = useState(initialTrack)
+  const [coursesList, setCoursesList] = useState(initialCourses)
+
+  useEffect(() => {
+    if (!initialCourses || initialCourses.length === 0) {
+      fetch('/api/courses')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.courses?.length > 0) {
+            setCoursesList(data.courses)
+          }
+        })
+        .catch(() => {})
+    }
+  }, [initialCourses])
+
+  const menCourse = coursesList.find((c) => c.track === 'men' || c.courseId === 'TOT-MEN') || {
+    name: 'Training of Trainers (TOT) – MEN',
+    orientationDate: '২০ সেপ্টেম্বর',
+    orientationTime: 'রাত ৮:০০ টা',
+    fee: 1000,
+  }
+
+  const womenCourse = coursesList.find((c) => c.track === 'women' || c.courseId?.includes('WOMEN')) || {
+    name: 'Training of Trainers (TOT) – WOMEN',
+    orientationDate: '২১ সেপ্টেম্বর',
+    orientationTime: 'রাত ৮:০০ টা',
+    fee: 1000,
+  }
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -108,13 +136,13 @@ export default function RegistrationForm({ initialTrack = 'men' }) {
               <div className={styles.metaRow}>
                 <span className={styles.metaIcon}>📅</span>
                 <span>
-                  <strong>First Orientation:</strong> ২০ সেপ্টেম্বর, রাত ৮:০০ টা
+                  <strong>First Orientation:</strong> {menCourse.orientationDate}, {menCourse.orientationTime}
                 </span>
               </div>
               <div className={styles.metaRow}>
                 <span className={styles.metaIcon}>💰</span>
                 <span>
-                  <strong>মাসিক সম্মানী:</strong> ১৫,০০০ – ২২,০০০ টাকা
+                  <strong>কোর্স ফি:</strong> ৳{menCourse.fee || 1000} (এককালীন)
                 </span>
               </div>
               <div className={styles.metaRow}>
@@ -130,7 +158,7 @@ export default function RegistrationForm({ initialTrack = 'men' }) {
                 selectedTrack === 'men' ? styles.trackSelectBtnActive : ''
               }`}
             >
-              {selectedTrack === 'men' ? '✓ কোর্সটি নির্বাচিত' : 'এই কোর্সটি নির্বাচন করুন (৳১,০০০)'}
+              {selectedTrack === 'men' ? '✓ কোর্সটি নির্বাচিত' : `এই কোর্সটি নির্বাচন করুন (৳${menCourse.fee || 1000})`}
             </button>
           </div>
 
@@ -142,24 +170,24 @@ export default function RegistrationForm({ initialTrack = 'men' }) {
             }`}
           >
             <div className={styles.trackBadge}>
-              <span>🧕 নারী শিক্ষক প্রার্থীদের জন্য · Batch 014</span>
-              <span className={styles.trackBadgeFee}>ফি: ৳১,০০০</span>
+              <span>🧕 {womenCourse.tag || 'নারী শিক্ষক প্রার্থীদের জন্য · Batch 014'}</span>
+              <span className={styles.trackBadgeFee}>ফি: ৳{womenCourse.fee || 1000}</span>
             </div>
-            <h3 className={styles.trackCardTitle}>Training of Trainers (TOT) – WOMEN</h3>
+            <h3 className={styles.trackCardTitle}>{womenCourse.name || 'Training of Trainers (TOT) – WOMEN'}</h3>
             <p className={styles.trackCardDesc}>
-              Batch 013 চলমান! নতুন Batch 014-এ মাত্র ১ মাসে ৪টি ট্রেনিং সেশনে সার্টিফিকেট ও শিক্ষক পদে নিয়োগ।
+              {womenCourse.summary || 'Batch 013 চলমান! নতুন Batch 014-এ মাত্র ১ মাসে ৪টি ট্রেনিং সেশনে সার্টিফিকেট ও শিক্ষক পদে নিয়োগ।'}
             </p>
             <div className={styles.trackMetaInfo}>
               <div className={styles.metaRow}>
                 <span className={styles.metaIcon}>📅</span>
                 <span>
-                  <strong>First Orientation:</strong> ২১ সেপ্টেম্বর, রাত ৮:০০ টা
+                  <strong>First Orientation:</strong> {womenCourse.orientationDate}, {womenCourse.orientationTime}
                 </span>
               </div>
               <div className={styles.metaRow}>
                 <span className={styles.metaIcon}>💰</span>
                 <span>
-                  <strong>মাসিক সম্মানী:</strong> ১৫,০০০ – ২২,০০০ টাকা
+                  <strong>কোর্স ফি:</strong> ৳{womenCourse.fee || 1000} (এককালীন)
                 </span>
               </div>
               <div className={styles.metaRow}>
@@ -175,7 +203,7 @@ export default function RegistrationForm({ initialTrack = 'men' }) {
                 selectedTrack === 'women' ? styles.trackSelectBtnActive : ''
               }`}
             >
-              {selectedTrack === 'women' ? '✓ কোর্সটি নির্বাচিত' : 'এই কোর্সটি নির্বাচন করুন (৳১,০০০)'}
+              {selectedTrack === 'women' ? '✓ কোর্সটি নির্বাচিত' : `এই কোর্সটি নির্বাচন করুন (৳${womenCourse.fee || 1000})`}
             </button>
           </div>
         </div>
