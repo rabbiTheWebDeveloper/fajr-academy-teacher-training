@@ -328,6 +328,9 @@ export default function TeacherRegistrationMarketingPage() {
                 <a href="#registration-section" className={`${styles.btn} ${styles.btnGold} ${styles.btnFull}`}>
                   TOT - MEN কোর্সে নিবন্ধন করুন (৳১,০০০) →
                 </a>
+                <a href="#program-videos" className={styles.btnWatchVideo}>
+                  ▶️ পুরুষদের ওরিয়েন্টেশন ভিডিও দেখুন
+                </a>
               </div>
             </div>
 
@@ -377,6 +380,9 @@ export default function TeacherRegistrationMarketingPage() {
               <div className={styles.courseCardFooter}>
                 <a href="#registration-section" className={`${styles.btn} ${styles.btnGold} ${styles.btnFull}`}>
                   TOT - WOMEN Batch 014-এ নিবন্ধন করুন (৳১,০০০) →
+                </a>
+                <a href="#program-videos" className={styles.btnWatchVideo}>
+                  ▶️ নারীদের ওরিয়েন্টেশন ভিডিও দেখুন
                 </a>
               </div>
             </div>
@@ -557,20 +563,57 @@ export default function TeacherRegistrationMarketingPage() {
       </section>
 
       {/* ════════════════════════════════════════════════════════
-          VIDEO / FOUNDER STATEMENT
+          OFFICIAL VIDEO SHOWCASE (MEN & WOMEN) & FOUNDER NOTE
           ════════════════════════════════════════════════════════ */}
-      <section className={`${styles.section} ${styles.media}`}>
+      <section id="program-videos" className={`${styles.section} ${styles.media}`}>
         <div className={`${styles.wrap} ${styles.mediaGrid}`}>
-          <div className={styles.videoCard} data-reveal>
-            <iframe
-              src="https://www.youtube.com/embed/zPXTzup-2ok?autoplay=1&mute=1&loop=1&playlist=zPXTzup-2ok&controls=1&rel=0&playsinline=1"
-              title="Fajr Academy Teacher Training Program Video"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              className={styles.videoIframe}
-            />
+          {/* Section Heading */}
+          <div className={styles.sectionHead} data-reveal style={{ textAlign: 'center', margin: '0 auto 10px' }}>
+            <span className={styles.eyebrow}>অফিসিয়াল ভিডিও নির্দেশিকা</span>
+            <h2>কুরআন টিচার ট্রেনিং ও ওরিয়েন্টেশন ভিডিও</h2>
+            <p>
+              পুরুষ ও নারী উভয় কোর্সের ট্রেনিং পদ্ধতি, ক্লাসরুম পেডাগোজি ও ক্যারিয়ার সম্ভাবনার ভিডিওগুলো সরাসরি দেখে নিন।
+            </p>
           </div>
 
+          {/* Dual Videos Showcase: TOT MEN & TOT WOMEN */}
+          <div className={styles.mediaVideosGrid}>
+            {/* Video 1: TOT - MEN Video (Shorts) */}
+            <div className={styles.videoCardContainer} data-reveal>
+              <div className={styles.videoBadgeMen}>
+                <span>👨‍🏫 TOT – MEN শিক্ষক প্রশিক্ষণ ভিডিও</span>
+              </div>
+              <div className={styles.videoCard}>
+                <iframe
+                  src="https://www.youtube.com/embed/UxzqLHfjrGc?rel=0&controls=1&playsinline=1"
+                  title="Fajr Academy Men Teacher Training Program Video"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className={styles.videoIframe}
+                />
+              </div>
+              <p className={styles.videoTitle}>পুরুষদের ওরিয়েন্টেশন ও জব গাইডলাইন</p>
+            </div>
+
+            {/* Video 2: TOT - WOMEN Video */}
+            <div className={styles.videoCardContainer} data-reveal>
+              <div className={styles.videoBadgeWomen}>
+                <span>🧕 TOT – WOMEN Batch 014 ভিডিও</span>
+              </div>
+              <div className={styles.videoCard}>
+                <iframe
+                  src="https://www.youtube.com/embed/zPXTzup-2ok?rel=0&controls=1&playsinline=1"
+                  title="Fajr Academy Women Teacher Training Program Video"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className={styles.videoIframe}
+                />
+              </div>
+              <p className={styles.videoTitle}>দ্বীনি বোনদের ট্রেনিং ও শিক্ষক নিয়োগ গাইড</p>
+            </div>
+          </div>
+
+          {/* Founder Statement Card */}
           <div className={styles.founderNote} data-reveal>
             <span className={styles.quoteMark}>&ldquo;</span>
             <p>
