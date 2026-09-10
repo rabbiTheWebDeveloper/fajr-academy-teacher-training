@@ -283,9 +283,12 @@ export default function PaymentsClient({ user, payments = [] }) {
               {/* Invoice Header */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border-b border-[#C59B27]/30 print:border-gray-300 pb-6">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#C59B27] via-[#D4AF37] to-[#E5B842] flex items-center justify-center text-[#051329] font-black text-2xl shadow-lg border border-[#FDFBF7]/30">
-                    ف
-                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/fajr-logo.png"
+                    alt="Fajr Academy"
+                    className="w-12 h-12 rounded-2xl object-cover shadow-lg border border-[#C59B27]/40 print:border-gray-400"
+                  />
                   <div>
                     <h3 className="font-black text-xl tracking-tight text-white print:text-black">
                       FAJR ACADEMY

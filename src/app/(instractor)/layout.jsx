@@ -24,9 +24,12 @@ export default function InstructorLayout({ children }) {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link href="/instructor" className="flex items-center gap-2.5 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-400 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-indigo-600/30 group-hover:scale-105 transition-transform">
-                ف
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/fajr-logo.png"
+                alt="Fajr Academy"
+                className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-indigo-600/30 group-hover:scale-105 transition-transform border border-indigo-500/40"
+              />
               <div className="flex flex-col">
                 <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent">
                   FAJR ACADEMY

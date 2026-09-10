@@ -14,9 +14,12 @@ export default function LoginPage() {
       {/* Top Header */}
       <header className="p-4 sm:p-6 max-w-7xl mx-auto w-full flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
-            ف
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/fajr-logo.png"
+            alt="Fajr Academy"
+            className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform border border-amber-500/40"
+          />
           <div className="flex flex-col">
             <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-amber-200 bg-clip-text text-transparent">
               FAJR ACADEMY
