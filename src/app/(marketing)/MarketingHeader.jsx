@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import styles from './page.module.css'
 import {
   Home,
@@ -15,33 +15,53 @@ import {
   Sparkles,
   ShieldCheck,
   Video,
+  GraduationCap,
+  ChevronDown,
 } from 'lucide-react'
 
 export default function MarketingHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
+  const [scrolled, setScrolled]             = useState(false)
+  const drawerRef = useRef(null)
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    const onScroll = () => setScrolled(window.scrollY > 24)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen((prev) => !prev)
-  }
+  // Close drawer on outside click
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const onKey = (e) => { if (e.key === 'Escape') setMobileMenuOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mobileMenuOpen])
 
-  const closeMobileMenu = () => {
-    setMobileMenuOpen(false)
-  }
+  // Lock body scroll when drawer is open
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [mobileMenuOpen])
+
+  const closeMenu = () => setMobileMenuOpen(false)
+
+  const navLinks = [
+    { href: '#',                label: 'হোম',          icon: <Home size={15} color="#E5C04A" /> },
+    { href: '#tracks-section',  label: 'কোর্সসমূহ',   icon: <BookOpen size={15} /> },
+    { href: '#why-fajr',        label: 'কেন ফজর',      icon: <ShieldCheck size={15} /> },
+    { href: '#process-section', label: 'ধাপসমূহ',      icon: null },
+    { href: '#program-videos',  label: 'ভিডিও',        icon: <Video size={15} /> },
+    { href: '#faq',             label: 'FAQ',           icon: <HelpCircle size={15} /> },
+    { href: '#footer-section',  label: 'যোগাযোগ',      icon: <Phone size={15} /> },
+  ]
 
   return (
     <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ''}`}>
       <div className={styles.headerInner}>
-        {/* ── Brand Logo & Slogan ── */}
-        <a href="#" className={styles.brand} onClick={closeMobileMenu}>
+
+        {/* ── Brand ── */}
+        <a href="#" className={styles.brand} onClick={closeMenu} aria-label="Fajr Academy Home">
           <div className={styles.brandCrest}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/fajr-logo.png" alt="FAJR Academy" className={styles.brandLogoImg} />
@@ -57,33 +77,21 @@ export default function MarketingHeader() {
           </div>
         </a>
 
-        {/* ── Desktop Center Nav Menu ── */}
-        <nav className={styles.navMenu}>
-          <a href="#" className={`${styles.navItem} ${styles.navItemActive}`}>
-            <Home size={15} color="#F5B335" />
-            <span>হোম</span>
-          </a>
-          <a href="#tracks-section" className={styles.navItem}>
-            <span>কোর্সসমূহ</span>
-          </a>
-          <a href="#why-fajr" className={styles.navItem}>
-            <span>কেন ফজর</span>
-          </a>
-          <a href="#process-section" className={styles.navItem}>
-            <span>ধাপসমূহ</span>
-          </a>
-          <a href="#program-videos" className={styles.navItem}>
-            <span>ভিডিও</span>
-          </a>
-          <a href="#faq" className={styles.navItem}>
-            <span>FAQ</span>
-          </a>
-          <a href="#footer-section" className={styles.navItem}>
-            <span>যোগাযোগ</span>
-          </a>
+        {/* ── Desktop Nav ── */}
+        <nav className={styles.navMenu} aria-label="Main navigation">
+          {navLinks.map((link) => (
+            <a
+              key={link.href + link.label}
+              href={link.href}
+              className={`${styles.navItem} ${link.href === '#' ? styles.navItemActive : ''}`}
+            >
+              {link.icon}
+              <span>{link.label}</span>
+            </a>
+          ))}
         </nav>
 
-        {/* ── Desktop Right Actions & WhatsApp ── */}
+        {/* ── Desktop Right Actions ── */}
         <div className={styles.headerActions}>
           <a href="#course-men" className={styles.pillBadge}>
             <div className={`${styles.badgeIconCircle} ${styles.badgeIconBlue}`}>
@@ -97,7 +105,7 @@ export default function MarketingHeader() {
 
           <a href="#course-women" className={styles.pillBadge}>
             <div className={`${styles.badgeIconCircle} ${styles.badgeIconPink}`}>
-              <User size={12} />
+              <Sparkles size={11} />
             </div>
             <div className={styles.badgeTextCol}>
               <span className={styles.badgeTitle}>TOT for Women</span>
@@ -106,7 +114,7 @@ export default function MarketingHeader() {
           </a>
 
           <div className={styles.pillPrice}>
-            <Tag size={13} color="#F8CE67" />
+            <Tag size={13} color="#E5C04A" />
             <span>৳ ১,০০০</span>
           </div>
 
@@ -116,6 +124,7 @@ export default function MarketingHeader() {
             rel="noopener noreferrer"
             className={styles.headerWhatsappBtn}
             title="WhatsApp-এ সরাসরি যোগাযোগ করুন"
+            id="header-whatsapp-btn"
           >
             <div className={styles.whatsappIconBox}>
               <MessageCircle size={15} fill="#fff" color="#25D366" />
@@ -128,98 +137,110 @@ export default function MarketingHeader() {
             </div>
           </a>
 
-          {/* Hamburger button for mobile/tablet */}
+          {/* Hamburger */}
           <button
             type="button"
             className={styles.hamburgerBtn}
-            onClick={toggleMobileMenu}
+            onClick={() => setMobileMenuOpen((p) => !p)}
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-nav-drawer"
+            id="hamburger-btn"
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
 
-      {/* ── Mobile Navigation Drawer ── */}
+      {/* ── Mobile Drawer ── */}
       {mobileMenuOpen && (
-        <div className={styles.mobileNavOverlay} onClick={closeMobileMenu}>
-          <div className={styles.mobileNavDrawer} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.mobileDrawerHeader}>
-              <div className={styles.mobileDrawerBrand}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/fajr-logo.png" alt="FAJR Academy" className={styles.brandLogoImgSmall} />
-                <div>
-                  <div className={styles.brandLogoTitle}>FAJR ACADEMY</div>
-                  <div className={styles.brandSloganAccentSmall}>Dunya &amp; Akhirah</div>
+        <div className={styles.mobileNavOverlay} onClick={closeMenu} role="dialog" aria-modal="true" aria-label="Navigation menu">
+          <div
+            id="mobile-nav-drawer"
+            className={styles.mobileNavDrawer}
+            ref={drawerRef}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
+            <div>
+              <div className={styles.mobileDrawerHeader}>
+                <div className={styles.mobileDrawerBrand}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/fajr-logo.png" alt="FAJR Academy" className={styles.brandLogoImgSmall} />
+                  <div>
+                    <div className={styles.brandLogoTitle}>FAJR ACADEMY</div>
+                    <div className={styles.brandSloganAccentSmall}>Dunya &amp; Akhirah</div>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  className={styles.mobileCloseBtn}
+                  onClick={closeMenu}
+                  aria-label="Close navigation menu"
+                  id="mobile-close-btn"
+                >
+                  <X size={20} />
+                </button>
               </div>
-              <button
-                type="button"
-                className={styles.mobileCloseBtn}
-                onClick={closeMobileMenu}
-                aria-label="Close menu"
-              >
-                <X size={20} />
-              </button>
+
+              {/* Track Quick Badges */}
+              <div className={styles.mobileBadgesRow}>
+                <a href="#course-men" className={styles.mobileTrackBadge} onClick={closeMenu} id="mobile-men-badge">
+                  <span className={styles.mobileBadgeIconBlue}>👨‍🏫</span>
+                  <span>TOT Men (৳১,০০০)</span>
+                </a>
+                <a href="#course-women" className={styles.mobileTrackBadge} onClick={closeMenu} id="mobile-women-badge">
+                  <span className={styles.mobileBadgeIconPink}>🧕</span>
+                  <span>TOT Women Batch 014 (৳১,০০০)</span>
+                </a>
+              </div>
+
+              {/* Nav Links */}
+              <nav className={styles.mobileNavList} aria-label="Mobile navigation">
+                <a href="#" className={styles.mobileNavLink} onClick={closeMenu}>
+                  <Home size={18} color="#E5C04A" />
+                  <span>হোমপেজ</span>
+                </a>
+                <a href="#tracks-section" className={styles.mobileNavLink} onClick={closeMenu}>
+                  <BookOpen size={18} color="#60A5FA" />
+                  <span>কোর্স ও ব্যাচসমূহ</span>
+                </a>
+                <a href="#registration-section" className={styles.mobileNavLink} onClick={closeMenu}>
+                  <Sparkles size={18} color="#F59E0B" />
+                  <span>অনলাইন রেজিস্ট্রেশন ফর্ম</span>
+                </a>
+                <a href="#why-fajr" className={styles.mobileNavLink} onClick={closeMenu}>
+                  <ShieldCheck size={18} color="#10B981" />
+                  <span>কেন ফজর একাডেমি</span>
+                </a>
+                <a href="#process-section" className={styles.mobileNavLink} onClick={closeMenu}>
+                  <span className={styles.mobileNavBullet}>❖</span>
+                  <span>৪টি সহজ ধাপ</span>
+                </a>
+                <a href="#program-videos" className={styles.mobileNavLink} onClick={closeMenu}>
+                  <Video size={18} color="#EC4899" />
+                  <span>ভিডিও নির্দেশিকা</span>
+                </a>
+                <a href="#faq" className={styles.mobileNavLink} onClick={closeMenu}>
+                  <HelpCircle size={18} color="#A78BFA" />
+                  <span>প্রশ্ন ও উত্তর (FAQ)</span>
+                </a>
+                <a href="#footer-section" className={styles.mobileNavLink} onClick={closeMenu}>
+                  <Phone size={18} color="#38BDF8" />
+                  <span>যোগাযোগ ও হেল্পলাইন</span>
+                </a>
+              </nav>
             </div>
 
-            {/* Quick Badges in Drawer */}
-            <div className={styles.mobileBadgesRow}>
-              <a href="#course-men" className={styles.mobileTrackBadge} onClick={closeMobileMenu}>
-                <span className={styles.mobileBadgeIconBlue}>👨‍🏫</span>
-                <span>TOT Men (৳১,০০০)</span>
-              </a>
-              <a href="#course-women" className={styles.mobileTrackBadge} onClick={closeMobileMenu}>
-                <span className={styles.mobileBadgeIconPink}>🧕</span>
-                <span>TOT Women (৳১,০০০)</span>
-              </a>
-            </div>
-
-            {/* Nav Links */}
-            <nav className={styles.mobileNavList}>
-              <a href="#" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-                <Home size={18} color="#F5B335" />
-                <span>হোমপেজ</span>
-              </a>
-              <a href="#tracks-section" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-                <BookOpen size={18} color="#60A5FA" />
-                <span>কোর্স ও ব্যাচসমূহ</span>
-              </a>
-              <a href="#registration-section" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-                <Sparkles size={18} color="#F59E0B" />
-                <span>অনলাইন রেজিস্ট্রেশন ফর্ম</span>
-              </a>
-              <a href="#why-fajr" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-                <ShieldCheck size={18} color="#10B981" />
-                <span>কেন ফজর একাডেমি</span>
-              </a>
-              <a href="#process-section" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-                <span className={styles.mobileNavBullet}>❖</span>
-                <span>৪টি সহজ ধাপ</span>
-              </a>
-              <a href="#program-videos" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-                <Video size={18} color="#EC4899" />
-                <span>ভিডিও নির্দেশিকা</span>
-              </a>
-              <a href="#faq" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-                <HelpCircle size={18} color="#A78BFA" />
-                <span>প্রশ্ন ও উত্তর (FAQ)</span>
-              </a>
-              <a href="#footer-section" className={styles.mobileNavLink} onClick={closeMobileMenu}>
-                <Phone size={18} color="#38BDF8" />
-                <span>যোগাযোগ ও হেল্পলাইন</span>
-              </a>
-            </nav>
-
-            {/* Mobile Contact Action */}
+            {/* Drawer Footer CTA */}
             <div className={styles.mobileDrawerFooter}>
               <a
                 href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20ফজর%20একাডেমির%20কুরআন%20টিচার%20ট্রেনিং%20সম্পর্কে%20জানতে%20চাই।"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.mobileWhatsappCta}
-                onClick={closeMobileMenu}
+                onClick={closeMenu}
+                id="mobile-whatsapp-cta"
               >
                 <MessageCircle size={18} fill="#fff" color="#25D366" />
                 <span>WhatsApp-এ সরাসরি কথা বলুন</span>

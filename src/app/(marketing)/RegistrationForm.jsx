@@ -21,24 +21,18 @@ import {
   Users,
   Sparkles,
   Loader2,
-  Clock,
-  ExternalLink,
 } from 'lucide-react'
 
 export default function RegistrationForm({ initialTrack = 'men', courses: initialCourses = [] }) {
   const router = useRouter()
   const [selectedTrack, setSelectedTrack] = useState(initialTrack)
-  const [coursesList, setCoursesList] = useState(initialCourses)
+  const [coursesList, setCoursesList]     = useState(initialCourses)
 
   useEffect(() => {
     if (!initialCourses || initialCourses.length === 0) {
       fetch('/api/courses')
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success && data.courses?.length > 0) {
-            setCoursesList(data.courses)
-          }
-        })
+        .then((r) => r.json())
+        .then((d) => { if (d.success && d.courses?.length > 0) setCoursesList(d.courses) })
         .catch(() => {})
     }
   }, [initialCourses])
@@ -49,7 +43,6 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
     orientationTime: 'রাত ৮:০০ টা',
     fee: 1000,
   }
-
   const womenCourse = coursesList.find((c) => c.track === 'women' || c.courseId?.includes('WOMEN')) || {
     name: 'Training of Trainers (TOT) – WOMEN (Batch 014)',
     orientationDate: '২১ সেপ্টেম্বর ২০২৬',
@@ -58,20 +51,28 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
   }
 
   const [formData, setFormData] = useState({
-    fullName: '',
-    phone: '',
-    email: '',
-    password: '',
-    gender: initialTrack === 'women' ? 'female' : 'male',
-    hasLaptop: 'yes',
-    quranSkill: 'fluent',
+    fullName:     '',
+    phone:        '',
+    email:        '',
+    password:     '',
+    gender:       initialTrack === 'women' ? 'female' : 'male',
+    hasLaptop:    'yes',
+    quranSkill:   'fluent',
     englishSkill: 'basic',
-    education: '',
+    education:    '',
   })
-
-  const [loading, setLoading] = useState(false)
+  const [loading,   setLoading]   = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [errorMsg, setErrorMsg] = useState('')
+  const [errorMsg,  setErrorMsg]  = useState('')
+
+  const handleTrackChange = (track) => {
+    setSelectedTrack(track)
+    setFormData((p) => ({ ...p, gender: track === 'women' ? 'female' : 'male' }))
+  }
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData((p) => ({ ...p, [name]: value }))
+  }
 
   const handleWhatsAppConfirm = () => {
     const trackName = selectedTrack === 'men' ? 'TOT - MEN BATCH' : 'TOT - WOMEN (Batch 014)'
@@ -79,276 +80,192 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
     window.open(`https://wa.me/8801641028312?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
-  const handleTrackChange = (track) => {
-    setSelectedTrack(track)
-    setFormData((prev) => ({
-      ...prev,
-      gender: track === 'women' ? 'female' : 'male',
-    }))
-  }
-
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  // Handle Form Submission with SSLCommerz Gateway
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErrorMsg('')
     setLoading(true)
-
     const trackKey = selectedTrack === 'men' ? 'TOT-MEN' : 'TOT-WOMEN-014'
-
     try {
       const res = await fetch('/api/payment/sslcommerz/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password || 'Fajr@Teacher2026',
-          gender: selectedTrack === 'women' ? 'female' : 'male',
-          track: trackKey,
-          hasLaptop: formData.hasLaptop,
-          quranSkill: formData.quranSkill,
+          fullName:     formData.fullName,
+          email:        formData.email,
+          phone:        formData.phone,
+          password:     formData.password || 'Fajr@Teacher2026',
+          gender:       selectedTrack === 'women' ? 'female' : 'male',
+          track:        trackKey,
+          hasLaptop:    formData.hasLaptop,
+          quranSkill:   formData.quranSkill,
           englishSkill: formData.englishSkill,
-          education: formData.education,
-          amount: 1000,
+          education:    formData.education,
+          amount:       1000,
         }),
       })
-
       const data = await res.json()
-
       if (data.success && data.gatewayUrl) {
         window.location.href = data.gatewayUrl
-        return
       } else {
         setErrorMsg(data.message || 'SSLCommerz পেমেন্ট গেটওয়েতে সংযোগ করতে ব্যর্থ হয়েছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন অথবা সরাসরি WhatsApp-এ যোগাযোগ করুন।')
         setLoading(false)
       }
-    } catch (err) {
+    } catch {
       setErrorMsg('সার্ভারে সাময়িক সমস্যা হয়েছে। দয়া করে পুনরায় চেষ্টা করুন বা WhatsApp হেল্পলাইনে যোগাযোগ করুন।')
       setLoading(false)
     }
   }
 
+  const currentCourse = selectedTrack === 'men' ? menCourse : womenCourse
+
   return (
     <div className={styles.regMainWrapper}>
-      {/* ── 2 Course Selection Cards (Men & Women) ── */}
+
+      {/* ── 2 Track Selection Cards ── */}
       <div className={styles.regTrackChoiceGrid}>
-        {/* Track 1: MEN */}
+
+        {/* Men Track */}
         <div
           role="button"
           tabIndex={0}
+          id="track-men-card"
           onClick={() => handleTrackChange('men')}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') handleTrackChange('men')
-          }}
-          className={`${styles.regTrackCard} ${
-            selectedTrack === 'men' ? styles.regTrackCardSelected : ''
-          }`}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleTrackChange('men') }}
+          className={`${styles.regTrackCard} ${selectedTrack === 'men' ? styles.regTrackCardSelected : ''}`}
+          aria-pressed={selectedTrack === 'men'}
         >
           <div className={styles.regTrackCardContent}>
             <div className={styles.regTrackTopPills}>
-              <span className={styles.regPillMenTag}>
-                <User size={13} /> পুরুষদের জন্য বিশেষায়িত
-              </span>
-              <span className={styles.regPillFeeTag}>
-                <Tag size={12} />
-                <span>৳ {menCourse.fee || 1000}</span>
-              </span>
+              <span className={styles.regPillMenTag}><User size={13} /> পুরুষদের জন্য বিশেষায়িত</span>
+              <span className={styles.regPillFeeTag}><Tag size={12} /><span>৳ {menCourse.fee || 1000}</span></span>
             </div>
-
             <div className={styles.regTrackTitleBlock}>
-              <div className={`${styles.regTrackAvatar} ${styles.avatarMen}`}>
-                <User size={22} />
-              </div>
+              <div className={`${styles.regTrackAvatar} ${styles.avatarMen}`}><User size={22} /></div>
               <div className={styles.regTrackInfoText}>
                 <h3 className={styles.regTrackCardH3}>Training of Trainers (TOT) – MEN</h3>
-                <p className={styles.regTrackCardDesc}>
-                  ছেলেদের জন্য ঘরে বসে চাকরির সুবর্ণ সুযোগ। আন্তর্জাতিক টিওটি পেডাগোজি প্রশিক্ষণ।
-                </p>
+                <p className={styles.regTrackCardDesc}>ছেলেদের জন্য ঘরে বসে চাকরির সুবর্ণ সুযোগ। আন্তর্জাতিক টিওটি পেডাগোজি প্রশিক্ষণ।</p>
               </div>
             </div>
-
             <div className={styles.regTrackDivider} />
-
             <div className={styles.regTrackMetaList}>
               <div className={styles.regTrackMetaItem}>
                 <Calendar size={15} className={styles.regMetaIcon} />
-                <span>
-                  <strong>ওরিয়েন্টেশন:</strong> {menCourse.orientationDate || '২০ সেপ্টেম্বর'} ({menCourse.orientationTime || 'রাত ৮:০০ টা'})
-                </span>
+                <span><strong>ওরিয়েন্টেশন:</strong> {menCourse.orientationDate || '২০ সেপ্টেম্বর'} ({menCourse.orientationTime || 'রাত ৮:০০ টা'})</span>
               </div>
               <div className={styles.regTrackMetaItem}>
                 <CreditCard size={15} className={styles.regMetaIcon} />
-                <span>
-                  <strong>কোর্স ফি:</strong> ৳{menCourse.fee || 1000} (এককালীন)
-                </span>
+                <span><strong>কোর্স ফি:</strong> ৳{menCourse.fee || 1000} (এককালীন)</span>
               </div>
               <div className={styles.regTrackMetaItem}>
                 <Users size={15} className={styles.regMetaIcon} />
-                <span>সীমিত আসন · সফলদের সরাসরি নিয়োগের সুযোগ</span>
+                <span>সীমিত আসন · সফলদের সরাসরি নিয়োগের সুযোগ</span>
               </div>
             </div>
           </div>
-
           <button
             type="button"
             className={selectedTrack === 'men' ? styles.regCardBtnSelected : styles.regCardBtnUnselected}
           >
             {selectedTrack === 'men' ? (
-              <>
-                <Check size={16} strokeWidth={3} />
-                <span>কোর্সটি নির্বাচন করা হয়েছে</span>
-              </>
-            ) : (
-              `কোর্সটি নির্বাচন করুন (৳${menCourse.fee || 1000})`
-            )}
+              <><Check size={16} strokeWidth={3} /><span>কোর্সটি নির্বাচন করা হয়েছে</span></>
+            ) : `কোর্সটি নির্বাচন করুন (৳${menCourse.fee || 1000})`}
           </button>
         </div>
 
-        {/* Track 2: WOMEN */}
+        {/* Women Track */}
         <div
           role="button"
           tabIndex={0}
+          id="track-women-card"
           onClick={() => handleTrackChange('women')}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') handleTrackChange('women')
-          }}
-          className={`${styles.regTrackCard} ${
-            selectedTrack === 'women' ? styles.regTrackCardSelected : ''
-          }`}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleTrackChange('women') }}
+          className={`${styles.regTrackCard} ${selectedTrack === 'women' ? styles.regTrackCardSelected : ''}`}
+          aria-pressed={selectedTrack === 'women'}
         >
           <div className={styles.regTrackCardContent}>
             <div className={styles.regTrackTopPills}>
-              <span className={styles.regPillWomenTag}>
-                <Sparkles size={13} /> নারীদের জন্য · Batch 014
-              </span>
-              <span className={styles.regPillFeeTag}>
-                <Tag size={12} />
-                <span>৳ {womenCourse.fee || 1000}</span>
-              </span>
+              <span className={styles.regPillWomenTag}><Sparkles size={13} /> নারীদের জন্য · Batch 014</span>
+              <span className={styles.regPillFeeTag}><Tag size={12} /><span>৳ {womenCourse.fee || 1000}</span></span>
             </div>
-
             <div className={styles.regTrackTitleBlock}>
-              <div className={`${styles.regTrackAvatar} ${styles.avatarWomen}`}>
-                <User size={22} />
-              </div>
+              <div className={`${styles.regTrackAvatar} ${styles.avatarWomen}`}><Sparkles size={20} /></div>
               <div className={styles.regTrackInfoText}>
                 <h3 className={styles.regTrackCardH3}>Training of Trainers (TOT) – WOMEN</h3>
-                <p className={styles.regTrackCardDesc}>
-                  দ্বীনে ফেরা আপুদের জন্য ঘরে বসেই আন্তর্জাতিক মানের অনলাইন কুরআন টিচার হওয়ার সুযোগ।
-                </p>
+                <p className={styles.regTrackCardDesc}>দ্বীনে ফেরা আপুদের জন্য ঘরে বসেই আন্তর্জাতিক মানের অনলাইন কুরআন টিচার হওয়ার সুযোগ।</p>
               </div>
             </div>
-
             <div className={styles.regTrackDivider} />
-
             <div className={styles.regTrackMetaList}>
               <div className={styles.regTrackMetaItem}>
                 <Calendar size={15} className={styles.regMetaIcon} />
-                <span>
-                  <strong>ওরিয়েন্টেশন:</strong> {womenCourse.orientationDate || '২১ সেপ্টেম্বর'} ({womenCourse.orientationTime || 'রাত ৮:০০ টা'})
-                </span>
+                <span><strong>ওরিয়েন্টেশন:</strong> {womenCourse.orientationDate || '২১ সেপ্টেম্বর'} ({womenCourse.orientationTime || 'রাত ৮:০০ টা'})</span>
               </div>
               <div className={styles.regTrackMetaItem}>
                 <CreditCard size={15} className={styles.regMetaIcon} />
-                <span>
-                  <strong>কোর্স ফি:</strong> ৳{womenCourse.fee || 1000} (এককালীন)
-                </span>
+                <span><strong>কোর্স ফি:</strong> ৳{womenCourse.fee || 1000} (এককালীন)</span>
               </div>
               <div className={styles.regTrackMetaItem}>
                 <Users size={15} className={styles.regMetaIcon} />
-                <span>সীমিত আসন · সফলদের সরাসরি নিয়োগের সুযোগ</span>
+                <span>সীমিত আসন · সফলদের সরাসরি নিয়োগের সুযোগ</span>
               </div>
             </div>
           </div>
-
           <button
             type="button"
             className={selectedTrack === 'women' ? styles.regCardBtnSelected : styles.regCardBtnUnselected}
           >
             {selectedTrack === 'women' ? (
-              <>
-                <Check size={16} strokeWidth={3} />
-                <span>কোর্সটি নির্বাচন করা হয়েছে</span>
-              </>
-            ) : (
-              `কোর্সটি নির্বাচন করুন (৳${womenCourse.fee || 1000})`
-            )}
+              <><Check size={16} strokeWidth={3} /><span>কোর্সটি নির্বাচন করা হয়েছে</span></>
+            ) : `কোর্সটি নির্বাচন করুন (৳${womenCourse.fee || 1000})`}
           </button>
         </div>
       </div>
 
-      {/* ── White Registration Form Card ── */}
+      {/* ── Registration Form Card ── */}
       <div className={styles.regWhiteCard}>
         {submitted ? (
+          /* Success State */
           <div className={styles.successBox}>
             <div className={styles.successIcon}>🎉</div>
             <h3 className={styles.successTitle}>রেজিস্ট্রেশন সফলভাবে গ্রহণ করা হয়েছে!</h3>
             <p className={styles.successSubtitle}>
               আপনার নির্বাচিত কোর্স:{' '}
               <strong className={styles.goldHighlight}>
-                {selectedTrack === 'men'
-                  ? 'TOT - MEN (পুরুষ ব্যাচ)'
-                  : 'TOT - WOMEN (নারীদের Batch 014)'}
+                {selectedTrack === 'men' ? 'TOT - MEN (পুরুষ ব্যাচ)' : 'TOT - WOMEN (নারীদের Batch 014)'}
               </strong>
             </p>
-
             <div className={styles.receiptSummary}>
-              <div className={styles.receiptRow}>
-                <span>আবেদনকারীর নাম:</span>
-                <strong>{formData.fullName}</strong>
-              </div>
-              <div className={styles.receiptRow}>
-                <span>মোবাইল নম্বর:</span>
-                <strong>{formData.phone}</strong>
-              </div>
-              <div className={styles.receiptRow}>
-                <span>রেজিস্ট্রেশন ফি:</span>
-                <strong className={styles.goldHighlight}>৳১,০০০ (এককালীন)</strong>
-              </div>
+              <div className={styles.receiptRow}><span>আবেদনকারীর নাম:</span><strong>{formData.fullName}</strong></div>
+              <div className={styles.receiptRow}><span>মোবাইল নম্বর:</span><strong>{formData.phone}</strong></div>
+              <div className={styles.receiptRow}><span>রেজিস্ট্রেশন ফি:</span><strong className={styles.goldHighlight}>৳১,০০০ (এককালীন)</strong></div>
             </div>
-
             <div className={styles.successActions}>
-              <button
-                type="button"
-                onClick={() => router.push('/teacher')}
-                className={`${styles.btn} ${styles.btnGold} ${styles.btnFull}`}
-              >
+              <button type="button" onClick={() => router.push('/teacher')} className={`${styles.btn} ${styles.btnGold} ${styles.btnFull}`}>
                 🎓 সরাসরি টিচার ড্যাশবোর্ডে যান →
               </button>
-              <button
-                type="button"
-                onClick={handleWhatsAppConfirm}
-                className={`${styles.btn} ${styles.btnOutline} ${styles.btnFull}`}
-              >
-                📲 WhatsApp-এ তাত্ক্ষণিক কনফার্মেশন পাঠান
+              <button type="button" onClick={handleWhatsAppConfirm} className={`${styles.btn} ${styles.btnOutline} ${styles.btnFull}`}>
+                📲 WhatsApp-এ তাৎক্ষণিক কনফার্মেশন পাঠান
               </button>
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
-            {/* Form Header with Title and Step Indicator */}
+          /* Form State */
+          <form onSubmit={handleSubmit} noValidate>
+            {/* Form Header */}
             <div className={styles.regFormHeader}>
               <div className={styles.regFormTitleRow}>
-                <div className={styles.regStepBadgeCircle}>
-                  <User size={20} />
-                </div>
+                <div className={styles.regStepBadgeCircle}><User size={20} /></div>
                 <div className={styles.regFormTitleBlock}>
                   <h3 className={styles.regFormTitleMain}>
                     {selectedTrack === 'men' ? '👨‍🏫 পুরুষ ব্যাচ' : '🧕 নারী ব্যাচ (Batch 014)'} — নিবন্ধন তথ্য
                   </h3>
                   <p className={styles.regFormSubtitle}>
-                    সঠিক তথ্য প্রদান করে SSLCommerz পেমেন্ট গেটওয়ের মাধ্যমে নিবন্ধন সম্পন্ন করুন।
+                    সঠিক তথ্য প্রদান করে SSLCommerz পেমেন্ট গেটওয়ের মাধ্যমে নিবন্ধন সম্পন্ন করুন।
                   </p>
                 </div>
               </div>
 
-              {/* Step Progress Indicator */}
+              {/* Step Indicator */}
               <div className={styles.regStepIndicator}>
                 <div className={styles.regStepItem}>
                   <div className={styles.regStepNumActive}>১</div>
@@ -362,6 +279,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
               </div>
             </div>
 
+            {/* Error Alert */}
             {errorMsg && (
               <div className={styles.regErrorAlert}>
                 <div className={styles.regErrorIcon}>⚠️</div>
@@ -371,8 +289,9 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
               </div>
             )}
 
-            {/* Form Inputs Grid (2 Columns with leading icons) */}
+            {/* Form Fields Grid */}
             <div className={styles.regInputsGrid}>
+
               {/* Full Name */}
               <div className={styles.regFieldGroup}>
                 <label className={styles.regFieldLabel} htmlFor="fullName">
@@ -381,19 +300,16 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 <div className={styles.regInputWrapper}>
                   <User size={17} className={styles.regInputIcon} />
                   <input
-                    id="fullName"
-                    name="fullName"
-                    type="text"
-                    required
+                    id="fullName" name="fullName" type="text" required
                     placeholder="আপনার পূর্ণ নাম লিখুন"
-                    value={formData.fullName}
-                    onChange={handleChange}
+                    value={formData.fullName} onChange={handleChange}
                     className={styles.regInputField}
+                    autoComplete="name"
                   />
                 </div>
               </div>
 
-              {/* Mobile Phone */}
+              {/* Phone */}
               <div className={styles.regFieldGroup}>
                 <label className={styles.regFieldLabel} htmlFor="phone">
                   মোবাইল নাম্বার (WhatsApp সহ) <span className={styles.requiredStar}>*</span>
@@ -401,14 +317,11 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 <div className={styles.regInputWrapper}>
                   <Phone size={17} className={styles.regInputIcon} />
                   <input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    required
+                    id="phone" name="phone" type="tel" required
                     placeholder="01XXXXXXXXX"
-                    value={formData.phone}
-                    onChange={handleChange}
+                    value={formData.phone} onChange={handleChange}
                     className={styles.regInputField}
+                    autoComplete="tel"
                   />
                 </div>
               </div>
@@ -421,19 +334,16 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 <div className={styles.regInputWrapper}>
                   <Mail size={17} className={styles.regInputIcon} />
                   <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
+                    id="email" name="email" type="email" required
                     placeholder="example@domain.com"
-                    value={formData.email}
-                    onChange={handleChange}
+                    value={formData.email} onChange={handleChange}
                     className={styles.regInputField}
+                    autoComplete="email"
                   />
                 </div>
               </div>
 
-              {/* Account Password */}
+              {/* Password */}
               <div className={styles.regFieldGroup}>
                 <label className={styles.regFieldLabel} htmlFor="password">
                   অ্যাকাউন্ট পাসওয়ার্ড (ড্যাশবোর্ড লগইন) <span className={styles.requiredStar}>*</span>
@@ -441,19 +351,17 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 <div className={styles.regInputWrapper}>
                   <Lock size={17} className={styles.regInputIcon} />
                   <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
+                    id="password" name="password" type="password" required
                     placeholder="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন"
-                    value={formData.password}
-                    onChange={handleChange}
+                    value={formData.password} onChange={handleChange}
                     className={styles.regInputField}
+                    autoComplete="new-password"
+                    minLength={6}
                   />
                 </div>
               </div>
 
-              {/* Education Background */}
+              {/* Education */}
               <div className={styles.regFieldGroup}>
                 <label className={styles.regFieldLabel} htmlFor="education">
                   শিক্ষাগত যোগ্যতা ও ব্যাকগ্রাউন্ড
@@ -461,18 +369,15 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 <div className={styles.regInputWrapper}>
                   <GraduationCap size={17} className={styles.regInputIcon} />
                   <input
-                    id="education"
-                    name="education"
-                    type="text"
+                    id="education" name="education" type="text"
                     placeholder="উদাঃ এইচএসসি / স্নাতক / আলিম / ফাজিল / দাওরা"
-                    value={formData.education}
-                    onChange={handleChange}
+                    value={formData.education} onChange={handleChange}
                     className={styles.regInputField}
                   />
                 </div>
               </div>
 
-              {/* Laptop Option */}
+              {/* Has Laptop */}
               <div className={styles.regFieldGroup}>
                 <label className={styles.regFieldLabel} htmlFor="hasLaptop">
                   ব্যক্তিগত ল্যাপটপ / কম্পিউটার আছে কি? <span className={styles.requiredStar}>*</span>
@@ -480,10 +385,8 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 <div className={styles.regInputWrapper}>
                   <Laptop size={17} className={styles.regInputIcon} />
                   <select
-                    id="hasLaptop"
-                    name="hasLaptop"
-                    value={formData.hasLaptop}
-                    onChange={handleChange}
+                    id="hasLaptop" name="hasLaptop"
+                    value={formData.hasLaptop} onChange={handleChange}
                     className={styles.regSelectField}
                   >
                     <option value="yes">হ্যাঁ, নিজস্ব ল্যাপটপ / কম্পিউটার আছে</option>
@@ -500,10 +403,8 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 <div className={styles.regInputWrapper}>
                   <BookOpen size={17} className={styles.regInputIcon} />
                   <select
-                    id="quranSkill"
-                    name="quranSkill"
-                    value={formData.quranSkill}
-                    onChange={handleChange}
+                    id="quranSkill" name="quranSkill"
+                    value={formData.quranSkill} onChange={handleChange}
                     className={styles.regSelectField}
                   >
                     <option value="fluent">শুদ্ধ ও সুন্দরভাবে তিলাওয়াত করতে পারি</option>
@@ -522,10 +423,8 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 <div className={styles.regInputWrapper}>
                   <MessageSquare size={17} className={styles.regInputIcon} />
                   <select
-                    id="englishSkill"
-                    name="englishSkill"
-                    value={formData.englishSkill}
-                    onChange={handleChange}
+                    id="englishSkill" name="englishSkill"
+                    value={formData.englishSkill} onChange={handleChange}
                     className={styles.regSelectField}
                   >
                     <option value="basic">বেসিক ইংরেজি জানি ও বুঝি</option>
@@ -536,10 +435,10 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
               </div>
             </div>
 
-            {/* Bottom Action / Security Bar */}
+            {/* Bottom Bar */}
             <div className={styles.regBottomBar}>
               <div className={styles.regSecurityBlock}>
-                <ShieldCheck size={24} className={styles.regShieldIcon} />
+                <ShieldCheck size={26} className={styles.regShieldIcon} />
                 <div className={styles.regSecurityText}>
                   <span className={styles.regSecurityTitle}>নিরাপদ ও সহজ পেমেন্ট গেটওয়ে</span>
                   <span className={styles.regSecuritySub}>
@@ -547,28 +446,21 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                   </span>
                 </div>
               </div>
-
               <div className={styles.regFeeActionWrap}>
                 <div className={styles.regFeePillDark}>
                   <span className={styles.regFeePillLabel}>রেজিস্ট্রেশন ফি</span>
                   <span className={styles.regFeePillAmount}>৳১,০০০</span>
                 </div>
-
                 <button
                   type="submit"
+                  id="reg-submit-btn"
                   disabled={loading}
                   className={styles.regSubmitBtnGold}
                 >
                   {loading ? (
-                    <>
-                      <Loader2 size={18} className={styles.spinnerIcon} />
-                      <span>গেটওয়েতে সংযোগ হচ্ছে...</span>
-                    </>
+                    <><Loader2 size={18} className={styles.spinnerIcon} /><span>গেটওয়েতে সংযোগ হচ্ছে...</span></>
                   ) : (
-                    <>
-                      <span>পেমেন্টে এগিয়ে যান</span>
-                      <ArrowRight size={17} />
-                    </>
+                    <><span>পেমেন্টে এগিয়ে যান</span><ArrowRight size={17} /></>
                   )}
                 </button>
               </div>

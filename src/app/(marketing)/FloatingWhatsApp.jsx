@@ -12,10 +12,11 @@ export default function FloatingWhatsApp() {
       className={styles.floatingWhatsApp}
       aria-label="Chat on WhatsApp"
       title="WhatsApp-এ মেসেজ দিন"
+      id="floating-whatsapp-btn"
     >
       <div className={styles.floatingPulseRing} />
       <div className={styles.floatingIconBox}>
-        <MessageCircle size={28} fill="#ffffff" color="#25D366" />
+        <MessageCircle size={30} fill="#ffffff" color="#25D366" />
       </div>
       <span className={styles.floatingLabel}>
         <span className={styles.floatingDot} />
