@@ -391,14 +391,25 @@ export default async function TeacherRegistrationMarketingPage() {
                 ))}
               </div>
 
-              <div className={styles.tracksHadithBox}>
-                <span className={styles.tracksHadithGlyph}>&ldquo;</span>
-                <div className={styles.tracksHadithInner}>
-                  <span className={styles.tracksHadithArabic}>خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ</span>
-                  <p className={styles.tracksHadithBengali}>
-                    &ldquo;তোমাদের মধ্যে সর্বোত্তম ব্যক্তি সে, যে নিজে কুরআন শিখে এবং অন্যকে শেখায়।&rdquo; — সহীহ বুখারী
-                  </p>
+              <div className={styles.tracksHighlightBox}>
+                <div className={styles.tracksHighlightHeader}>
+                  <Sparkles size={16} color="#E5C04A" />
+                  <span>ক্যারিয়ার অপরচুনিটি ও ট্রাস্ট গ্যারান্টি</span>
                 </div>
+                <div className={styles.tracksHighlightStats}>
+                  <div className={styles.tracksStatItem}>
+                    <span className={styles.tracksStatVal}>৳১৫,০০০–২২,০০০</span>
+                    <span className={styles.tracksStatLbl}>মাসিক সম্ভাব্য সম্মানী</span>
+                  </div>
+                  <div className={styles.tracksStatDivider} />
+                  <div className={styles.tracksStatItem}>
+                    <span className={styles.tracksStatVal}>১০০%</span>
+                    <span className={styles.tracksStatLbl}>ঘরে বসে অনলাইন ক্লাস</span>
+                  </div>
+                </div>
+                <p className={styles.tracksHighlightNote}>
+                  ✦ প্রশিক্ষণ শেষে উত্তীর্ণ প্রার্থীদের ফজর একাডেমি ইন্টারন্যাশনাল শিক্ষক প্যানেলে অগ্রাধিকার ভিত্তিতে যুক্ত করা হবে।
+                </p>
               </div>
             </div>
 
@@ -451,14 +462,13 @@ export default async function TeacherRegistrationMarketingPage() {
                   </div>
                 </div>
 
-                <div>
-                  <div className={`${styles.trackStripPill} ${styles.stripMen}`}>
-                    <Users size={14} /><span>TOT – MEN BATCH (কোর্স ফি: ৳১,০০০)</span>
-                  </div>
+                <div className={styles.trackActionWrap}>
                   <a href="#registration-section" className={`${styles.btnTrackAction} ${styles.btnTrackMen}`}>
+                    <CreditCard size={17} />
                     <span>নিবন্ধন করুন এখনই (৳১,০০০)</span>
                     <ArrowRight size={16} />
                   </a>
+                  <span className={styles.trackActionNote}>🔒 নিরাপদ SSLCommerz ও বিকাশ পেমেন্ট</span>
                 </div>
               </div>
             </div>
@@ -512,14 +522,13 @@ export default async function TeacherRegistrationMarketingPage() {
                   </div>
                 </div>
 
-                <div>
-                  <div className={`${styles.trackStripPill} ${styles.stripWomen}`}>
-                    <Users size={14} /><span>TOT – WOMEN BATCH (কোর্স ফি: ৳১,০০০)</span>
-                  </div>
+                <div className={styles.trackActionWrap}>
                   <a href="#registration-section" className={`${styles.btnTrackAction} ${styles.btnTrackWomen}`}>
+                    <CreditCard size={17} />
                     <span>নিবন্ধন করুন এখনই (৳১,০০০)</span>
                     <ArrowRight size={16} />
                   </a>
+                  <span className={styles.trackActionNote}>🔒 নিরাপদ SSLCommerz ও বিকাশ পেমেন্ট</span>
                 </div>
               </div>
             </div>
