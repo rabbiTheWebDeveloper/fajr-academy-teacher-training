@@ -191,6 +191,9 @@ export default function AdminUsersClient({ initialUsers }) {
             <option value="teacher">Teacher</option>
             <option value="instructor">Instructor</option>
             <option value="admin">Admin</option>
+            <option value="organizer">Organizer</option>
+            <option value="super-admin">Super Admin</option>
+            <option value="staff">Staff</option>
           </select>
 
           <select
@@ -284,6 +287,9 @@ export default function AdminUsersClient({ initialUsers }) {
                         <option value="teacher">Teacher</option>
                         <option value="instructor">Instructor</option>
                         <option value="admin">Admin</option>
+                        <option value="organizer">Organizer</option>
+                        <option value="super-admin">Super Admin</option>
+                        <option value="staff">Staff</option>
                       </select>
                     </td>
 
@@ -409,6 +415,9 @@ export default function AdminUsersClient({ initialUsers }) {
                     <option value="admin">Admin (অ্যাডমিন)</option>
                     <option value="instructor">Instructor (ট্রেইনার)</option>
                     <option value="teacher">Teacher (শিক্ষার্থী)</option>
+                    <option value="organizer">Organizer (অর্গানাইজার)</option>
+                    <option value="super-admin">Super Admin (সুপার অ্যাডমিন)</option>
+                    <option value="staff">Staff (স্টাফ)</option>
                   </select>
                 </div>
 

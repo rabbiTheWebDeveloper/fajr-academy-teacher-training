@@ -19,7 +19,7 @@ export default async function AdminInstructorsPage() {
     initialInstructors = data.map((i) => ({
       ...i,
       _id: i._id.toString(),
-      createdAt: i.createdAt ? i.createdAt.toISOString() : "",
+      createdAt: i.createdAt ? new Date(i.createdAt).toISOString() : "",
     }));
   } catch (error) {
     console.error("Error fetching instructors:", error);
