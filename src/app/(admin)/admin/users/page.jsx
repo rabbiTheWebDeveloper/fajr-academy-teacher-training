@@ -19,8 +19,8 @@ export default async function AdminUsersPage() {
     initialUsers = data.map((u) => ({
       ...u,
       _id: u._id.toString(),
-      createdAt: u.createdAt ? u.createdAt.toISOString() : "",
-      enrolledAt: u.enrolledAt ? u.enrolledAt.toISOString() : null,
+      createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : "",
+      enrolledAt: u.enrolledAt ? new Date(u.enrolledAt).toISOString() : null,
     }));
   } catch (error) {
     console.error("Error fetching users:", error);
