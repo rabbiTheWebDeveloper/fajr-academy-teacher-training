@@ -100,7 +100,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
           quranSkill:   formData.quranSkill,
           englishSkill: formData.englishSkill,
           education:    formData.education,
-          amount:       1000,
+          amount:       10,
         }),
       })
       const data = await res.json()
