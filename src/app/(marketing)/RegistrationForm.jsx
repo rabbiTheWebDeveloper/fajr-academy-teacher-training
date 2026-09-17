@@ -41,13 +41,13 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
     name: 'Training of Trainers (TOT) – MEN',
     orientationDate: '২০ সেপ্টেম্বর ২০২৬',
     orientationTime: 'রাত ৮:০০ টা',
-    fee: 1000,
+    fee: 5000,
   }
   const womenCourse = coursesList.find((c) => c.track === 'women' || c.courseId?.includes('WOMEN')) || {
     name: 'Training of Trainers (TOT) – WOMEN (Batch 014)',
     orientationDate: '২১ সেপ্টেম্বর ২০২৬',
     orientationTime: 'রাত ৮:০০ টা',
-    fee: 1000,
+    fee: 5000,
   }
 
   const [formData, setFormData] = useState({
@@ -100,7 +100,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
           quranSkill:   formData.quranSkill,
           englishSkill: formData.englishSkill,
           education:    formData.education,
-          amount:       1000,
+          amount:       (selectedTrack === 'women' ? (womenCourse.fee || 5000) : (menCourse.fee || 5000)),
         }),
       })
       const data = await res.json()
@@ -137,7 +137,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
           <div className={styles.regTrackCardContent}>
             <div className={styles.regTrackTopPills}>
               <span className={styles.regPillMenTag}><User size={13} /> পুরুষদের জন্য বিশেষায়িত</span>
-              <span className={styles.regPillFeeTag}><Tag size={12} /><span>৳ {menCourse.fee || 1000}</span></span>
+              <span className={styles.regPillFeeTag}><Tag size={12} /><span>৳ {menCourse.fee || 5000}</span></span>
             </div>
             <div className={styles.regTrackTitleBlock}>
               <div className={`${styles.regTrackAvatar} ${styles.avatarMen}`}><User size={22} /></div>
@@ -154,7 +154,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
               </div>
               <div className={styles.regTrackMetaItem}>
                 <CreditCard size={15} className={styles.regMetaIcon} />
-                <span><strong>কোর্স ফি:</strong> ৳{menCourse.fee || 1000} (এককালীন)</span>
+                <span><strong>কোর্স ফি:</strong> ৳{menCourse.fee || 5000} (এককালীন)</span>
               </div>
               <div className={styles.regTrackMetaItem}>
                 <Users size={15} className={styles.regMetaIcon} />
@@ -168,7 +168,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
           >
             {selectedTrack === 'men' ? (
               <><Check size={16} strokeWidth={3} /><span>কোর্সটি নির্বাচন করা হয়েছে</span></>
-            ) : `কোর্সটি নির্বাচন করুন (৳${menCourse.fee || 1000})`}
+            ) : `কোর্সটি নির্বাচন করুন (৳${menCourse.fee || 5000})`}
           </button>
         </div>
 
@@ -185,7 +185,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
           <div className={styles.regTrackCardContent}>
             <div className={styles.regTrackTopPills}>
               <span className={styles.regPillWomenTag}><Sparkles size={13} /> নারীদের জন্য · Batch 014</span>
-              <span className={styles.regPillFeeTag}><Tag size={12} /><span>৳ {womenCourse.fee || 1000}</span></span>
+              <span className={styles.regPillFeeTag}><Tag size={12} /><span>৳ {womenCourse.fee || 5000}</span></span>
             </div>
             <div className={styles.regTrackTitleBlock}>
               <div className={`${styles.regTrackAvatar} ${styles.avatarWomen}`}><Sparkles size={20} /></div>
@@ -202,7 +202,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
               </div>
               <div className={styles.regTrackMetaItem}>
                 <CreditCard size={15} className={styles.regMetaIcon} />
-                <span><strong>কোর্স ফি:</strong> ৳{womenCourse.fee || 1000} (এককালীন)</span>
+                <span><strong>কোর্স ফি:</strong> ৳{womenCourse.fee || 5000} (এককালীন)</span>
               </div>
               <div className={styles.regTrackMetaItem}>
                 <Users size={15} className={styles.regMetaIcon} />
@@ -216,7 +216,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
           >
             {selectedTrack === 'women' ? (
               <><Check size={16} strokeWidth={3} /><span>কোর্সটি নির্বাচন করা হয়েছে</span></>
-            ) : `কোর্সটি নির্বাচন করুন (৳${womenCourse.fee || 1000})`}
+            ) : `কোর্সটি নির্বাচন করুন (৳${womenCourse.fee || 5000})`}
           </button>
         </div>
       </div>
@@ -237,7 +237,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
             <div className={styles.receiptSummary}>
               <div className={styles.receiptRow}><span>আবেদনকারীর নাম:</span><strong>{formData.fullName}</strong></div>
               <div className={styles.receiptRow}><span>মোবাইল নম্বর:</span><strong>{formData.phone}</strong></div>
-              <div className={styles.receiptRow}><span>রেজিস্ট্রেশন ফি:</span><strong className={styles.goldHighlight}>৳১,০০০ (এককালীন)</strong></div>
+              <div className={styles.receiptRow}><span>রেজিস্ট্রেশন ফি:</span><strong className={styles.goldHighlight}>৳৫,০০০ (এককালীন)</strong></div>
             </div>
             <div className={styles.successActions}>
               <button type="button" onClick={() => router.push('/teacher')} className={`${styles.btn} ${styles.btnGold} ${styles.btnFull}`}>
@@ -442,14 +442,14 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 <div className={styles.regSecurityText}>
                   <span className={styles.regSecurityTitle}>নিরাপদ ও সহজ পেমেন্ট গেটওয়ে</span>
                   <span className={styles.regSecuritySub}>
-                    SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, কার্ড ও ব্যাংকে ১,০০০৳ পরিশোধ করুন।
+                    SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, কার্ড ও ব্যাংকে ৫,০০০৳ পরিশোধ করুন।
                   </span>
                 </div>
               </div>
               <div className={styles.regFeeActionWrap}>
                 <div className={styles.regFeePillDark}>
                   <span className={styles.regFeePillLabel}>রেজিস্ট্রেশন ফি</span>
-                  <span className={styles.regFeePillAmount}>৳১,০০০</span>
+                  <span className={styles.regFeePillAmount}>৳৫,০০০</span>
                 </div>
                 <button
                   type="submit"

@@ -1,8 +1,9 @@
 import styles from './page.module.css'
 import RevealObserver from './RevealObserver'
-import MarketingHeader from './MarketingHeader'
+import MarketingNavbar from './MarketingNavbar'
 import RegistrationForm from './RegistrationForm'
 import FloatingWhatsApp from './FloatingWhatsApp'
+import VideoShortsCard from './VideoShortsCard'
 import { BASE_URL } from '@/constant'
 import { dbConnect } from '@/service/mongo'
 import { CourseModel } from '@/model/course-model'
@@ -10,28 +11,22 @@ import {
   BookOpen,
   UserCheck,
   Award,
-  Clock,
-  ShieldCheck,
-  Users,
   Calendar,
-  Heart,
   Check,
   ArrowRight,
   MessageCircle,
   CreditCard,
-  Tag,
   User,
-  GraduationCap,
-  Monitor,
-  Handshake,
-  Sprout,
-  BookMarked,
+  Users,
   Sparkles,
   Phone,
   Laptop,
   CheckCircle2,
-  HelpCircle,
-  Video,
+  ShieldCheck,
+  Star,
+  Lock,
+  Play,
+  Plus,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -45,7 +40,7 @@ const PAGE_URL = `${SITE_URL}/`
 export const metadata = {
   title: 'অনলাইন কুরআন টিচার ট্রেনিং ও জব অপরচুনিটি (TOT) — পুরুষ ও নারী ব্যাচ ২০২৬ | ফজর একাডেমি',
   description:
-    'ফজর একাডেমির অনলাইন কুরআন টিচার ট্রেনিং প্রোগ্রামে (TOT) নিবন্ধন করুন। পুরুষদের ব্যাচ (ওরিয়েন্টেশন ২০ সেপ্টেম্বর) ও নারীদের ব্যাচ ০১৪ (ওরিয়েন্টেশন ২১ সেপ্টেম্বর)। ৪টি প্রফেশনাল সেশন, সার্টিফিকেট ও মাসিক ১৫,০০০–২২,০০০ টাকা সম্মানী!',
+    'ফজর একাডেমির পক্ষ থেকে ১০,০০০+ শিক্ষার্থীর সফলতার ধারাবাহিকতায় এবার ৩,০০০+ শিক্ষক তৈরি করার লক্ষ্যে প্রফেশনাল কুরআন টিচার ট্রেনিং প্রোগ্রাম। পুরুষ ও নারী ব্যাচ (ওরিয়েন্টেশন ২০ ও ২১ সেপ্টেম্বর)। ৪টি প্রফেশনাল সেশন, সার্টিফিকেট ও মাসিক ১৫,০০০–২২,০০০ টাকা সম্মানী!',
   alternates: { canonical: PAGE_URL },
   openGraph: {
     title: 'অনলাইন কুরআন টিচার ট্রেনিং ২০২৬ (TOT - Men & Women) — ফজর একাডেমি',
@@ -89,7 +84,7 @@ const jsonLd = {
       educationalLevel: 'Intermediate',
       courseMode: ['Online'],
       inLanguage: 'bn',
-      offers: { '@type': 'Offer', price: '1000', priceCurrency: 'BDT', availability: 'https://schema.org/InStock', url: PAGE_URL },
+      offers: { '@type': 'Offer', price: '5000', priceCurrency: 'BDT', availability: 'https://schema.org/InStock', url: PAGE_URL },
     },
     {
       '@type': 'Course',
@@ -101,7 +96,7 @@ const jsonLd = {
       educationalLevel: 'Intermediate',
       courseMode: ['Online'],
       inLanguage: 'bn',
-      offers: { '@type': 'Offer', price: '1000', priceCurrency: 'BDT', availability: 'https://schema.org/InStock', url: PAGE_URL },
+      offers: { '@type': 'Offer', price: '5000', priceCurrency: 'BDT', availability: 'https://schema.org/InStock', url: PAGE_URL },
     },
     {
       '@type': 'WebPage',
@@ -126,796 +121,933 @@ export default async function TeacherRegistrationMarketingPage() {
   }
 
   const menCourse = courses?.find((c) => c.track === 'men' || c.courseId === 'TOT-MEN') || {
-    name: 'Training of Trainers (TOT) – MEN',
-    tag: '👨‍🏫 পুরুষদের জন্য বিশেষায়িত',
-    fee: 1000,
-    orientationDate: '২০ সেপ্টেম্বর',
-    orientationTime: 'রাত ৮:০০ টা',
-    summary: 'ছেলেদের জন্য ঘরে বসে চাকরির বিশেষ সুযোগ। বাচ্চাদের আধুনিক পদ্ধতিতে কুরআন পাঠদানের আন্তর্জাতিক টিওটি পেডাগোজি প্রশিক্ষণ।',
+    name: 'Training of Trainers (TOT) - MEN BATCH',
+    tag: 'MEN BATCH',
+    fee: 5000,
+    orientationDate: '২০ সেপ্টেম্বর ২০২৬',
+    orientationTime: 'রাত ৮:০০ টা – ৯:৩০ টা',
+    summary: 'ছেলেদের জন্য ঘরে বসে কুরআন শিক্ষার সুযোগ ও আধুনিক পদ্ধতি',
   }
 
   const womenCourse = courses?.find((c) => c.track === 'women' || c.courseId?.includes('WOMEN')) || {
-    name: 'Training of Trainers (TOT) – WOMEN',
-    tag: '🧕 নারীদের জন্য · Batch 014 (Batch 013 চলমান)',
-    fee: 1000,
-    orientationDate: '২১ সেপ্টেম্বর',
-    orientationTime: 'রাত ৮:০০ টা',
-    summary: 'জেনারেল লাইনে পড়ালিখা করা দ্বীনে ফেরা আপুদের জন্য ঘরে বসেই আন্তর্জাতিক মানের অনলাইন কুরআন টিচার হওয়ার সুযোগ।',
+    name: 'Training of Trainers (TOT) - WOMEN BATCH',
+    tag: 'WOMEN BATCH 014',
+    fee: 5000,
+    orientationDate: '২১ সেপ্টেম্বর ২০২৬',
+    orientationTime: 'রাত ৮:০০ টা – ৯:৩০ টা',
+    summary: 'নিজের ঘরে থেকেই আন্তর্জাতিক মানের অনলাইন কুরআন শিক্ষার সুযোগ',
   }
 
   const sanitizedCourses = JSON.parse(JSON.stringify(courses || []))
 
   return (
-    <div className={styles.pageRoot}>
+    <div className="bg-fajr-dark text-white font-bengali antialiased selection:bg-fajr-gold selection:text-fajr-dark min-h-screen">
       {/* ── JSON-LD ── */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      {/* ── Scroll Reveal ── */}
+      {/* ── Scroll Reveal Observer ── */}
       <RevealObserver />
 
-      {/* ════════════════════════════════════════════
-          TOP ANNOUNCEMENT BAR
-          ════════════════════════════════════════════ */}
-      <div className={styles.topbar}>
-        <div className={styles.topbarInner}>
-          <div className={styles.topbarAnnouncement}>
-            <span className={styles.liveDot} />
-            <span>
-              <strong>ভর্তি চলছে:</strong> পুরুষ ব্যাচ (ওরিয়েন্টেশন ২০ সেপ্টেম্বর) • নারী ব্যাচ ০১৪ (ওরিয়েন্টেশন ২১ সেপ্টেম্বর)
-            </span>
-          </div>
-          <div className={styles.topbarRightInfo}>
-            <span>হটলাইন ও WhatsApp: </span>
-            <a
-              href="https://wa.me/8801641028312"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.topbarPhone}
-            >
-              01641028312
-            </a>
-          </div>
+      {/* ==================== TOP BAR ==================== */}
+      <div className="bg-fajr-gold/10 border-b border-white/5 py-2.5 px-6 md:px-12 flex justify-between items-center text-xs md:text-sm text-fajr-gold">
+        <div className="flex items-center gap-2 font-medium">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+          <span>ভর্তি চলছে — সীমিত আসন</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="hidden md:inline">
+            <Calendar className="w-3.5 h-3.5 inline mr-1" /> ফার্স্ট ওরিয়েন্টেশন: ২০ ও ২১ সেপ্টেম্বর
+          </span>
+          <span className="hidden md:inline text-fajr-gold/40">|</span>
+          <a
+            href="https://wa.me/8801641028312"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline flex items-center gap-1 text-fajr-gold"
+          >
+            <MessageCircle className="w-3.5 h-3.5 text-green-400" /> WhatsApp: 01641028312
+          </a>
         </div>
       </div>
 
-      {/* ════════════════════════════════════════════
-          STICKY HEADER
-          ════════════════════════════════════════════ */}
-      <MarketingHeader />
+      {/* ==================== NAVBAR ==================== */}
+      <MarketingNavbar />
 
-      {/* ════════════════════════════════════════════
-          HERO — Cinematic Luxury Islamic
-          ════════════════════════════════════════════ */}
-      <section className={styles.hero}>
-        <div className={styles.heroOverlay} />
+      {/* ==================== HERO SECTION ==================== */}
+      <section id="home" className="relative min-h-[92vh] flex items-center justify-center bg-gradient-hero pt-12 pb-24 overflow-hidden">
+        {/* Ambient Glowing Orbs */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-600 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse pointer-events-none"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-fajr-gold rounded-full mix-blend-screen filter blur-3xl opacity-15 animate-pulse pointer-events-none" style={{ animationDelay: '2s' }}></div>
+        
+        {/* Subtle Background Texture */}
+        <div className="absolute inset-0 opacity-15 bg-[url('https://images.unsplash.com/photo-1542816417-0983c9c9ad53?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center mix-blend-overlay pointer-events-none"></div>
 
-        <div className={styles.heroContentWrap}>
-          <div className={styles.heroGrid}>
+        <div className="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center relative z-10">
+          
+          {/* Left Hero Column */}
+          <div data-reveal className="space-y-6">
+            <div className="inline-flex items-center gap-2 bg-fajr-gold/10 border border-fajr-gold/30 rounded-full px-4 py-1.5 text-fajr-gold text-xs font-semibold tracking-wide">
+              <Star className="w-3.5 h-3.5 fill-fajr-gold text-fajr-gold" />
+              <span>TRAINING OF TRAINERS (TOT) - 2026</span>
+            </div>
+            
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-shadow text-white">
+              শুদ্ধভাবে কুরআন ও <br />
+              <span className="text-gradient-gold">ইংরেজি জানেন?</span><br />
+              ঘরে বসেই হয়ে উঠুন <br />
+              <span className="relative inline-block mt-1">
+                প্রফেশনাল কুরআন টিচার
+                <span className="absolute bottom-0 left-0 w-full h-1.5 bg-gradient-to-r from-fajr-gold via-yellow-400 to-transparent rounded-full"></span>
+              </span>
+            </h1>
 
-            {/* ── Left Column ── */}
-            <div className={styles.heroLeft}>
-              {/* Badge Row */}
-              <div className={styles.heroBadgeRow}>
-                <span className={styles.heroPillGold}>
-                  <Sparkles size={13} /> TRAINING OF TRAINERS (TOT) • 2026
+            <p className="text-gray-300 text-base md:text-lg leading-relaxed max-w-xl">
+              ফজর একাডেমির পক্ষ থেকে <strong className="text-white font-bold">১০,০০০+</strong> শিক্ষার্থীর সফলতার ধারাবাহিকতায় এবার <strong className="text-white font-bold">৩,০০০+</strong> শিক্ষক তৈরি করার লক্ষ্যে প্রফেশনাল কুরআন টিচার ট্রেনিং প্রোগ্রাম।
+            </p>
+
+            {/* Feature Pills */}
+            <div className="flex flex-wrap gap-3 pt-2">
+              <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/10 text-sm font-medium text-gray-200">
+                <CheckCircle2 className="w-4 h-4 text-fajr-gold" />
+                <span>লাইভ ক্লাস</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/10 text-sm font-medium text-gray-200">
+                <CheckCircle2 className="w-4 h-4 text-fajr-gold" />
+                <span>ক্লাস রেকর্ডিং</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/10 text-sm font-medium text-gray-200">
+                <CheckCircle2 className="w-4 h-4 text-fajr-gold" />
+                <span>অফিসিয়াল সার্টিফিকেট</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/10 text-sm font-medium text-gray-200">
+                <CheckCircle2 className="w-4 h-4 text-fajr-gold" />
+                <span>ডিভাইস সহায়তা</span>
+              </div>
+            </div>
+
+            {/* Hadith Callout */}
+            <div className="bg-fajr-blue/40 border border-fajr-gold/25 rounded-2xl p-4 md:p-5 flex items-start gap-3">
+              <span className="text-fajr-gold text-2xl font-serif leading-none">&ldquo;</span>
+              <div>
+                <p className="text-sm text-gray-300 italic leading-relaxed">
+                  &ldquo;তোমাদের মধ্যে সর্বোত্তম ব্যক্তি সে, যে নিজে কুরআন শেখে এবং অন্যকে শেখায়।&rdquo;
+                </p>
+                <span className="text-xs text-fajr-gold font-semibold mt-1 inline-block">— সহীহ বুখারী</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-2">
+              <a
+                href="#register"
+                className="btn-glow bg-gradient-to-r from-fajr-gold via-yellow-500 to-yellow-600 text-fajr-dark font-bold py-4 px-8 rounded-full text-center text-base md:text-lg shadow-lg shadow-fajr-gold/25 flex items-center justify-center gap-2 hover:scale-105 transition-all"
+              >
+                <CreditCard className="w-5 h-5" />
+                <span>রেজিস্ট্রেশন করুন (৫,০০০ ৳)</span>
+              </a>
+              <a
+                href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-glow border border-fajr-gold/50 text-fajr-gold font-bold py-4 px-8 rounded-full text-center text-base md:text-lg hover:bg-fajr-gold/10 transition-all flex items-center justify-center gap-2"
+              >
+                <MessageCircle className="w-5 h-5 text-green-400 fill-green-400" />
+                <span>WhatsApp-এ কথা বলুন</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Right Hero Column — 3D Glass Card */}
+          <div data-reveal className="relative">
+            <div className="absolute -top-6 -right-6 w-32 h-32 bg-fajr-gold rounded-full filter blur-3xl opacity-20 floating"></div>
+            
+            <div className="glass rounded-3xl p-8 border border-white/10 shadow-2xl relative z-10 card-3d border-gradient">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-fajr-blue rounded-2xl flex items-center justify-center mx-auto mb-4 border border-fajr-gold/40 shadow-inner">
+                  <BookOpen className="w-8 h-8 text-fajr-gold" />
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-1 tracking-wide">কুরআন টিচার ট্রেনিং (TOT)</h2>
+                <span className="inline-block bg-fajr-gold/20 text-fajr-gold text-xs px-3.5 py-1 rounded-full border border-fajr-gold/40 font-semibold tracking-wider">
+                  BATCH 2026
                 </span>
-                <span className={styles.heroPillGroup}>
-                  <Users size={14} color="#E5C04A" />
-                  <span>পুরুষ ও নারী আলাদা ট্র্যাক</span>
-                </span>
               </div>
 
-              {/* H1 */}
-              <h1 className={styles.heroH1}>
-                <span className={styles.heroH1Line}>শুদ্ধভাবে কুরআন ও</span>
-                <span className={styles.heroH1Line}>ইংরেজি জানেন?</span>
-                <span className={`${styles.heroH1Line} ${styles.heroH1Accent}`}>ঘরে বসেই হয়ে উঠুন</span>
-                <span className={styles.heroH1Line}>প্রফেশনাল কুরআন টিচার</span>
-              </h1>
+              <ul className="space-y-4 mb-8 text-sm text-gray-200">
+                <li className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-fajr-gold/20 flex items-center justify-center text-fajr-gold mt-0.5 shrink-0">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  </div>
+                  <span className="font-medium">আন্তর্জাতিক কুরআন শিক্ষণ পদ্ধতি ও আধুনিক পেডাগোজি</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-fajr-gold/20 flex items-center justify-center text-fajr-gold mt-0.5 shrink-0">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  </div>
+                  <span className="font-medium">বাচ্চাদের হ্যান্ডলিং ও সাইকোলজি কৌশল</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-fajr-gold/20 flex items-center justify-center text-fajr-gold mt-0.5 shrink-0">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  </div>
+                  <span className="font-medium">মাসিক ১৫,০০০ - ২২,০০০ টাকা পর্যন্ত আয়ের সরাসরি সুযোগ</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-fajr-gold/20 flex items-center justify-center text-fajr-gold mt-0.5 shrink-0">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  </div>
+                  <span className="font-medium">অফিসিয়াল মূল্যায়ন সার্টিফিকেট ও আজীবন মেন্টরশিপ</span>
+                </li>
+              </ul>
 
-              {/* Lede */}
-              <p className={styles.heroLede}>
-                ফজর একাডেমি নিয়ে এসেছে সম্পূর্ণ অনলাইন টিচার্স ট্রেনিং (TOT) প্রোগ্রাম। যেখানে আপনি শিখবেন আন্তর্জাতিক মানের কুরআন শিক্ষাদান পদ্ধতি ও আধুনিক পেডাগোজি। কোর্স শেষে সার্টিফিকেট এবং সফলদের জন্য রয়েছে <strong>মাসিক ১৫,০০০ থেকে ২২,০০০ টাকা</strong> সম্মানীতে শিক্ষক হিসেবে যুক্ত হওয়ার সরাসরি সুযোগ!
-              </p>
-
-              {/* 4 Feature Pills */}
-              <div className={styles.heroFeaturePillRow}>
-                <div className={styles.heroFeatureItem}>
-                  <div className={styles.heroFeatureIcon}><BookOpen size={20} /></div>
-                  <div className={styles.heroFeatureText}>কুরআন শিক্ষার<br />আধুনিক পদ্ধতি</div>
-                </div>
-                <div className={styles.heroFeatureItem}>
-                  <div className={styles.heroFeatureIcon}><UserCheck size={20} /></div>
-                  <div className={styles.heroFeatureText}>প্রফেশনাল<br />টিচার ট্রেনিং</div>
-                </div>
-                <div className={styles.heroFeatureItem}>
-                  <div className={styles.heroFeatureIcon}><Award size={20} /></div>
-                  <div className={styles.heroFeatureText}>অফিসিয়াল<br />সার্টিফিকেট</div>
-                </div>
-                <div className={styles.heroFeatureItem}>
-                  <div className={styles.heroFeatureIcon}><Laptop size={20} /></div>
-                  <div className={styles.heroFeatureText}>বিনামূল্যে ডিভাইস<br />সহায়তার সুযোগ</div>
-                </div>
-              </div>
-
-              {/* Hadith Callout */}
-              <div className={styles.hadithHeroCard}>
-                <span className={styles.hadithQuoteGlyph}>&ldquo;</span>
-                <div className={styles.hadithBody}>
-                  <span className={styles.hadithArabic}>خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ</span>
-                  <p className={styles.hadithTranslation}>
-                    &ldquo;তোমাদের মধ্যে সর্বোত্তম ব্যক্তি সে, যে নিজে কুরআন শিখে এবং অন্যকে শেখায়।&rdquo; — সহীহ বুখারী
-                  </p>
-                </div>
-              </div>
-
-              {/* CTA Row */}
-              <div className={styles.ctaRow}>
+              <div className="space-y-3">
                 <a
-                  id="hero-register-cta"
-                  className={styles.btnHeroGold}
-                  href="#registration-section"
+                  href="#register"
+                  className="block w-full text-center btn-glow bg-gradient-to-r from-fajr-gold to-yellow-600 text-fajr-dark font-bold py-3.5 rounded-xl text-base md:text-lg shadow-md"
                 >
-                  <CreditCard size={18} />
-                  <span>এখনই কোর্স রেজিস্ট্রেশন করুন (৳১,০০০)</span>
-                  <ArrowRight size={17} />
+                  <CreditCard className="w-5 h-5 inline mr-2" />
+                  রেজিস্ট্রেশন করুন (৫,০০০ ৳)
                 </a>
                 <a
-                  id="hero-whatsapp-cta"
-                  className={styles.btnHeroDark}
                   href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="block w-full text-center border border-fajr-gold/50 text-fajr-gold font-bold py-3 rounded-xl text-base hover:bg-fajr-gold/10 transition-all"
                 >
-                  <MessageCircle size={18} color="#25D366" fill="#25D366" />
-                  <span>WhatsApp-এ বিস্তারিত জানুন</span>
+                  <MessageCircle className="w-4 h-4 inline mr-2 text-green-400 fill-green-400" />
+                  WhatsApp-এ সরাসরি কথা বলুন
                 </a>
               </div>
+              
+              <p className="text-center text-xs text-gray-400 mt-4 flex items-center justify-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-fajr-gold" />
+                <span>আপনার তথ্য সম্পূর্ণ সুরক্ষিত ও গোপন রাখা হবে</span>
+              </p>
             </div>
+          </div>
+        </div>
+      </section>
 
-            {/* ── Right Column — Islamic Arch Card ── */}
-            <div className={styles.heroRight}>
-              <div className={styles.islamicArchCard}>
-                <div className={styles.archTopEmblem}>
+      {/* ==================== TRUST BAR ==================== */}
+      <div className="bg-fajr-blue/60 border-y border-white/5 py-4">
+        <div className="container mx-auto px-6 flex flex-wrap justify-center gap-6 md:gap-12 text-sm text-gray-300 font-medium">
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-fajr-gold" /> ১০,০০০+ শিক্ষার্থী
+          </span>
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-fajr-gold" /> ৫০+ দেশে শিক্ষার্থী
+          </span>
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-fajr-gold" /> ১০০% হালাল উপার্জন
+          </span>
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-fajr-gold" /> লাইফটাইম সাপোর্ট
+          </span>
+        </div>
+      </div>
+
+      {/* ==================== COURSES SECTION ==================== */}
+      <section id="courses" className="py-24 relative bg-gradient-to-b from-fajr-dark via-fajr-blue/15 to-fajr-dark">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 bg-fajr-gold/10 border border-fajr-gold/30 rounded-full px-4 py-1.5 text-fajr-gold text-sm font-semibold mb-4">
+              <Sparkles className="w-4 h-4" /> প্রফেশনাল ট্রেনিং প্রোগ্রাম
+            </div>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4 leading-tight">
+              কুরআনের আলো ছড়াতে <br /> <span className="text-gradient-gold">প্রফেশনাল শিক্ষক হন</span>
+            </h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-transparent via-fajr-gold to-transparent mx-auto mb-6"></div>
+            <p className="text-gray-300 max-w-2xl mx-auto text-base">
+              অভিজ্ঞ ট্রেনার ও আন্তর্জাতিক শিক্ষক পেডাগগির মাধ্যমে ঘরে বসেই গড়ে তুলুন দক্ষ, দায়িত্বশীল ও আধুনিক কুরআন শিক্ষক হিসেবে নিজেকে।
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            
+            {/* Course 1: MEN BATCH */}
+            <div id="course-men" className="card-3d glass-dark rounded-3xl overflow-hidden border border-white/10 group relative flex flex-col justify-between" data-reveal>
+              <div>
+                <div className="relative h-64 overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/fajr-logo.png" alt="FAJR Academy" className={styles.archLogoImg} />
-                  <div className={styles.archBrandTitle}>FAJR</div>
-                  <div className={styles.archBrandSub}>Academy</div>
+                  <img
+                    src="/men-batch.jpg"
+                    alt="Men's Quran Class"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1585036156171-384164a8c675?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-fajr-dark via-fajr-dark/60 to-transparent"></div>
+                  
+                  <div className="absolute top-4 left-4 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                    MEN BATCH
+                  </div>
+                  <div className="absolute top-4 right-4 bg-fajr-gold text-fajr-dark text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                    ৫,০০০ ৳
+                  </div>
+                  
+                  <div className="absolute bottom-4 left-6 right-6">
+                    <h3 className="text-2xl font-bold text-white leading-tight">Training of Trainers (TOT) - MEN BATCH</h3>
+                    <p className="text-blue-300 text-sm mt-1 font-medium">ছেলেদের জন্য ঘরে বসে কুরআন শিক্ষার সুযোগ ও আধুনিক পদ্ধতি</p>
+                  </div>
                 </div>
-
-                <div className={styles.archCourseTitle}>কুরআন টিচার ট্রেনিং (TOT)</div>
-                <div className={styles.archCourseYear}>BATCH 2026</div>
-
-                <div className={styles.archChecklist}>
-                  {[
-                    'আন্তর্জাতিক কুরআন শিক্ষণ পদ্ধতি',
-                    'বাচ্চাদের হ্যান্ডলিং ও সাইকোলজি কৌশল',
-                    'মাসিক ১৫,০০০–২২,০০০৳ শিক্ষক নিয়োগ',
-                    'অফিসিয়াল সার্টিফিকেট ও সাপোর্ট',
-                  ].map((item) => (
-                    <div key={item} className={styles.archCheckItem}>
-                      <div className={styles.archCheckCircle}>
-                        <Check size={13} strokeWidth={3} />
-                      </div>
-                      <span>{item}</span>
+                
+                <div className="p-8">
+                  <div className="bg-blue-900/30 border border-blue-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+                    <Calendar className="w-5 h-5 text-blue-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs text-blue-300 font-semibold uppercase tracking-wider">First Orientation Class:</p>
+                      <p className="text-sm font-bold text-white">
+                        {menCourse.orientationDate || '২০ সেপ্টেম্বর ২০২৬'} – {menCourse.orientationTime || 'রাত ৮:০০ টা – ৯:৩০ টা'}
+                      </p>
                     </div>
-                  ))}
-                </div>
+                  </div>
 
-                <div className={styles.archActions}>
-                  <a href="#registration-section" className={styles.btnArchGold}>
-                    <CreditCard size={17} />
-                    <span>রেজিস্ট্রেশন করুন (৳১,০০০)</span>
-                    <ArrowRight size={16} />
-                  </a>
-                  <a
-                    href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.btnArchDark}
-                  >
-                    <MessageCircle size={16} color="#25D366" fill="#25D366" />
-                    <span>WhatsApp-এ সরাসরি কথা বলুন</span>
-                  </a>
-                </div>
-
-                <div className={styles.archFooter}>
-                  <span>— আপনার বরকতময় ক্যারিয়ারের সূচনা —</span>
-                  <span className={styles.archFooterStar}>✦</span>
+                  <ul className="space-y-3.5 mb-8 text-sm text-gray-300">
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-4 h-4 text-fajr-gold mt-0.5 shrink-0" />
+                      <span><strong>মাসিক সম্মানী:</strong> ১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-4 h-4 text-fajr-gold mt-0.5 shrink-0" />
+                      <span><strong>৪টি প্রফেশনাল প্যাকেজ:</strong> ইসলামিক পেডাগগি ও শিক্ষাদানের কৌশল</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-4 h-4 text-fajr-gold mt-0.5 shrink-0" />
+                      <span><strong>অভিজ্ঞ ট্রেনার:</strong> বিশেষ আলোচনা ও আন্তর্জাতিক শিক্ষাবিদ</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-4 h-4 text-fajr-gold mt-0.5 shrink-0" />
+                      <span><strong>সার্টিফিকেট প্রদান:</strong> কোর্স শেষে অফিসিয়াল মূল্যায়ন সার্টিফিকেট</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-4 h-4 text-fajr-gold mt-0.5 shrink-0" />
+                      <span><strong>Training &amp; Grooming:</strong> নিয়মিত ক্যারিয়ার প্রোগ্রেসের সুযোগ</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Trust Ribbon */}
-        <div className={styles.heroBottomRibbon}>
-          <div className={styles.ribbonGrid}>
-            <div className={styles.ribbonItem}>
-              <ShieldCheck size={18} className={styles.ribbonIcon} />
-              <span>বিশ্বস্ত ও অভিজ্ঞ প্রশিক্ষক প্যানেল</span>
-            </div>
-            <div className={styles.ribbonItem}>
-              <Users size={18} className={styles.ribbonIcon} />
-              <span>মহিলা ও পুরুষ – সম্পূর্ণ আলাদা ব্যাচ</span>
-            </div>
-            <div className={styles.ribbonItem}>
-              <Monitor size={18} className={styles.ribbonIcon} />
-              <span>১০০% অনলাইন লাইভ ক্লাস (ঘরে বসে)</span>
-            </div>
-            <div className={styles.ribbonItem}>
-              <Heart size={18} className={styles.ribbonIcon} />
-              <span>দুনিয়া ও আখিরাতের বরকতময় ক্যারিয়ার</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════
-          DUAL TRACKS SHOWCASE (MEN & WOMEN)
-          ════════════════════════════════════════════ */}
-      <section id="tracks-section" className={styles.tracksSection}>
-        <div className={styles.tracksOverlay} />
-        <div className={styles.tracksContentWrap}>
-          <div className={styles.tracksGrid3Col}>
-
-            {/* Column 1: Intro */}
-            <div className={styles.tracksIntroCol} data-reveal>
-              <div className={styles.tracksIntroBadge}>
-                <GraduationCap size={15} />
-                <span>প্রফেশনাল ট্রেনিং প্রোগ্রাম</span>
-              </div>
-
-              <h2 className={styles.tracksMainH2}>
-                <span className={styles.tracksH2Line}>কুরআনের আলো ছড়াতে</span>
-                <span className={styles.tracksH2Line}>
-                  <span className={styles.tracksH2Gold}>প্রফেশনাল</span> শিক্ষক হন
-                </span>
-              </h2>
-
-              <p className={styles.tracksIntroP}>
-                অভিজ্ঞ ট্রেইনার ও আন্তর্জাতিক শিক্ষক পেডাগোজির মাধ্যমে ঘরে বসেই গড়ে তুলুন দক্ষ, দায়িত্বশীল ও আত্মবিশ্বাসী কুরআন শিক্ষক হিসেবে নিজেকে।
-              </p>
-
-              <div className={styles.tracksFeaturesRow}>
-                {[
-                  { icon: <UserCheck size={22} />, label: '৪টি প্রফেশনাল\nহ্যান্ডস-অন সেশন' },
-                  { icon: <Award size={22} />,     label: 'অভিজ্ঞ\nট্রেইনার প্যানেল' },
-                  { icon: <Monitor size={22} />,   label: 'সম্পূর্ণ\nঅনলাইন লাইভ' },
-                  { icon: <ShieldCheck size={22} />, label: 'সার্টিফিকেট ও\nনিয়োগ সুযোগ' },
-                ].map((f) => (
-                  <div key={f.label} className={styles.tracksFeatureItem}>
-                    <div className={styles.tracksFeatureCircle}>{f.icon}</div>
-                    <span className={styles.tracksFeatureTitle}>{f.label.replace('\n', String.fromCharCode(10))}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className={styles.tracksHighlightBox}>
-                <div className={styles.tracksHighlightHeader}>
-                  <Sparkles size={16} color="#E5C04A" />
-                  <span>ক্যারিয়ার অপরচুনিটি ও ট্রাস্ট গ্যারান্টি</span>
-                </div>
-                <div className={styles.tracksHighlightStats}>
-                  <div className={styles.tracksStatItem}>
-                    <span className={styles.tracksStatVal}>৳১৫,০০০–২২,০০০</span>
-                    <span className={styles.tracksStatLbl}>মাসিক সম্ভাব্য সম্মানী</span>
-                  </div>
-                  <div className={styles.tracksStatDivider} />
-                  <div className={styles.tracksStatItem}>
-                    <span className={styles.tracksStatVal}>১০০%</span>
-                    <span className={styles.tracksStatLbl}>ঘরে বসে অনলাইন ক্লাস</span>
-                  </div>
-                </div>
-                <p className={styles.tracksHighlightNote}>
-                  ✦ প্রশিক্ষণ শেষে উত্তীর্ণ প্রার্থীদের ফজর একাডেমি ইন্টারন্যাশনাল শিক্ষক প্যানেলে অগ্রাধিকার ভিত্তিতে যুক্ত করা হবে।
+              <div className="px-8 pb-8">
+                <a
+                  href="#register"
+                  className="block text-center btn-glow bg-gradient-to-r from-fajr-gold to-yellow-600 text-fajr-dark font-bold py-4 rounded-xl hover:shadow-lg hover:shadow-fajr-gold/30 transition-all text-base md:text-lg"
+                >
+                  রেজিস্ট্রেশন করুন এখনই (৫,০০০ ৳)
+                </a>
+                <p className="text-center text-xs text-gray-400 mt-3 flex items-center justify-center gap-1">
+                  <Lock className="w-3 h-3 text-fajr-gold" /> নিশ্চিত SSLCommerz ও বিকাশ পেমেন্ট
                 </p>
               </div>
             </div>
 
-            {/* Column 2: MEN Batch Card */}
-            <div id="course-men" className={styles.trackCard} data-reveal>
-              <div className={styles.cardImgHeader}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/men-batch.jpg" alt="TOT Men Batch 2026" className={styles.cardImg} />
-                <div className={`${styles.cardBadgeLeft} ${styles.cardBadgeLeftMen}`}>
-                  <User size={13} /><span>MEN BATCH</span>
+            {/* Course 2: WOMEN BATCH 014 */}
+            <div id="course-women" className="card-3d glass-dark rounded-3xl overflow-hidden border border-white/10 group relative flex flex-col justify-between" data-reveal>
+              <div>
+                <div className="relative h-64 overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/women-batch.jpg"
+                    alt="Women's Quran Class"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-fajr-dark via-fajr-dark/60 to-transparent"></div>
+                  
+                  <div className="absolute top-4 left-4 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                    WOMEN BATCH 014
+                  </div>
+                  <div className="absolute top-4 right-4 bg-fajr-gold text-fajr-dark text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                    ৫,০০০ ৳
+                  </div>
+                  
+                  <div className="absolute bottom-4 left-6 right-6">
+                    <h3 className="text-2xl font-bold text-white leading-tight">Training of Trainers (TOT) - WOMEN BATCH</h3>
+                    <p className="text-purple-300 text-sm mt-1 font-medium">নিজের ঘরে থেকেই আন্তর্জাতিক মানের অনলাইন কুরআন শিক্ষার সুযোগ</p>
+                  </div>
                 </div>
-                <div className={`${styles.cardBadgeRight} ${styles.cardBadgeRightMen}`}>
-                  <span className={styles.feeAmount}>৳ ১,০০০</span>
-                  <span className={styles.feeSub}>কোর্স ফি</span>
-                </div>
-              </div>
-
-              <div className={`${styles.cardMidBanner} ${styles.cardMidMen}`}>
-                <h3 className={styles.cardMidTitle}>Training of Trainers (TOT) – MEN BATCH</h3>
-                <p className={styles.cardMidSub}>
-                  ছেলেদের জন্য ঘরে বসে চাকরির বিশেষ সুযোগ। বাচ্চাদের আধুনিক পদ্ধতিতে কুরআন পাঠদানের আন্তর্জাতিক টিওটি পেডাগোজি প্রশিক্ষণ।
-                </p>
-              </div>
-
-              <div className={styles.cardBody}>
-                <div>
-                  <div className={`${styles.cardOrientationBox} ${styles.cardOrientMen}`}>
-                    <Calendar size={20} className={styles.orientCalendarIcon} />
-                    <div className={styles.orientTextCol}>
-                      <span className={styles.orientHeading}>First Orientation Class:</span>
-                      <span className={styles.orientDateTime}>
-                        {menCourse.orientationDate || '২০ সেপ্টেম্বর ২০২৬'} — {menCourse.orientationTime || 'রাত ৮:০০ টা'}
-                      </span>
+                
+                <div className="p-8">
+                  <div className="bg-purple-900/30 border border-purple-500/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+                    <Calendar className="w-5 h-5 text-purple-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs text-purple-300 font-semibold uppercase tracking-wider">First Orientation Class:</p>
+                      <p className="text-sm font-bold text-white">
+                        {womenCourse.orientationDate || '২১ সেপ্টেম্বর ২০২৬'} – {womenCourse.orientationTime || 'রাত ৮:০০ টা – ৯:৩০ টা'}
+                      </p>
                     </div>
                   </div>
 
-                  <div className={styles.cardPerksList}>
-                    {[
-                      ['মাসিক সম্মানী:', '১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত'],
-                      ['৪টি প্রফেশনাল সেশন:', 'ইসলামিক পেডাগোজি ও শিক্ষাদানের কৌশল'],
-                      ['অভিজ্ঞ ট্রেইনার:', 'বিশিষ্ট আলেম ও আন্তর্জাতিক শিক্ষাবিদ'],
-                      ['সার্টিফিকেট প্রদান:', 'কোর্স শেষে অফিসিয়াল মূল্যায়ন সার্টিফিকেট'],
-                      ['Training & Grooming:', 'নিয়মিত ক্যারিয়ার গ্রোথের সুযোগ'],
-                    ].map(([label, desc]) => (
-                      <div key={label} className={styles.cardPerkItem}>
-                        <div className={`${styles.perkCheckCircle} ${styles.perkCheckMen}`}>✓</div>
-                        <span><strong>{label}</strong> {desc}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={styles.trackActionWrap}>
-                  <a href="#registration-section" className={`${styles.btnTrackAction} ${styles.btnTrackMen}`}>
-                    <CreditCard size={17} />
-                    <span>নিবন্ধন করুন এখনই (৳১,০০০)</span>
-                    <ArrowRight size={16} />
-                  </a>
-                  <span className={styles.trackActionNote}>🔒 নিরাপদ SSLCommerz ও বিকাশ পেমেন্ট</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Column 3: WOMEN Batch Card */}
-            <div id="course-women" className={styles.trackCard} data-reveal>
-              <div className={styles.cardImgHeader}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/women-batch.jpg" alt="TOT Women Batch 014" className={styles.cardImg} />
-                <div className={`${styles.cardBadgeLeft} ${styles.cardBadgeLeftWomen}`}>
-                  <Sparkles size={13} /><span>WOMEN BATCH 014</span>
-                </div>
-                <div className={`${styles.cardBadgeRight} ${styles.cardBadgeRightWomen}`}>
-                  <span className={styles.feeAmount}>৳ ১,০০০</span>
-                  <span className={styles.feeSub}>কোর্স ফি</span>
+                  <ul className="space-y-3.5 mb-8 text-sm text-gray-300">
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
+                      <span><strong>মাসিক সম্মানী:</strong> ১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
+                      <span><strong>৪টি প্রফেশনাল প্যাকেজ:</strong> ইসলামিক পেডাগগি ও শিক্ষাদানের কৌশল</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
+                      <span><strong>অভিজ্ঞ ট্রেনার:</strong> বিশেষ আলোচনা ও আন্তর্জাতিক শিক্ষাবিদ</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
+                      <span><strong>সার্টিফিকেট প্রদান:</strong> কোর্স শেষে অফিসিয়াল মূল্যায়ন সার্টিফিকেট</span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle2 className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
+                      <span><strong>পর্দা ও শৃঙ্খলার সুরক্ষা:</strong> ১০০% ঘরে বসেই পাঠদানের সুযোগ</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
 
-              <div className={`${styles.cardMidBanner} ${styles.cardMidWomen}`}>
-                <h3 className={styles.cardMidTitle}>Training of Trainers (TOT) – WOMEN BATCH</h3>
-                <p className={styles.cardMidSub}>
-                  দ্বীনে ফেরা আপুদের জন্য ঘরে বসেই আন্তর্জাতিক মানের অনলাইন কুরআন টিচার হওয়ার এবং সম্মানজনক উপার্জনের সুযোগ।
+              <div className="px-8 pb-8">
+                <a
+                  href="#register"
+                  className="block text-center btn-glow bg-gradient-to-r from-purple-600 to-purple-800 text-white font-bold py-4 rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all text-base md:text-lg"
+                >
+                  রেজিস্ট্রেশন করুন এখনই (৫,০০০ ৳)
+                </a>
+                <p className="text-center text-xs text-gray-400 mt-3 flex items-center justify-center gap-1">
+                  <Lock className="w-3 h-3 text-fajr-gold" /> নিশ্চিত SSLCommerz ও বিকাশ পেমেন্ট
                 </p>
-              </div>
-
-              <div className={styles.cardBody}>
-                <div>
-                  <div className={`${styles.cardOrientationBox} ${styles.cardOrientWomen}`}>
-                    <Calendar size={20} className={styles.orientCalendarIcon} />
-                    <div className={styles.orientTextCol}>
-                      <span className={styles.orientHeading}>First Orientation Class:</span>
-                      <span className={styles.orientDateTime}>
-                        {womenCourse.orientationDate || '২১ সেপ্টেম্বর ২০২৬'} — {womenCourse.orientationTime || 'রাত ৮:০০ টা'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className={styles.cardPerksList}>
-                    {[
-                      ['মাসিক সম্মানী:', '১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত'],
-                      ['৪টি প্রফেশনাল সেশন:', 'ইসলামিক পেডাগোজি ও শিক্ষাদানের কৌশল'],
-                      ['অভিজ্ঞ আলেমা ট্রেইনার:', 'বিশিষ্ট নারী শিক্ষাবিদ প্যানেল'],
-                      ['সার্টিফিকেট প্রদান:', 'কোর্স শেষে অফিসিয়াল মূল্যায়ন সার্টিফিকেট'],
-                      ['পর্দা ও গৃহকোণ সুরক্ষা:', '১০০% ঘরে বসেই পাঠদানের সুযোগ'],
-                    ].map(([label, desc]) => (
-                      <div key={label} className={styles.cardPerkItem}>
-                        <div className={`${styles.perkCheckCircle} ${styles.perkCheckWomen}`}>✓</div>
-                        <span><strong>{label}</strong> {desc}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={styles.trackActionWrap}>
-                  <a href="#registration-section" className={`${styles.btnTrackAction} ${styles.btnTrackWomen}`}>
-                    <CreditCard size={17} />
-                    <span>নিবন্ধন করুন এখনই (৳১,০০০)</span>
-                    <ArrowRight size={16} />
-                  </a>
-                  <span className={styles.trackActionNote}>🔒 নিরাপদ SSLCommerz ও বিকাশ পেমেন্ট</span>
-                </div>
               </div>
             </div>
           </div>
-
-          {/* Mission Pill Bar */}
-          <div className={styles.tracksBottomPillBar} data-reveal>
-            <div className={styles.tracksPillItem}>
-              <BookMarked size={17} className={styles.tracksPillIcon} />
-              <span>Build Islamic Educators</span>
+          
+          {/* Career Highlight Box */}
+          <div className="mt-12 max-w-4xl mx-auto glass-dark border border-fajr-gold/30 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl" data-reveal>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-fajr-gold/20 flex items-center justify-center text-fajr-gold shrink-0">
+                <Users className="w-7 h-7" />
+              </div>
+              <div>
+                <h4 className="text-lg font-bold text-fajr-gold">ক্যারিয়ার অপরচুনিটি</h4>
+                <p className="text-sm text-gray-300">প্রশিক্ষণ শেষে উত্তীর্ণ গ্র্যাজুয়েটরা ফজর একাডেমির ব্র্যান্ড শিক্ষক হিসেবে যুক্ত হবেন।</p>
+              </div>
             </div>
-            <div className={styles.tracksPillSep} />
-            <div className={styles.tracksPillItem}>
-              <Handshake size={17} className={styles.tracksPillIcon} />
-              <span>Empower Better Community</span>
-            </div>
-            <div className={styles.tracksPillSep} />
-            <div className={styles.tracksPillItem}>
-              <Sprout size={17} className={styles.tracksPillIcon} />
-              <span>A Brighter Future for Ummah</span>
+            <div className="text-center md:text-right shrink-0">
+              <p className="text-3xl font-bold text-fajr-gold">১৫,০০০ - ২২,০০০ ৳</p>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">মাসিক সম্ভাব্য সম্মানী</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════
-          REGISTRATION FORM & PAYMENT
-          ════════════════════════════════════════════ */}
-      <section id="registration-section" className={styles.regSectionContainer}>
-        <div className={styles.regSectionOverlay} />
-        <div className={styles.regContentWrap}>
-          {/* Top Header */}
-          <div className={styles.regTopHeader}>
-            <div className={styles.regBrandLockup}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/fajr-logo.png" alt="FAJR Academy Logo" className={styles.regBrandLogo} />
-              <div className={styles.regBrandText}>
-                <span className={styles.regBrandTitle}>FAJR Academy</span>
-                <span className={styles.regBrandTag}>Learn Qur&apos;an &bull; Build Future</span>
+      {/* ==================== 4-STEP PROCESS ==================== */}
+      <section id="process" className="py-24 bg-[#F8F5EE] text-gray-800 font-bengali relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 pointer-events-none"></div>
+
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="text-center mb-20" data-reveal>
+            <div className="inline-flex items-center gap-2 text-yellow-700 text-sm font-bold tracking-wider mb-4">
+              <span className="w-8 h-[1px] bg-yellow-600"></span>
+              নিবন্ধন থেকে নিয়োগের ধাপসমূহ
+              <span className="w-8 h-[1px] bg-yellow-600"></span>
+            </div>
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">
+              মাত্র ৪টি ধাপে হয়ে উঠুন <br /> একজন প্রফেশনাল শিক্ষক
+            </h2>
+          </div>
+
+          <div className="relative max-w-5xl mx-auto">
+            <div className="hidden md:block absolute top-6 left-[12%] right-[12%] h-[2px] bg-yellow-300/70 z-0"></div>
+
+            <div className="grid md:grid-cols-4 gap-8 relative z-10">
+              {/* Step 1 */}
+              <div className="flex flex-col items-center text-center group" data-reveal>
+                <div className="w-12 h-12 rounded-full bg-[#0B1120] text-white flex items-center justify-center font-bold text-lg shadow-lg mb-6 border-4 border-[#F8F5EE] group-hover:scale-110 transition-transform duration-300">
+                  ০১
+                </div>
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200/80 w-full hover:shadow-md transition-shadow duration-300 h-full flex flex-col justify-center">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">রেজিস্ট্রেশন ও ৫,০০০ টাকা ফি</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">পছন্দের ট্র্যাক নির্বাচন করে ৫,০০০ টাকা ফি পরিশোধ করে নিবন্ধন সম্পন্ন করুন।</p>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="flex flex-col items-center text-center group" data-reveal>
+                <div className="w-12 h-12 rounded-full bg-[#0B1120] text-white flex items-center justify-center font-bold text-lg shadow-lg mb-6 border-4 border-[#F8F5EE] group-hover:scale-110 transition-transform duration-300">
+                  ০২
+                </div>
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200/80 w-full hover:shadow-md transition-shadow duration-300 h-full flex flex-col justify-center">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">লাইভ ওরিয়েন্টেশন ক্লাস</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">পুরুষদের ২০ সেপ্টেম্বর এবং নারীদের ২১ সেপ্টেম্বর রাত ৮:০০ টায় জুম/মিটে লাইভ ওরিয়েন্টেশন ক্লাসে যুক্ত হোন।</p>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="flex flex-col items-center text-center group" data-reveal>
+                <div className="w-12 h-12 rounded-full bg-[#0B1120] text-white flex items-center justify-center font-bold text-lg shadow-lg mb-6 border-4 border-[#F8F5EE] group-hover:scale-110 transition-transform duration-300">
+                  ০৩
+                </div>
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200/80 w-full hover:shadow-md transition-shadow duration-300 h-full flex flex-col justify-center">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">৪টি প্রফেশনাল TOT প্যাকেজ</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">১ মাসে ৪টি হ্যান্ডস-অন সেশনে আধুনিক পেডাগোজি ও আন্তর্জাতিক শিক্ষক প্রশিক্ষণ আয়ত্ত করুন।</p>
+                </div>
+              </div>
+
+              {/* Step 4 */}
+              <div className="flex flex-col items-center text-center group" data-reveal>
+                <div className="w-12 h-12 rounded-full bg-[#0B1120] text-white flex items-center justify-center font-bold text-lg shadow-lg mb-6 border-4 border-[#F8F5EE] group-hover:scale-110 transition-transform duration-300">
+                  ০৪
+                </div>
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200/80 w-full hover:shadow-md transition-shadow duration-300 h-full flex flex-col justify-center">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">সার্টিফিকেট ও জব অফার</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">মূল্যায়নে সার্টিফিকেট অর্জন এবং ফজর একাডেমির নিজস্ব প্ল্যাটফর্মে ১৫-২২ হাজার মাসিক সম্মানীতে যোগ দিন।</p>
+                </div>
               </div>
             </div>
-            <div className={styles.regHeaderCenter}>
-              <div className={styles.regEyebrow}>— ❖ আপনার দক্ষতা, আমাদের সহায়তা ❖ —</div>
-              <h2 className={styles.regTitle}>কোর্স নির্বাচন ও শিক্ষক নিবন্ধন ফর্ম</h2>
-              <p className={styles.regSubtitle}>
-                পছন্দের ট্র্যাক নির্বাচন করে ১,০০০৳ কোর্স ফি পরিশোধের মাধ্যমে আপনার নিবন্ধন সম্পন্ন করুন।
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== WHY FAJR ACADEMY ==================== */}
+      <section id="why" className="py-24 bg-gradient-to-b from-[#0B1120] via-[#0D1527] to-[#0B1120] relative">
+        <div className="container mx-auto px-6 max-w-6xl">
+          <div className="text-center mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 bg-fajr-gold/10 border border-fajr-gold/30 rounded-full px-4 py-1.5 text-fajr-gold text-sm font-semibold mb-4">
+              <ShieldCheck className="w-4 h-4" /> কেন ফজর একাডেমি
+            </div>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+              প্রশিক্ষণ থেকে সরাসরি ক্যারিয়ার — <br />
+              <span className="text-gradient-gold">একটি স্বচ্ছ ও বরকতময় পথ</span>
+            </h2>
+            <p className="text-gray-300 max-w-2xl mx-auto">
+              শুধু সার্টিফিকেট নয়, ফজর একাডেমি প্রশিক্ষণ শেষে যোগ্য শিক্ষক-শিক্ষিকাদের নিজস্ব গ্লোবাল প্ল্যাটফর্মে সরাসরি নিয়োগ নিশ্চিত করে।
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="glass rounded-2xl p-8 border border-white/10 hover:border-fajr-gold/40 transition-all card-3d" data-reveal>
+              <div className="w-12 h-12 rounded-xl bg-fajr-gold/20 flex items-center justify-center font-bold text-fajr-gold text-xl mb-4">
+                ০১
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">ঘরে বসেই সম্পূর্ণ কাজ</h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                কোনো ট্রাফিক জ্যাম নেই, রোদে পুড়তে হবে না। সম্পূর্ণ ট্রেনিং ও পরবর্তী শিক্ষকতার ক্লাস ঘরে বসেই ল্যাপটপে সম্পন্ন করতে পারবেন।
               </p>
             </div>
-            <div className={styles.regCalligraphyBadge}>
-              <div className={styles.regCalligraphyText}>
-                আসুন<br />শিক্ষার আলো<br />ছড়াই...
+
+            <div className="glass rounded-2xl p-8 border border-white/10 hover:border-fajr-gold/40 transition-all card-3d" data-reveal>
+              <div className="w-12 h-12 rounded-xl bg-fajr-gold/20 flex items-center justify-center font-bold text-fajr-gold text-xl mb-4">
+                ০২
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">মাসিক সম্মানী ১৫,০০০ – ২২,০০০৳</h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                কুরআনের খেদমতের সাথে সাথে একটি সম্মানজনক এবং স্বাবলম্বী হালাল ক্যারিয়ার গড়ার নিশ্চয়তা ইনশাআল্লাহ।
+              </p>
+            </div>
+
+            <div className="glass rounded-2xl p-8 border border-white/10 hover:border-fajr-gold/40 transition-all card-3d" data-reveal>
+              <div className="w-12 h-12 rounded-xl bg-fajr-gold/20 flex items-center justify-center font-bold text-fajr-gold text-xl mb-4">
+                ০৩
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">বিনামূল্যে ল্যাপটপ ও ডিভাইস সাপোর্ট</h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                আপনার যদি কুরআন তিলাওয়াত ও ইংরেজি ভালো থাকে কিন্তু ডিভাইস না থাকে, তবে ফজর একাডেমি নিজস্ব তহবিল থেকে ল্যাপটপ সহায়তা প্রদান করবে।
+              </p>
+            </div>
+
+            <div className="glass rounded-2xl p-8 border border-white/10 hover:border-fajr-gold/40 transition-all card-3d" data-reveal>
+              <div className="w-12 h-12 rounded-xl bg-fajr-gold/20 flex items-center justify-center font-bold text-fajr-gold text-xl mb-4">
+                ০৪
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">কন্টিনিউয়াস মেন্টরিং ও সার্টিফিকেট</h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                ৪টি প্রফেশনাল সেশন শেষে অফিসিয়াল মূল্যায়ন সার্টিফিকেট প্রদান এবং নিয়মিত গ্রুমিং ও স্কিল ডেভেলপমেন্টের মাধ্যমে ক্যারিয়ার বৃদ্ধি।
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== ELIGIBILITY & PAYMENT ==================== */}
+      <section className="py-24 bg-white text-gray-800 font-bengali relative overflow-hidden">
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="text-center mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 text-yellow-700 text-sm font-bold tracking-wider mb-4">
+              <span className="w-8 h-[1px] bg-yellow-600"></span>
+              প্রয়োজনীয় যোগ্যতা ও ফি
+              <span className="w-8 h-[1px] bg-yellow-600"></span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">আবেদনের সাধারণ যোগ্যতা ও পেমেন্ট তথ্য</h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {/* Criteria Card */}
+            <div className="bg-[#F8F5EE] rounded-3xl p-8 border border-yellow-200/70 shadow-sm relative overflow-hidden" data-reveal>
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-900 to-blue-500"></div>
+              
+              <h3 className="text-xl font-bold text-gray-900 mb-6 border-b border-gray-300/60 pb-4">আবেদনের সাধারণ যোগ্যতা</h3>
+              
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3.5">
+                  <div className="w-6 h-6 rounded-full bg-[#0B1120] flex items-center justify-center shrink-0 mt-0.5">
+                    <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                  </div>
+                  <span className="text-gray-700 font-medium">শুদ্ধ ও স্পষ্ট উচ্চারণে কুরআন তেলাওয়াত করার প্রাথমিক দক্ষতা</span>
+                </li>
+                <li className="flex items-start gap-3.5">
+                  <div className="w-6 h-6 rounded-full bg-[#0B1120] flex items-center justify-center shrink-0 mt-0.5">
+                    <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                  </div>
+                  <span className="text-gray-700 font-medium">প্রাথমিক ইংরেজি জ্ঞান এবং বোঝার দক্ষতা (প্রশিক্ষণে আরও ডেভেলপ করা হবে)</span>
+                </li>
+                <li className="flex items-start gap-3.5">
+                  <div className="w-6 h-6 rounded-full bg-[#0B1120] flex items-center justify-center shrink-0 mt-0.5">
+                    <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                  </div>
+                  <span className="text-gray-700 font-medium">ব্যক্তিগত ল্যাপটপ/ডেস্কটপ (না থাকলে ফজর একাডেমির ডিভাইস সহায়তা সুবিধা)</span>
+                </li>
+                <li className="flex items-start gap-3.5">
+                  <div className="w-6 h-6 rounded-full bg-[#0B1120] flex items-center justify-center shrink-0 mt-0.5">
+                    <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                  </div>
+                  <span className="text-gray-700 font-medium">স্থিতিশীল ইন্টারনেট সংযোগ এবং সচল WhatsApp নম্বর</span>
+                </li>
+                <li className="flex items-start gap-3.5">
+                  <div className="w-6 h-6 rounded-full bg-[#0B1120] flex items-center justify-center shrink-0 mt-0.5">
+                    <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
+                  </div>
+                  <span className="text-gray-700 font-medium">হাফেজ না হয়েও আবেদন করার সুযোগ – শেখানোর সদিচ্ছা ও একাগ্রতা প্রয়োজন</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Fee Card */}
+            <div className="bg-[#F8F5EE] rounded-3xl p-8 border border-yellow-200/70 shadow-sm relative overflow-hidden flex flex-col justify-between" data-reveal>
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 to-fajr-gold"></div>
+              
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-6 border-b border-gray-300/60 pb-4">কোর্স ফি ও পেমেন্ট তথ্য</h3>
+                
+                <div className="flex items-baseline gap-2 mb-8">
+                  <span className="text-2xl font-bold text-fajr-gold">৳</span>
+                  <span className="text-5xl font-extrabold text-gray-900 tracking-tight">৫,০০০</span>
+                  <span className="text-sm font-medium text-gray-500 ml-2">(এককালীন রেজিস্ট্রেশন ফি)</span>
+                </div>
+              </div>
+
+              <div className="space-y-4 text-sm">
+                <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                  <span className="text-gray-600 font-medium">পেমেন্ট গেটওয়ে</span>
+                  <span className="text-gray-900 font-bold">SSLCommerz (অনলাইন পেমেন্ট)</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                  <span className="text-gray-600 font-medium">বিকাশ / নগদ / রকেট</span>
+                  <span className="text-gray-900 font-bold">01641028312</span>
+                </div>
+                <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                  <span className="text-gray-600 font-medium">কোর্স ট্র্যাক</span>
+                  <span className="text-gray-900 font-bold">TOT-MEN / TOT-WOMEN</span>
+                </div>
+                <div className="flex justify-between items-center pb-2">
+                  <span className="text-gray-600 font-medium">হটলাইন / WhatsApp</span>
+                  <span className="text-gray-900 font-bold">01641028312</span>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== REGISTRATION FORM SECTION ==================== */}
+      <section id="register" className="py-24 bg-[#0B1120] relative overflow-hidden border-t border-white/5">
+        <div className="container mx-auto px-6 max-w-5xl">
+          <div className="text-center mb-12" data-reveal>
+            <div className="inline-flex items-center gap-2 bg-fajr-gold/10 border border-fajr-gold/30 rounded-full px-4 py-1.5 text-fajr-gold text-xs font-semibold mb-4">
+              ❖ আপনার দক্ষতা, আমাদের সহায়তা ❖
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">কোর্স নির্বাচন ও শিক্ষক নিবন্ধন ফর্ম</h2>
+            <p className="text-gray-300 text-sm md:text-base max-w-2xl mx-auto">
+              পছন্দের ট্র্যাক নির্বাচন করে ৫,০০০৳ কোর্স ফি পরিশোধের মাধ্যমে আপনার নিবন্ধন সম্পন্ন করুন।
+            </p>
           </div>
 
           <RegistrationForm initialTrack="men" courses={sanitizedCourses} />
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════
-          WHY FAJR ACADEMY
-          ════════════════════════════════════════════ */}
-      <section id="why-fajr" className={`${styles.section} ${styles.why}`}>
-        <div className={styles.wrap}>
-          <div className={styles.sectionHead} data-reveal>
-            <span className={styles.eyebrow}>কেন ফজর একাডেমি টিওটি</span>
-            <h2>প্রশিক্ষণ থেকে সরাসরি ক্যারিয়ার — একটি স্বচ্ছ ও বরকতময় পথ</h2>
-            <p>
-              শুধু সার্টিফিকেট নয়, ফজর একাডেমি প্রশিক্ষণ শেষে যোগ্য শিক্ষক-শিক্ষিকাদের নিজস্ব গ্লোবাল প্ল্যাটফর্মে সরাসরি নিয়োগ নিশ্চিত করে।
-            </p>
-          </div>
-          <div className={styles.whyGrid}>
-            {[
-              { num: '০১', title: 'ঘরে বসেই সম্পূর্ণ কাজ', body: 'কোনো ট্রাফিক জ্যাম নেই, রোদে পুড়তে হবে না। সম্পূর্ণ ট্রেনিং ও পরবর্তী শিক্ষকতার ক্লাস ঘরে বসেই ল্যাপটপে সম্পন্ন করতে পারবেন।' },
-              { num: '০২', title: 'মাসিক সম্মানী ১৫,০০০ – ২২,০০০৳', body: 'কুরআনের খেদমতের সাথে সাথে একটি সম্মানজনক এবং স্বাবলম্বী হালাল ক্যারিয়ার গড়ার নিশ্চয়তা ইনশাআল্লাহ।' },
-              { num: '০৩', title: 'বিনামূল্যে ল্যাপটপ ও ডিভাইস সাপোর্ট', body: 'আপনার যদি কুরআন তিলাওয়াত ও ইংরেজি ভালো থাকে কিন্তু ডিভাইস না থাকে, তবে ফজর একাডেমি নিজস্ব তহবিল থেকে ল্যাপটপ সহায়তা প্রদান করবে।' },
-              { num: '০৪', title: 'কন্টিনিউয়াস মেন্টরিং ও সার্টিফিকেট', body: '৪টি প্রফেশনাল সেশন শেষে অফিসিয়াল সার্টিফিকেট প্রদান এবং নিয়মিত গ্রুমিং ও স্কিল ডেভেলপমেন্টের মাধ্যমে ক্যারিয়ার বৃদ্ধি।' },
-            ].map((c) => (
-              <div key={c.num} className={styles.whyCard} data-reveal>
-                <div className={styles.ic}>{c.num}</div>
-                <h3>{c.title}</h3>
-                <p>{c.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════
-          PROCESS TIMELINE
-          ════════════════════════════════════════════ */}
-      <section id="process-section" className={`${styles.section} ${styles.process}`}>
-        <div className={styles.wrap}>
-          <div className={styles.sectionHead} data-reveal>
-            <span className={styles.eyebrow}>নিবন্ধন থেকে নিয়োগের ধাপসমূহ</span>
-            <h2>মাত্র ৪টি ধাপে হয়ে উঠুন একজন প্রফেশনাল শিক্ষক</h2>
-          </div>
-          <div className={styles.timeline}>
-            {[
-              { num: '০১', title: 'রেজিস্ট্রেশন ও ১,০০০৳ ফি',     body: 'পছন্দের ট্র্যাক (Men / Women Batch 014) নির্বাচন করে ১,০০০ টাকা ফি পরিশোধ করে নিবন্ধন সম্পন্ন করুন।' },
-              { num: '০২', title: 'লাইভ ওরিয়েন্টেশন ক্লাস',       body: 'পুরুষদের ২০ সেপ্টেম্বর এবং নারীদের ২১ সেপ্টেম্বর রাত ৮:০০ টায় জুম/মিটে লাইভ ওরিয়েন্টেশন ক্লাসে যুক্ত হোন।' },
-              { num: '০৩', title: '৪টি প্রফেশনাল TOT সেশন',        body: '১ মাসে ৪টি হ্যান্ডস-অন সেশনে বাচ্চাদের কুরআন ও ইংরেজি শেখানোর আধুনিক পেডাগোজি কৌশল আয়ত্ত করুন।' },
-              { num: '০৪', title: 'সার্টিফিকেট ও জব অফার',         body: 'মূল্যায়নে সার্টিফিকেট অর্জন এবং ফজর একাডেমির গ্লোবাল শিক্ষক প্যানেলে ১৫-২২ হাজার মাসিক সম্মানীতে যোগ দিন।' },
-            ].map((s) => (
-              <div key={s.num} className={styles.tlStep} data-reveal>
-                <div className={styles.tlNum}>{s.num}</div>
-                <h3>{s.title}</h3>
-                <p>{s.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════
-          REQUIREMENTS & FEE
-          ════════════════════════════════════════════ */}
-      <section className={`${styles.section} ${styles.reqFee}`}>
-        <div className={styles.wrap}>
-          <div className={styles.sectionHead} data-reveal>
-            <span className={styles.eyebrow}>প্রয়োজনীয় যোগ্যতা ও ফি</span>
-            <h2>আবেদনের সাধারণ যোগ্যতা ও পেমেন্ট সংক্রান্ত তথ্য</h2>
-          </div>
-          <div className={styles.rfGrid}>
-            {/* Requirements */}
-            <div className={`${styles.card} ${styles.reqCard}`} data-reveal>
-              <h3>আবেদনের সাধারণ যোগ্যতা</h3>
-              <ul className={styles.reqList}>
-                {[
-                  'শুদ্ধ ও স্পষ্ট উচ্চারণে কুরআন তেলাওয়াত করার প্রাথমিক দক্ষতা',
-                  'প্রাথমিক ইংরেজি জানা এবং বোঝার দক্ষতা (প্রশিক্ষণে আরও ডেভেলপ করা হবে)',
-                  'ব্যক্তিগত ল্যাপটপ/ডেস্কটপ (না থাকলে ফজর একাডেমির ডিভাইস সহায়তার সুযোগ)',
-                  'স্থিতিশীল ইন্টারনেট সংযোগ এবং সচল WhatsApp নম্বর',
-                  'হাফিজ বা আলেম হওয়া বাধ্যতামূলক নয় — শেখানোর সদিচ্ছা ও একাগ্রতা প্রয়োজন',
-                ].map((item) => (
-                  <li key={item}>
-                    <span className={styles.check}>✓</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
+      {/* ==================== VIDEO SECTION ==================== */}
+      <section id="videos" className="py-24 bg-[#F8F5EE] text-gray-800 font-bengali relative overflow-hidden">
+        <div className="container mx-auto px-6 relative z-10">
+          {/* Header */}
+          <div className="text-center mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 text-yellow-700 text-sm font-bold tracking-wider mb-4">
+              <span className="w-8 h-[1px] bg-yellow-600"></span>
+              অফিসিয়াল ভিডিও ও নির্দেশিকা
+              <span className="w-8 h-[1px] bg-yellow-600"></span>
             </div>
-
-            {/* Fee Card */}
-            <div className={`${styles.card} ${styles.feeCard}`} data-reveal>
-              <span className={styles.feeCardEyebrow}>কোর্স ফি ও পেমেন্ট তথ্য</span>
-              <h3>এককালীন রেজিস্ট্রেশন ফি</h3>
-              <div className={styles.feeAmount}>
-                <sup>৳</sup>১,০০০
-              </div>
-              <div className={styles.feeRows}>
-                {[
-                  ['পেমেন্ট গেটওয়ে',         'SSLCommerz (বিকাশ, নগদ, কার্ড ও ব্যাংক)'],
-                  ['বিকাশ মার্চেন্ট নম্বর',   '01410764581'],
-                  ['রেফারেন্স',                'TOT-MEN অথবা TOT-WOMEN'],
-                  ['হটলাইন / WhatsApp',        '01641028312'],
-                ].map(([label, value]) => (
-                  <div key={label} className={styles.feeRow}>
-                    <span>{label}</span><b>{value}</b>
-                  </div>
-                ))}
-              </div>
-              <p className={styles.feeNote}>
-                নিবন্ধন ফর্মে সরাসরি SSLCommerz-এর মাধ্যমে অথবা বিকাশ মার্চেন্টে পেমেন্ট করে তাৎক্ষণিক WhatsApp-এ ট্রানজেকশন আইডি পাঠিয়ে নিশ্চিত হতে পারেন।
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════
-          VIDEO SHOWCASE & FOUNDER NOTE
-          ════════════════════════════════════════════ */}
-      <section id="program-videos" className={`${styles.section} ${styles.media}`}>
-        <div className={`${styles.wrap} ${styles.mediaGrid}`}>
-          <div className={styles.sectionHead} data-reveal style={{ textAlign: 'center', margin: '0 auto 10px' }}>
-            <span className={styles.eyebrow}>অফিসিয়াল ভিডিও নির্দেশিকা</span>
-            <h2>কুরআন টিচার ট্রেনিং ও ওরিয়েন্টেশন ভিডিও</h2>
-            <p>
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">
+              কুরআন টিচার ট্রেনিং ও ওরিয়েন্টেশন ভিডিও
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-sm md:text-base">
               পুরুষ ও নারী উভয় কোর্সের ট্রেনিং পদ্ধতি, ক্লাসরুম পেডাগোজি ও ক্যারিয়ার সম্ভাবনার ভিডিওগুলো সরাসরি দেখে নিন।
             </p>
           </div>
 
-          <div className={styles.mediaVideosGrid}>
-            {/* Men Video */}
-            <div className={styles.videoCardContainer} data-reveal>
-              <div className={styles.videoBadgeMen}>
-                <span>👨‍🏫 TOT – MEN শিক্ষক প্রশিক্ষণ ভিডিও</span>
-              </div>
-              <div className={styles.videoCard}>
-                <iframe
-                  src="https://www.youtube.com/embed/UxzqLHfjrGc?rel=0&controls=1&playsinline=1"
-                  title="Fajr Academy Men Teacher Training Program Video"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  className={styles.videoIframe}
-                />
-              </div>
-              <p className={styles.videoTitle}>পুরুষদের ওরিয়েন্টেশন ও জব গাইডলাইন</p>
-            </div>
-
-            {/* Women Video */}
-            <div className={styles.videoCardContainer} data-reveal>
-              <div className={styles.videoBadgeWomen}>
-                <span>🧕 TOT – WOMEN Batch 014 ভিডিও</span>
-              </div>
-              <div className={styles.videoCard}>
-                <iframe
-                  src="https://www.youtube.com/embed/zPXTzup-2ok?rel=0&controls=1&playsinline=1"
-                  title="Fajr Academy Women Teacher Training Program Video"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  className={styles.videoIframe}
-                />
-              </div>
-              <p className={styles.videoTitle}>দ্বীনি বোনদের ট্রেনিং ও শিক্ষক নিয়োগ গাইড</p>
-            </div>
+          {/* Video Cards Grid */}
+          <div className="grid md:grid-cols-2 gap-10 max-w-4xl mx-auto">
+            <VideoShortsCard
+              videoId="UxzqLHfjrGc"
+              title="আমাদের টিচার ট্রেনিং প্রোগ্রাম ও ফি"
+              subtitle="শিক্ষকদের ওরিয়েন্টেশন ও জব গাইডলাইন"
+              badgeText="TOT - MEN শিক্ষক প্রশিক্ষণ"
+              badgeBg="bg-[#0B1120]"
+              thumbnailUrl="/men-batch.jpg"
+            />
+            <VideoShortsCard
+              videoId="zPXTzup-2ok"
+              title="মহিলাদের ট্রেনিং ও শিক্ষক নিয়োগ গাইড"
+              subtitle="মহিলাদের ট্রেনিং ও শিক্ষক নিয়োগ গাইড"
+              badgeText="TOT - WOMEN Batch 014"
+              badgeBg="bg-[#6B21A8]"
+              thumbnailUrl="/women-batch.jpg"
+            />
           </div>
 
-          {/* Founder Note */}
-          <div className={styles.founderNote} data-reveal>
-            <span className={styles.quoteMark}>&ldquo;</span>
-            <p>
-              &ldquo;আমাদের প্রিয় নবী (সাঃ) বলেছেন — খইরুকুম মান তাআল্লামাল কুরআনা ওয়া আল্লামাহু। আপনি যদি শুদ্ধভাবে কুরআন পড়তে পারেন এবং বেসিক ইংলিশ জানা থাকে, তাহলে ফজর একাডেমির এই টিওটি প্রোগ্রামে জয়েন করে আপনি ঘরে বসেই ১৫ থেকে ২২ হাজার টাকা মাসিক সম্মানীতে একটি সুন্দর হালাল ক্যারিয়ার গড়তে পারবেন। যাদের ল্যাপটপ নেই কিন্তু কুরআন ও ইংলিশে ভালো, ফজর একাডেমি নিজে থেকেই তাদের ল্যাপটপ সহায়তা প্রদান করবে, ইনশাআল্লাহ।&rdquo;
-            </p>
-            <div className={styles.founderId}>
-              <div className={styles.founderAv}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/founder.jpg" alt="Hafiz Maowlana Muhammad Farabi Chowdhury" />
-              </div>
+          {/* Quote Box */}
+          <div className="mt-16 max-w-4xl mx-auto bg-white border border-yellow-200/80 rounded-3xl p-8 relative overflow-hidden shadow-sm" data-reveal>
+            <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-blue-900 to-blue-500"></div>
+            <div className="flex items-start gap-6">
+              <div className="text-yellow-500 text-5xl leading-none font-serif shrink-0">&ldquo;</div>
               <div>
-                <b>Hafiz Maowlana Muhammad Farabi Chowdhury</b>
-                <span>Founder &amp; CEO, Fajr Academy</span>
+                <p className="text-gray-700 text-base md:text-lg leading-relaxed mb-6 italic">
+                  &ldquo;আমাদের প্রিয় নবী (সাঃ) বলেছেন — &lsquo;তোমাদের মধ্যে সর্বোত্তম ব্যক্তি সে, যে নিজে কুরআন শেখে এবং অন্যকে শেখায়।&rsquo; — সহীহ বুখারী। আপনি যদি শুদ্ধভাবে কুরআন তিলাওয়াত ও বেসিক ইংরেজি জানেন, ফজর একাডেমির এই প্রশিক্ষণ আপনাকে একটি সম্মানজনক হালাল শিক্ষকতা পেশায় যুক্ত করবে ইনশাআল্লাহ।&rdquo;
+                </p>
+                <div className="flex items-center gap-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/founder.jpg"
+                    alt="Hafiz Maulana Muhammad Farabi Chowdhury"
+                    className="w-14 h-14 rounded-full border-2 border-yellow-400 object-cover shadow-sm"
+                  />
+                  <div>
+                    <h4 className="text-gray-900 font-bold text-base">Hafiz Maulana Muhammad Farabi Chowdhury</h4>
+                    <p className="text-gray-500 text-xs md:text-sm">Founder &amp; CEO, Fajr Academy</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════
-          FAQ
-          ════════════════════════════════════════════ */}
-      <section id="faq" className={`${styles.section} ${styles.faq}`}>
-        <div className={`${styles.wrap} ${styles.faqContainer}`}>
-          <div className={styles.sectionHead} data-reveal style={{ textAlign: 'center', margin: '0 auto 40px' }}>
-            <span className={styles.eyebrow}>সাধারণ প্রশ্ন ও উত্তর</span>
-            <h2>আপনার মনে থাকা প্রশ্নগুলোর উত্তর</h2>
+      {/* ==================== FAQ SECTION ==================== */}
+      <section id="faq" className="py-24 bg-white text-gray-800 font-bengali relative overflow-hidden border-t border-gray-100">
+        <div className="container mx-auto px-6 max-w-4xl relative z-10">
+          <div className="text-center mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 text-yellow-700 text-sm font-bold tracking-wider mb-4">
+              <span className="w-8 h-[1px] bg-yellow-600"></span>
+              সাধারণ প্রশ্ন ও উত্তর
+              <span className="w-8 h-[1px] bg-yellow-600"></span>
+            </div>
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">আপনার মনে থাকা প্রশ্নগুলোর উত্তর</h2>
           </div>
-          <div className={styles.faqList}>
-            {[
-              {
-                q: 'পুরুষ ও নারীদের ওরিয়েন্টেশন ক্লাস কবে হবে?',
-                a: 'পুরুষদের (TOT - MEN) ফার্স্ট ওরিয়েন্টেশন ক্লাস হবে <strong>২০ সেপ্টেম্বর, রাত ৮:০০ টায়</strong>। নারীদের (TOT - WOMEN Batch 014) ফার্স্ট ওরিয়েন্টেশন ক্লাস হবে <strong>২১ সেপ্টেম্বর, রাত ৮:০০ টায়</strong>।',
-              },
-              {
-                q: 'কোর্সের ফি কত এবং কীভাবে পেমেন্ট করব?',
-                a: 'উভয় কোর্সের এককালীন রেজিস্ট্রেশন ফি ১,০০০ টাকা। আপনি উপরের ফর্ম পূরণ করে SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, ডেবিট/ক্রেডিট কার্ড অথবা সরাসরি বিকাশ মার্চেন্ট নম্বরে (01410764581) পেমেন্ট করতে পারেন।',
-              },
-              {
-                q: 'ল্যাপটপ বা কম্পিউটার না থাকলে কি আবেদন করা যাবে?',
-                a: 'হ্যাঁ! আপনার যদি কুরআন তেলাওয়াত ও ইংরেজি ভালো থাকে কিন্তু ডিভাইস না থাকে, তবে ফজর একাডেমি নিজ তহবিল থেকে প্রার্থীদের ল্যাপটপ/ডিভাইস সহায়তা সুবিধা প্রদান করবে, ইনশাআল্লাহ।',
-              },
-              {
-                q: 'আমাকে কি হাফিজ বা আলেম হতে হবে?',
-                a: 'না, হাফিজ বা আলেম হওয়া বাধ্যতামূলক নয়। শুদ্ধভাবে কুরআন পড়তে জানা এবং বেসিক ইংরেজি জানা থাকলেই যথেষ্ট। ক্লাসে বাচ্চাদের কীভাবে পড়াতে হয় তা ফজর একাডেমির ৪টি সেশনে হাতে-কলমে শেখানো হবে।',
-              },
-              {
-                q: 'প্রথম ধাপে নির্বাচিত না হলে কি সুযোগ শেষ?',
-                a: 'একদমই না! যারা প্রথম ধাপে চূড়ান্তভাবে নির্বাচিত হবেন না, তাদেরকে বাদ না দিয়ে নিয়মিত ট্রেনিং ও স্কিল ডেভেলপমেন্ট করানো হবে যাতে পরবর্তী ধাপে তারা সফলভাবে শিক্ষক হিসেবে জয়েন করতে পারেন।',
-              },
-              {
-                q: 'শিক্ষক হিসেবে মাসিক সম্মানী কেমন হবে?',
-                a: 'ট্রেনিং সম্পন্ন করে ফজর একাডেমিতে শিক্ষক হিসেবে কাজের সুযোগ পেলে মাসিক সম্মানী হবে ১৫,০০০ টাকা থেকে ২২,০০০ টাকা পর্যন্ত।',
-              },
-            ].map((faq, i) => (
-              <details key={i} className={styles.faqDetails} data-reveal>
-                <summary className={styles.faqSummary}>{faq.q}</summary>
-                <p
-                  className={styles.faqText}
-                  dangerouslySetInnerHTML={{ __html: faq.a }}
-                />
-              </details>
-            ))}
+
+          <div className="space-y-4">
+            {/* FAQ 1 */}
+            <details className="faq-item bg-[#F8F5EE] border border-yellow-200/80 rounded-2xl overflow-hidden group" data-reveal>
+              <summary className="flex justify-between items-center p-6 cursor-pointer select-none">
+                <span className="font-bold text-base md:text-lg text-gray-900">পুরুষ ও নারীদের ওরিয়েন্টেশন ক্লাস কবে হবে?</span>
+                <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-white faq-icon transition-transform duration-300 shrink-0">
+                  <Plus className="w-4 h-4" />
+                </div>
+              </summary>
+              <div className="faq-answer px-6 pb-6 text-gray-600 border-t border-yellow-100 pt-4 hidden leading-relaxed">
+                <p>পুরুষদের (TOT - MEN) ফার্স্ট ওরিয়েন্টেশন ক্লাস হবে <strong>২০ সেপ্টেম্বর, রাত ৮:০০ টায়</strong>। নারীদের (TOT - WOMEN Batch 014) ফার্স্ট ওরিয়েন্টেশন ক্লাস হবে <strong>২১ সেপ্টেম্বর, রাত ৮:০০ টায়</strong>।</p>
+              </div>
+            </details>
+
+            {/* FAQ 2 */}
+            <details className="faq-item bg-[#F8F5EE] border border-yellow-200/80 rounded-2xl overflow-hidden group" data-reveal>
+              <summary className="flex justify-between items-center p-6 cursor-pointer select-none">
+                <span className="font-bold text-base md:text-lg text-gray-900">কোর্সের ফি কত এবং কীভাবে পেমেন্ট করব?</span>
+                <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-white faq-icon transition-transform duration-300 shrink-0">
+                  <Plus className="w-4 h-4" />
+                </div>
+              </summary>
+              <div className="faq-answer px-6 pb-6 text-gray-600 border-t border-yellow-100 pt-4 hidden leading-relaxed">
+                <p>উভয় কোর্সের এককালীন রেজিস্ট্রেশন ফি ৫,০০০ টাকা। SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, কার্ড অথবা সরাসরি বিকাশ মাস্টার নম্বরে (<strong>01641028312</strong>) পেমেন্ট করতে পারবেন।</p>
+              </div>
+            </details>
+
+            {/* FAQ 3 */}
+            <details className="faq-item bg-[#F8F5EE] border border-yellow-200/80 rounded-2xl overflow-hidden group" data-reveal>
+              <summary className="flex justify-between items-center p-6 cursor-pointer select-none">
+                <span className="font-bold text-base md:text-lg text-gray-900">ল্যাপটপ বা কম্পিউটার না থাকলে কি আবেদন করা যাবে?</span>
+                <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-white faq-icon transition-transform duration-300 shrink-0">
+                  <Plus className="w-4 h-4" />
+                </div>
+              </summary>
+              <div className="faq-answer px-6 pb-6 text-gray-600 border-t border-yellow-100 pt-4 hidden leading-relaxed">
+                <p>হ্যাঁ, আপনার যদি কুরআন তেলাওয়াত ও ইংরেজি ভাষা ভালো করে জ্ঞান থাকে কিন্তু ডিভাইস না থাকে, তবে ফজর একাডেমি নিজস্ব ব্যবস্থাপনায় ডিভাইস সহায়তা প্রদান করবে।</p>
+              </div>
+            </details>
+
+            {/* FAQ 4 */}
+            <details className="faq-item bg-[#F8F5EE] border border-yellow-200/80 rounded-2xl overflow-hidden group" data-reveal>
+              <summary className="flex justify-between items-center p-6 cursor-pointer select-none">
+                <span className="font-bold text-base md:text-lg text-gray-900">আমাকে কি হাফিজ বা আলেম হতে হবে?</span>
+                <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-white faq-icon transition-transform duration-300 shrink-0">
+                  <Plus className="w-4 h-4" />
+                </div>
+              </summary>
+              <div className="faq-answer px-6 pb-6 text-gray-600 border-t border-yellow-100 pt-4 hidden leading-relaxed">
+                <p>না, হাফিজ বা আলেম হওয়া বাধ্যতামূলক নয়। শুদ্ধভাবে কুরআন পড়তে জানা এবং বেসিক ইংরেজি জানা থাকলেই যথেষ্ট।</p>
+              </div>
+            </details>
+
+            {/* FAQ 5 */}
+            <details className="faq-item bg-[#F8F5EE] border border-yellow-200/80 rounded-2xl overflow-hidden group" data-reveal>
+              <summary className="flex justify-between items-center p-6 cursor-pointer select-none">
+                <span className="font-bold text-base md:text-lg text-gray-900">প্রথম ধাপে নির্বাচিত না হলে কি সুযোগ শেষ?</span>
+                <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-white faq-icon transition-transform duration-300 shrink-0">
+                  <Plus className="w-4 h-4" />
+                </div>
+              </summary>
+              <div className="faq-answer px-6 pb-6 text-gray-600 border-t border-yellow-100 pt-4 hidden leading-relaxed">
+                <p>একদমই না। যারা প্রথম ধাপে নির্বাচিত হবেন না, তাদেরকে নিয়মিত ট্রেনিং ও স্কিল ডেভেলপমেন্ট কোর্সে সুযোগ দেওয়া হবে।</p>
+              </div>
+            </details>
+
+            {/* FAQ 6 */}
+            <details className="faq-item bg-[#F8F5EE] border border-yellow-200/80 rounded-2xl overflow-hidden group" data-reveal>
+              <summary className="flex justify-between items-center p-6 cursor-pointer select-none">
+                <span className="font-bold text-base md:text-lg text-gray-900">শিক্ষক হিসেবে মাসিক সম্মানী কেমন হবে?</span>
+                <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-white faq-icon transition-transform duration-300 shrink-0">
+                  <Plus className="w-4 h-4" />
+                </div>
+              </summary>
+              <div className="faq-answer px-6 pb-6 text-gray-600 border-t border-yellow-100 pt-4 hidden leading-relaxed">
+                <p>ট্রেনিং সম্পন্ন করে শিক্ষক হিসেবে কাজের সুযোগ পেলে মাসিক সম্মানী হবে ১৫,০০০ টাকা থেকে ২২,০০০ টাকা পর্যন্ত।</p>
+              </div>
+            </details>
           </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════
-          FINAL CTA
-          ════════════════════════════════════════════ */}
-      <section className={styles.finalCta}>
-        <div className={styles.wrap}>
-          <span className={styles.finalCtaEyebrow}>Batch 2026 · সীমিত আসন সংখ্যা</span>
-          <h2>আজই আপনার আসন নিশ্চিত করুন, কুরআনের খেদমতে যুক্ত হোন</h2>
-          <p>
-            ফর্ম পূরণ করে ১,০০০ টাকা রেজিস্ট্রেশন ফি প্রদান করুন। যেকোনো তথ্যের জন্য সরাসরি আমাদের WhatsApp হটলাইনে মেসেজ দিন।
+      {/* ==================== FINAL CTA SECTION ==================== */}
+      <section className="py-24 bg-gradient-cta relative overflow-hidden">
+        {/* Glows */}
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-screen filter blur-3xl opacity-15 pointer-events-none"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-fajr-gold rounded-full mix-blend-screen filter blur-3xl opacity-15 pointer-events-none"></div>
+
+        <div className="container mx-auto px-6 text-center relative z-10" data-reveal>
+          <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-gray-300 text-sm mb-8">
+            <span className="w-2 h-2 rounded-full bg-fajr-gold animate-pulse"></span>
+            <span>Batch 2026 • সীমিত আসন সংখ্যা</span>
+          </div>
+          
+          <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white leading-tight">
+            আজই আপনার আসন নিশ্চিত করুন, <br /> 
+            <span className="text-gradient-gold">কুরআনের খেদমতে যুক্ত হোন</span>
+          </h2>
+          
+          <p className="text-gray-300 max-w-2xl mx-auto mb-10 text-base md:text-lg leading-relaxed">
+            ফর্ম পূরণ করে ৫,০০০ টাকা রেজিস্ট্রেশন ফি প্রদান করুন। প্রয়োজনীয় তথ্য জানতে আমাদের সরাসরি WhatsApp হটলাইনে যোগাযোগ করুন।
           </p>
-          <div className={styles.finalCtaRow}>
+          
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a
-              id="footer-register-cta"
-              className={`${styles.btn} ${styles.btnGold}`}
-              href="#registration-section"
+              href="#register"
+              className="btn-glow bg-gradient-to-r from-fajr-gold via-yellow-500 to-yellow-600 text-fajr-dark font-bold py-4 px-10 rounded-full text-lg shadow-lg shadow-fajr-gold/20 flex items-center justify-center gap-2 hover:scale-105 transition-all"
             >
-              রেজিস্ট্রেশন ফর্মে যান (৳১,০০০) →
+              <CreditCard className="w-5 h-5" />
+              <span>রেজিস্ট্রেশন ফর্মে যান (৫,০০০ ৳)</span>
             </a>
             <a
-              id="footer-call-cta"
-              className={`${styles.btn} ${styles.btnOutline}`}
               href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
               target="_blank"
               rel="noopener noreferrer"
+              className="btn-glow border border-white/20 text-white font-bold py-4 px-10 rounded-full text-lg hover:bg-white/10 transition-all flex items-center justify-center gap-2"
             >
-              <MessageCircle size={18} color="#25D366" fill="#25D366" />
+              <MessageCircle className="w-5 h-5 text-green-400 fill-green-400" />
               <span>01641028312 নম্বরে WhatsApp করুন</span>
             </a>
           </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════
-          FOOTER
-          ════════════════════════════════════════════ */}
-      <footer id="footer-section" className={styles.footer}>
-        <div className={styles.footerInner}>
-          <div className={styles.footerTopRow}>
-            <div className={styles.footerBrandEmblem}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/fajr-logo.png" alt="Fajr Academy" className={styles.footerLogoImg} />
-              <span className={styles.footerBrandName}>FAJR ACADEMY</span>
+      {/* ==================== FOOTER & PAYMENT GATEWAY ==================== */}
+      <footer className="bg-[#0A1128] border-t border-white/5 pt-16 pb-8 font-bengali">
+        <div className="container mx-auto px-6">
+          {/* Logo & Info */}
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-lg bg-fajr-blue border border-fajr-gold/50 flex items-center justify-center shadow-md">
+                <BookOpen className="w-6 h-6 text-fajr-gold" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-2xl font-bold text-white leading-tight tracking-wider">FAJR ACADEMY</h3>
+                <p className="text-[10px] text-fajr-gold tracking-widest uppercase font-medium">Balanced Education for Dunya and Akhirah</p>
+              </div>
             </div>
-            <p className={styles.footerTagline}>
-              Balanced Education for Dunya and Akhirah — Training of Trainers (TOT) Program
-            </p>
+            <p className="text-gray-400 text-sm">Training of Trainers (TOT) Program - Batch 2026</p>
           </div>
 
-          {/* SSLCommerz */}
-          <div className={styles.sslPaymentCard}>
-            <div className={styles.sslCardHeader}>
-              <div className={styles.sslCardBadge}>🔒 OFFICIAL PAYMENT GATEWAY PARTNER</div>
-              <div className={styles.sslSecurityBadge}>256-BIT SSL ENCRYPTED &amp; VERIFIED</div>
+          {/* Payment Gateway Partner Box */}
+          <div className="max-w-4xl mx-auto bg-white text-gray-900 rounded-2xl p-8 mb-12 shadow-2xl relative overflow-hidden" data-reveal>
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+              <div className="flex items-center gap-2 text-gray-800 font-bold text-sm tracking-wide">
+                <ShieldCheck className="w-5 h-5 text-fajr-gold" /> OFFICIAL PAYMENT GATEWAY PARTNER
+              </div>
+              <div className="flex items-center gap-1.5 text-green-600 text-xs font-bold mt-2 md:mt-0">
+                <Lock className="w-3.5 h-3.5" /> 256-BIT SSL ENCRYPTED &amp; VERIFIED
+              </div>
             </div>
-            <div className={styles.sslWhiteContainer}>
-              <a
-                target="_blank"
-                rel="noopener noreferrer"
-                href="https://www.sslcommerz.com/"
-                title="SSLCommerz - 100% Secure Payment Gateway"
-                className={styles.sslPayWithLink}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="https://securepay.sslcommerz.com/public/image/SSLCommerz-Pay-With-logo-All-Size-01.png"
-                  alt="SSLCommerz Pay With - Visa, Mastercard, AMEX, bKash, Nagad, Rocket, MFS and Internet Banking"
-                  className={styles.sslPayWithImg}
-                />
-              </a>
+            
+            {/* Payment Badges */}
+            <div className="bg-gray-100/90 rounded-xl p-4 flex flex-wrap justify-center items-center gap-4 mb-6">
+              <span className="text-gray-600 font-bold text-sm">SSLCommerz</span>
+              <span className="text-gray-300">|</span>
+              <span className="text-pink-600 font-bold text-sm">bKash</span>
+              <span className="text-orange-600 font-bold text-sm">Nagad</span>
+              <span className="text-purple-600 font-bold text-sm">Rocket</span>
+              <span className="text-blue-600 font-bold text-sm">Visa</span>
+              <span className="text-red-500 font-bold text-sm">Mastercard</span>
+              <span className="text-emerald-700 font-bold text-sm">Bank Transfer</span>
             </div>
-            <div className={styles.sslCardFooterInfo}>
-              {[
-                'ভিসা, মাস্টারকার্ড ও অ্যামেক্স',
-                'বিকাশ, নগদ, রকেট ও সকল মোবাইল ব্যাংকিং',
-                'ইন্টারনেট ব্যাংকিং ও ইনস্ট্যান্ট ভেরিফিকেশন',
-              ].map((item) => (
-                <div key={item} className={styles.sslFeatureItem}>
-                  <span className={styles.sslCheckIcon}>✓</span>
-                  <span>{item}</span>
-                </div>
-              ))}
+            
+            <div className="flex flex-wrap justify-center gap-6 text-xs text-gray-600 font-medium">
+              <span className="flex items-center gap-1">
+                <Check className="w-3.5 h-3.5 text-green-600 stroke-[3]" /> বিকাশ, নগদ, রকেট ও অন্যান্য
+              </span>
+              <span className="flex items-center gap-1">
+                <Check className="w-3.5 h-3.5 text-green-600 stroke-[3]" /> ভিসা, মাস্টারকার্ড ও ব্যাংক ট্রান্সফার
+              </span>
+              <span className="flex items-center gap-1">
+                <Check className="w-3.5 h-3.5 text-green-600 stroke-[3]" /> ইন্টারনেট ব্যাংকিং ও মোবাইল ব্যাংকিং
+              </span>
             </div>
           </div>
 
-          <div className={styles.footerBottomRow}>
-            <div className={styles.footerContactLinks}>
-              <span>হটলাইন: <a href="https://wa.me/8801641028312" target="_blank" rel="noopener noreferrer">01641028312</a></span>
-              <span>•</span>
-              <span>হেল্পলাইন: <a href="https://wa.me/8801857381244" target="_blank" rel="noopener noreferrer">+880 1857-381244</a></span>
-              <span>•</span>
-              <span>ইমেইল: <a href="mailto:info@fajracademy.io">info@fajracademy.io</a></span>
-            </div>
-            <div className={styles.footerCopyright}>
-              © 2026 Fajr Academy. All rights reserved. Registered Islamic Education Institute.
-            </div>
+          {/* Contact Info */}
+          <div className="flex flex-wrap justify-center gap-6 md:gap-12 text-sm text-gray-300 mb-8">
+            <span className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-fajr-gold" /> হটলাইন: 01641028312
+            </span>
+            <span className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-fajr-gold" /> হেল্পলাইন: +880 1857-381244
+            </span>
+            <span className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-fajr-gold" /> ইমেইল: info@fajracademy.io
+            </span>
+          </div>
+
+          {/* Copyright */}
+          <div className="border-t border-white/5 pt-6 text-center text-xs text-gray-500">
+            <p>&copy; 2026 Fajr Academy. All Rights Reserved. Registered Islamic Education Institute.</p>
           </div>
         </div>
       </footer>
 
-      {/* Floating WhatsApp */}
+      {/* Floating WhatsApp Widget */}
       <FloatingWhatsApp />
     </div>
   )
