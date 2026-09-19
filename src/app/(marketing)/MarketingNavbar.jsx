@@ -139,7 +139,7 @@ export default function MarketingNavbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="w-full text-center bg-gradient-to-r from-fajr-gold to-yellow-600 text-fajr-dark font-bold py-3 rounded-full text-sm shadow-md"
             >
-              ভর্তি হোন (৫,০০০ ৳)
+              ভর্তি হোন (১,০০০ ৳)
             </a>
           </div>
         </div>

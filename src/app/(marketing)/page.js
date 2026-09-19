@@ -84,7 +84,7 @@ const jsonLd = {
       educationalLevel: 'Intermediate',
       courseMode: ['Online'],
       inLanguage: 'bn',
-      offers: { '@type': 'Offer', price: '5000', priceCurrency: 'BDT', availability: 'https://schema.org/InStock', url: PAGE_URL },
+      offers: { '@type': 'Offer', price: '1000', priceCurrency: 'BDT', availability: 'https://schema.org/InStock', url: PAGE_URL },
     },
     {
       '@type': 'Course',
@@ -96,7 +96,7 @@ const jsonLd = {
       educationalLevel: 'Intermediate',
       courseMode: ['Online'],
       inLanguage: 'bn',
-      offers: { '@type': 'Offer', price: '5000', priceCurrency: 'BDT', availability: 'https://schema.org/InStock', url: PAGE_URL },
+      offers: { '@type': 'Offer', price: '1000', priceCurrency: 'BDT', availability: 'https://schema.org/InStock', url: PAGE_URL },
     },
     {
       '@type': 'WebPage',
@@ -123,7 +123,7 @@ export default async function TeacherRegistrationMarketingPage() {
   const menCourse = courses?.find((c) => c.track === 'men' || c.courseId === 'TOT-MEN') || {
     name: 'Training of Trainers (TOT) - MEN BATCH',
     tag: 'MEN BATCH',
-    fee: 5000,
+    fee: 1000,
     orientationDate: '২০ সেপ্টেম্বর ২০২৬',
     orientationTime: 'রাত ৮:০০ টা – ৯:৩০ টা',
     summary: 'ছেলেদের জন্য ঘরে বসে কুরআন শিক্ষার সুযোগ ও আধুনিক পদ্ধতি',
@@ -132,7 +132,7 @@ export default async function TeacherRegistrationMarketingPage() {
   const womenCourse = courses?.find((c) => c.track === 'women' || c.courseId?.includes('WOMEN')) || {
     name: 'Training of Trainers (TOT) - WOMEN BATCH',
     tag: 'WOMEN BATCH 014',
-    fee: 5000,
+    fee: 1000,
     orientationDate: '২১ সেপ্টেম্বর ২০২৬',
     orientationTime: 'রাত ৮:০০ টা – ৯:৩০ টা',
     summary: 'নিজের ঘরে থেকেই আন্তর্জাতিক মানের অনলাইন কুরআন শিক্ষার সুযোগ',
@@ -243,7 +243,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 className="btn-glow bg-gradient-to-r from-fajr-gold via-yellow-500 to-yellow-600 text-fajr-dark font-bold py-4 px-8 rounded-full text-center text-base md:text-lg shadow-lg shadow-fajr-gold/25 flex items-center justify-center gap-2 hover:scale-105 transition-all"
               >
                 <CreditCard className="w-5 h-5" />
-                <span>রেজিস্ট্রেশন করুন (৫,০০০ ৳)</span>
+                <span>রেজিস্ট্রেশন করুন (১,০০০ ৳)</span>
               </a>
               <a
                 href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
@@ -305,7 +305,7 @@ export default async function TeacherRegistrationMarketingPage() {
                   className="block w-full text-center btn-glow bg-gradient-to-r from-fajr-gold to-yellow-600 text-fajr-dark font-bold py-3.5 rounded-xl text-base md:text-lg shadow-md"
                 >
                   <CreditCard className="w-5 h-5 inline mr-2" />
-                  রেজিস্ট্রেশন করুন (৫,০০০ ৳)
+                  রেজিস্ট্রেশন করুন (১,০০০ ৳)
                 </a>
                 <a
                   href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
@@ -379,7 +379,7 @@ export default async function TeacherRegistrationMarketingPage() {
                     MEN BATCH
                   </div>
                   <div className="absolute top-4 right-4 bg-fajr-gold text-fajr-dark text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                    ৫,০০০ ৳
+                    ১,০০০ ৳
                   </div>
                   
                   <div className="absolute bottom-4 left-6 right-6">
@@ -429,7 +429,7 @@ export default async function TeacherRegistrationMarketingPage() {
                   href="#register"
                   className="block text-center btn-glow bg-gradient-to-r from-fajr-gold to-yellow-600 text-fajr-dark font-bold py-4 rounded-xl hover:shadow-lg hover:shadow-fajr-gold/30 transition-all text-base md:text-lg"
                 >
-                  রেজিস্ট্রেশন করুন এখনই (৫,০০০ ৳)
+                  রেজিস্ট্রেশন করুন এখনই (১,০০০ ৳)
                 </a>
                 <p className="text-center text-xs text-gray-400 mt-3 flex items-center justify-center gap-1">
                   <Lock className="w-3 h-3 text-fajr-gold" /> নিশ্চিত SSLCommerz ও বিকাশ পেমেন্ট
@@ -453,7 +453,7 @@ export default async function TeacherRegistrationMarketingPage() {
                     WOMEN BATCH 014
                   </div>
                   <div className="absolute top-4 right-4 bg-fajr-gold text-fajr-dark text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                    ৫,০০০ ৳
+                    ১,০০০ ৳
                   </div>
                   
                   <div className="absolute bottom-4 left-6 right-6">
@@ -503,7 +503,7 @@ export default async function TeacherRegistrationMarketingPage() {
                   href="#register"
                   className="block text-center btn-glow bg-gradient-to-r from-purple-600 to-purple-800 text-white font-bold py-4 rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all text-base md:text-lg"
                 >
-                  রেজিস্ট্রেশন করুন এখনই (৫,০০০ ৳)
+                  রেজিস্ট্রেশন করুন এখনই (১,০০০ ৳)
                 </a>
                 <p className="text-center text-xs text-gray-400 mt-3 flex items-center justify-center gap-1">
                   <Lock className="w-3 h-3 text-fajr-gold" /> নিশ্চিত SSLCommerz ও বিকাশ পেমেন্ট
@@ -558,8 +558,8 @@ export default async function TeacherRegistrationMarketingPage() {
                   ০১
                 </div>
                 <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200/80 w-full hover:shadow-md transition-shadow duration-300 h-full flex flex-col justify-center">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">রেজিস্ট্রেশন ও ৫,০০০ টাকা ফি</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">পছন্দের ট্র্যাক নির্বাচন করে ৫,০০০ টাকা ফি পরিশোধ করে নিবন্ধন সম্পন্ন করুন।</p>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">রেজিস্ট্রেশন ও ১,০০০ টাকা ফি</h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">পছন্দের ট্র্যাক নির্বাচন করে ১,০০০ টাকা ফি পরিশোধ করে নিবন্ধন সম্পন্ন করুন।</p>
                 </div>
               </div>
 
@@ -722,7 +722,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 
                 <div className="flex items-baseline gap-2 mb-8">
                   <span className="text-2xl font-bold text-fajr-gold">৳</span>
-                  <span className="text-5xl font-extrabold text-gray-900 tracking-tight">৫,০০০</span>
+                  <span className="text-5xl font-extrabold text-gray-900 tracking-tight">১,০০০</span>
                   <span className="text-sm font-medium text-gray-500 ml-2">(এককালীন রেজিস্ট্রেশন ফি)</span>
                 </div>
               </div>
@@ -759,7 +759,7 @@ export default async function TeacherRegistrationMarketingPage() {
             </div>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">কোর্স নির্বাচন ও শিক্ষক নিবন্ধন ফর্ম</h2>
             <p className="text-gray-300 text-sm md:text-base max-w-2xl mx-auto">
-              পছন্দের ট্র্যাক নির্বাচন করে ৫,০০০৳ কোর্স ফি পরিশোধের মাধ্যমে আপনার নিবন্ধন সম্পন্ন করুন।
+              পছন্দের ট্র্যাক নির্বাচন করে ১,০০০৳ কোর্স ফি পরিশোধের মাধ্যমে আপনার নিবন্ধন সম্পন্ন করুন।
             </p>
           </div>
 
@@ -867,7 +867,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 </div>
               </summary>
               <div className="faq-answer px-6 pb-6 text-gray-600 border-t border-yellow-100 pt-4 hidden leading-relaxed">
-                <p>উভয় কোর্সের এককালীন রেজিস্ট্রেশন ফি ৫,০০০ টাকা। SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, কার্ড অথবা সরাসরি বিকাশ মাস্টার নম্বরে (<strong>01641028312</strong>) পেমেন্ট করতে পারবেন।</p>
+                <p>উভয় কোর্সের এককালীন রেজিস্ট্রেশন ফি ১,০০০ টাকা। SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, কার্ড অথবা সরাসরি বিকাশ মাস্টার নম্বরে (<strong>01641028312</strong>) পেমেন্ট করতে পারবেন।</p>
               </div>
             </details>
 
@@ -944,7 +944,7 @@ export default async function TeacherRegistrationMarketingPage() {
           </h2>
           
           <p className="text-gray-300 max-w-2xl mx-auto mb-10 text-base md:text-lg leading-relaxed">
-            ফর্ম পূরণ করে ৫,০০০ টাকা রেজিস্ট্রেশন ফি প্রদান করুন। প্রয়োজনীয় তথ্য জানতে আমাদের সরাসরি WhatsApp হটলাইনে যোগাযোগ করুন।
+            ফর্ম পূরণ করে ১,০০০ টাকা রেজিস্ট্রেশন ফি প্রদান করুন। প্রয়োজনীয় তথ্য জানতে আমাদের সরাসরি WhatsApp হটলাইনে যোগাযোগ করুন।
           </p>
           
           <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -953,7 +953,7 @@ export default async function TeacherRegistrationMarketingPage() {
               className="btn-glow bg-gradient-to-r from-fajr-gold via-yellow-500 to-yellow-600 text-fajr-dark font-bold py-4 px-10 rounded-full text-lg shadow-lg shadow-fajr-gold/20 flex items-center justify-center gap-2 hover:scale-105 transition-all"
             >
               <CreditCard className="w-5 h-5" />
-              <span>রেজিস্ট্রেশন ফর্মে যান (৫,০০০ ৳)</span>
+              <span>রেজিস্ট্রেশন ফর্মে যান (১,০০০ ৳)</span>
             </a>
             <a
               href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
