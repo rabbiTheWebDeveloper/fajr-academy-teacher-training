@@ -372,9 +372,6 @@ export default async function TeacherRegistrationMarketingPage() {
                     src="/men-batch.jpg"
                     alt="Men's Quran Class"
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1585036156171-384164a8c675?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-fajr-dark via-fajr-dark/60 to-transparent"></div>
                   
@@ -449,9 +446,6 @@ export default async function TeacherRegistrationMarketingPage() {
                     src="/women-batch.jpg"
                     alt="Women's Quran Class"
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    onError={(e) => {
-                      e.currentTarget.src = 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
-                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-fajr-dark via-fajr-dark/60 to-transparent"></div>
                   
