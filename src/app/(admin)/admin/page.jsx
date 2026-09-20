@@ -1,6 +1,7 @@
 import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
 import { PaymentModel } from "@/model/payment-model";
+import { EvaluationModel } from "@/model/evaluation-model";
 import { DEFAULT_INSTRUCTORS } from "@/constant/instructor-defaults";
 import AdminDashboardClient from "./AdminDashboardClient";
 
@@ -20,6 +21,9 @@ export default async function AdminDashboardPage() {
     menTrainees: 0,
     womenTrainees: 0,
     totalInstructors: 0,
+    totalEvaluated: 0,
+    certifiedHiredCount: 0,
+    certifiedCount: 0,
     recentPayments: [],
     recentUsers: [],
     recentInstructors: [],
@@ -49,6 +53,9 @@ export default async function AdminDashboardPage() {
       recentPayData,
       recentUserData,
       recentInstructorData,
+      evalCount,
+      hiredCount,
+      certCount,
     ] = await Promise.all([
       UserModel.countDocuments({ role: "teacher" }),
       UserModel.countDocuments({ role: "teacher", paymentStatus: "paid" }),
@@ -76,6 +83,9 @@ export default async function AdminDashboardPage() {
         .limit(6)
         .select("-password")
         .lean(),
+      EvaluationModel.countDocuments(),
+      EvaluationModel.countDocuments({ qualificationStatus: "certified_and_hired" }),
+      EvaluationModel.countDocuments({ qualificationStatus: "certified" }),
     ]);
 
     function formatIsoDate(val) {
@@ -97,6 +107,9 @@ export default async function AdminDashboardPage() {
       menTrainees: menCount,
       womenTrainees: womenCount,
       totalInstructors: instructorCount,
+      totalEvaluated: evalCount,
+      certifiedHiredCount: hiredCount,
+      certifiedCount: certCount,
       recentPayments: recentPayData.map((p) => ({
         ...p,
         _id: p._id ? p._id.toString() : "",

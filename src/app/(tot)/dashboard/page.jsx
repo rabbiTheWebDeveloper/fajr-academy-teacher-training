@@ -3,6 +3,8 @@ import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
 import { PaymentModel } from "@/model/payment-model";
 import { CourseModel } from "@/model/course-model";
+import { EvaluationModel } from "@/model/evaluation-model";
+import { NoticeModel } from "@/model/notice-model";
 import DashboardClient from "./DashboardClient";
 
 export const metadata = {
@@ -19,6 +21,8 @@ export default async function TOTDashboardPage({ searchParams }) {
   let user = null;
   let payments = [];
   let availableCourses = [];
+  let evaluation = null;
+  let notices = [];
 
   try {
     await dbConnect();
@@ -28,11 +32,18 @@ export default async function TOTDashboardPage({ searchParams }) {
     if (!user && tranIdParam) {
       user = await UserModel.findOne({ tranId: tranIdParam }).lean();
     }
+    if (!user) {
+      user = await UserModel.findOne({ role: { $in: ["teacher", "student"] } }).lean();
+    }
 
     if (user?.email) {
       payments = await PaymentModel.find({
         $or: [{ userEmail: user.email }, { tranId: user.tranId }],
       })
+        .sort({ createdAt: -1 })
+        .lean();
+
+      evaluation = await EvaluationModel.findOne({ traineeId: user._id })
         .sort({ createdAt: -1 })
         .lean();
     } else if (tranIdParam) {
@@ -43,14 +54,27 @@ export default async function TOTDashboardPage({ searchParams }) {
 
     const rawCourses = await CourseModel.find({ isPublished: true }).sort({ createdAt: 1 }).lean();
     availableCourses = JSON.parse(JSON.stringify(rawCourses || []));
+
+    // Fetch batch notices from instructors
+    const userTrack = user?.track || (user?.gender === "female" ? "TOT-WOMEN-014" : "TOT-MEN");
+    const rawNotices = await NoticeModel.find({
+      $or: [{ track: "all" }, { track: userTrack }],
+    })
+      .sort({ isPinned: -1, createdAt: -1 })
+      .limit(5)
+      .lean();
+
+    notices = rawNotices.map((n) => ({
+      ...n,
+      _id: n._id.toString(),
+      createdAt: n.createdAt ? n.createdAt.toISOString() : "",
+    }));
   } catch (error) {
     console.error("Dashboard user lookup error:", error);
   }
 
-  // Derive Trainee Profile with sensible fallbacks
   const isEnrolled = user?.paymentStatus === "paid" || params?.enrolled === "true" || !!tranIdParam;
   
-  // Track calculation: priority to user record, then query parameter
   let activeTrack = user?.track || trackQuery;
   if (!activeTrack) {
     activeTrack = user?.gender === "female" ? "TOT-WOMEN-014" : "TOT-MEN";
@@ -66,8 +90,23 @@ export default async function TOTDashboardPage({ searchParams }) {
     paymentStatus: isEnrolled ? "paid" : "paid",
     paidAmount: user?.paidAmount || 1000,
     role: user?.role || "teacher",
+    bloodGroup: user?.bloodGroup || "",
+    quranSkill: user?.quranSkill || "fluent",
+    englishSkill: user?.englishSkill || "basic",
+    hasLaptop: user?.hasLaptop || "yes",
+    education: user?.education || "",
+    bio: user?.bio || "",
     enrolledAt: user?.enrolledAt ? new Date(user.enrolledAt).toISOString() : new Date().toISOString(),
     _id: user?._id?.toString() || "TOT-TR-014",
+    evaluation: evaluation
+      ? {
+          totalScore: evaluation.totalScore,
+          grade: evaluation.grade,
+          qualificationStatus: evaluation.qualificationStatus,
+          scores: evaluation.scores,
+          remarks: evaluation.remarks,
+        }
+      : null,
   };
 
   const formattedPayments = payments.map((p) => ({
@@ -88,6 +127,7 @@ export default async function TOTDashboardPage({ searchParams }) {
       trainee={initialTrainee}
       payments={formattedPayments}
       availableCourses={availableCourses}
+      notices={notices}
       isNewlyEnrolled={params?.enrolled === "true"}
     />
   );

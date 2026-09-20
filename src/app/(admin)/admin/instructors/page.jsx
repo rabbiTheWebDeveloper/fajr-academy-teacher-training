@@ -58,7 +58,7 @@ export default async function AdminInstructorsPage() {
           await UserModel.create({
             ...inst,
             password: "Fajr@Instructor2026",
-            tranId: `INST-${Date.now().toString().slice(-4)}`,
+            tranId: `INST-SEED-${inst.track || "FACULTY"}`,
             enrolledAt: new Date(),
           });
         }

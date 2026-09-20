@@ -27,7 +27,8 @@ import {
   Phone,
   Mail,
   MessageCircle,
-  Check
+  Check,
+  Megaphone,
 } from "lucide-react";
 import { useAdminTheme } from "../AdminThemeContext";
 
@@ -35,6 +36,16 @@ export default function AdminDashboardClient({ initialStats }) {
   const [stats, setStats] = useState(initialStats);
   const [verifyingId, setVerifyingId] = useState(null);
   const { isLight } = useAdminTheme();
+
+  // Announcement modal & state
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [noticeForm, setNoticeForm] = useState({
+    title: "",
+    content: "",
+    track: "all",
+    priority: "normal",
+  });
+  const [savingNotice, setSavingNotice] = useState(false);
 
   // Instructor modals & live updates
   const [selectedInstructorForProfile, setSelectedInstructorForProfile] = useState(null);
@@ -124,6 +135,39 @@ export default function AdminDashboardClient({ initialStats }) {
     }
   };
 
+  const handleBroadcastNotice = async (e) => {
+    e.preventDefault();
+    if (!noticeForm.title || !noticeForm.content) {
+      showToast("শিরোনাম ও নোটিশের বিবরণ আবশ্যক!", "error");
+      return;
+    }
+    setSavingNotice(true);
+    try {
+      const res = await fetch("/api/admin/announcements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(noticeForm),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast("ঘোষণা সফলভাবে সকল ট্রেইনি ও শিক্ষকের পোর্টালে ব্রডকাস্ট হয়েছে!");
+        setShowNoticeModal(false);
+        setNoticeForm({
+          title: "",
+          content: "",
+          track: "all",
+          priority: "normal",
+        });
+      } else {
+        showToast(data.message || "ব্রডকাস্ট ব্যর্থ হয়েছে", "error");
+      }
+    } catch (err) {
+      showToast("সার্ভার সংযোগে ত্রুটি", "error");
+    } finally {
+      setSavingNotice(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Toast Notification */}
@@ -167,38 +211,50 @@ export default function AdminDashboardClient({ initialStats }) {
             TOT অ্যাডমিন ওভারভিউ ও এনালিটিক্স
           </h1>
           <p className={`text-xs sm:text-sm mt-1 font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-            ফজর একাডেমি টিচার্স ট্রেনিং (TOT) প্রোগ্রামের লাইভ এনরোলমেন্ট, পেমেন্ট ও ইনস্ট্রাক্টর ট্র্যাকার
+            ফজর একাডেমি টিচার্স ট্রেনিং (TOT) প্রোগ্রামের লাইভ এনরোলমেন্ট, পেমেন্ট, মূল্যায়ন ও ইনস্ট্রাক্টর ট্র্যাকার
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => setShowNoticeModal(true)}
+            className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-rose-500/20 transition-all cursor-pointer"
+          >
+            <Megaphone className="w-4 h-4" /> ঘোষণা ব্রডকাস্ট
+          </button>
+          <Link
+            href="/admin/evaluations"
+            className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#C59B27] hover:brightness-110 text-[#051329] font-black text-xs flex items-center gap-1.5 shadow-md shadow-[#D4AF37]/20 transition-all"
+          >
+            <Award className="w-4 h-4" /> মূল্যায়ন ও ফলাফল
+          </Link>
           <Link
             href="/admin/instructors"
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-purple-500/20 transition-all"
+            className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-purple-500/20 transition-all"
           >
-            <GraduationCap className="w-4 h-4" /> ইনস্ট্রাক্টর প্যানেল
+            <GraduationCap className="w-4 h-4" /> ইনস্ট্রাক্টর
           </Link>
           <Link
             href="/admin/users"
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all"
+            className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all"
           >
-            <Users className="w-4 h-4" /> ইউজার ম্যানেজমেন্ট
+            <Users className="w-4 h-4" /> ইউজার
           </Link>
           <Link
             href="/admin/payments"
-            className={`px-4 py-2.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${
+            className={`px-3.5 py-2.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${
               isLight
                 ? "bg-white hover:bg-slate-50 border-slate-300 text-slate-800 shadow-xs"
                 : "bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-200"
             }`}
           >
-            <CreditCard className="w-4 h-4" /> পেমেন্ট ভেরিফাই
+            <CreditCard className="w-4 h-4" /> পেমেন্ট
           </Link>
         </div>
       </div>
 
-      {/* 4 KPI Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 5 KPI Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* KPI 1: Revenue */}
         <div
           className={`p-5 rounded-3xl relative overflow-hidden border transition-all ${
@@ -348,6 +404,47 @@ export default function AdminDashboardClient({ initialStats }) {
             <span className={isLight ? "text-slate-600" : "text-slate-400"}>পুরুষ ও মহিলা ফ্যাকাল্টি</span>
             <span className={`font-bold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform ${isLight ? "text-purple-700" : "text-purple-400"}`}>
               ম্যানেজ করুন <ChevronRight className="w-3 h-3" />
+            </span>
+          </div>
+        </Link>
+
+        {/* KPI 5: Evaluations & Certified Hired */}
+        <Link
+          href="/admin/evaluations"
+          className={`group p-5 rounded-3xl relative overflow-hidden border transition-all block ${
+            isLight
+              ? "bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-amber-300"
+              : "bg-slate-900/90 border-slate-800 shadow-xl hover:border-[#D4AF37]/40"
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-xs font-bold ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+              মূল্যায়ন ও সনদপত্র
+            </span>
+            <div
+              className={`p-2 rounded-xl transition-transform group-hover:scale-110 ${
+                isLight ? "bg-amber-100 text-amber-800" : "bg-amber-500/20 text-[#D4AF37]"
+              }`}
+            >
+              <Award className="w-4 h-4" />
+            </div>
+          </div>
+          <div
+            className={`text-2xl sm:text-3xl font-black font-mono ${
+              isLight ? "text-amber-800" : "text-[#D4AF37]"
+            }`}
+          >
+            {stats.totalEvaluated || 0}{" "}
+            <span className={`text-xs font-sans font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+              জন মূল্যায়িত
+            </span>
+          </div>
+          <div className="mt-2 text-[11px] font-medium flex items-center justify-between">
+            <span className="text-emerald-400 font-bold">
+              {stats.certifiedHiredCount || 0} জন শিক্ষক নির্বাচিত
+            </span>
+            <span className={`font-bold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform ${isLight ? "text-amber-800" : "text-[#D4AF37]"}`}>
+              ফলাফল <ChevronRight className="w-3 h-3" />
             </span>
           </div>
         </Link>
@@ -967,6 +1064,119 @@ export default function AdminDashboardClient({ initialStats }) {
                 >
                   <Save className="w-4 h-4" />
                   {savingInstructor ? "সংরক্ষণ হচ্ছে..." : "আপডেট সংরক্ষণ করুন"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Broadcast Announcement Modal */}
+      {showNoticeModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#051329] border border-[#C59B27]/40 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5 relative">
+            <button
+              onClick={() => setShowNoticeModal(false)}
+              className="absolute top-5 right-5 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-[#D4AF37] uppercase tracking-wider flex items-center gap-1">
+                <Megaphone className="w-3.5 h-3.5" /> Broadcast Announcement
+              </span>
+              <h3 className="text-xl font-black text-white">
+                ঘোষণা ব্রডকাস্ট করুন
+              </h3>
+              <p className="text-xs text-slate-400">
+                এই নোটিশটি সরাসরি সকল ট্রেইনি ও শিক্ষক ড্যাশবোর্ডের লাইভ নোটিশ ফিডে প্রদর্শিত হবে
+              </p>
+            </div>
+
+            <form onSubmit={handleBroadcastNotice} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">
+                  শিরোনাম (Title):
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={noticeForm.title}
+                  onChange={(e) =>
+                    setNoticeForm({ ...noticeForm, title: e.target.value })
+                  }
+                  placeholder="উদা: লাইভ ডেমো ক্লাস ও পরীক্ষা সংক্রান্ত জরুরি বিজ্ঞপ্তি"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:border-[#D4AF37] focus:outline-hidden"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">
+                    লক্ষ্যমাত্রা (Target Track):
+                  </label>
+                  <select
+                    value={noticeForm.track}
+                    onChange={(e) =>
+                      setNoticeForm({ ...noticeForm, track: e.target.value })
+                    }
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:border-[#D4AF37] focus:outline-hidden"
+                  >
+                    <option value="all">সকল ব্যাচ ও ট্রেইনি (ALL)</option>
+                    <option value="TOT-MEN">শুধুমাত্র পুরুষ ব্যাচ (MEN)</option>
+                    <option value="TOT-WOMEN-014">শুধুমাত্র মহিলা ব্যাচ (WOMEN)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">
+                    অগ্রাধিকার (Priority):
+                  </label>
+                  <select
+                    value={noticeForm.priority}
+                    onChange={(e) =>
+                      setNoticeForm({ ...noticeForm, priority: e.target.value })
+                    }
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:border-[#D4AF37] focus:outline-hidden"
+                  >
+                    <option value="normal">সাধারণ (Normal)</option>
+                    <option value="important">জরুরি (Important)</option>
+                    <option value="urgent">অতি জরুরি (Urgent Red)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">
+                  বিজ্ঞপ্তির বিস্তারিত বিবরণ:
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  value={noticeForm.content}
+                  onChange={(e) =>
+                    setNoticeForm({ ...noticeForm, content: e.target.value })
+                  }
+                  placeholder="বিজ্ঞপ্তির বিস্তারিত বার্তা এখানে লিখুন..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:border-[#D4AF37] focus:outline-hidden resize-none"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowNoticeModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white font-semibold cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingNotice}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold shadow-lg cursor-pointer disabled:opacity-50"
+                >
+                  {savingNotice ? "ব্রডকাস্ট হচ্ছে..." : "এখনই ব্রডকাস্ট করুন"}
                 </button>
               </div>
             </form>

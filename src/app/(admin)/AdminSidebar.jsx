@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Sparkles,
   ShieldCheck,
+  Award,
   ChevronRight,
   Menu,
   X,
@@ -34,6 +35,7 @@ export default function AdminSidebar({ adminUser }) {
     { href: "/admin/payments", label: "পেমেন্ট ভেরিফিকেশন", icon: CreditCard },
     { href: "/admin/courses", label: "কোর্স ও সেশন", icon: BookOpen },
     { href: "/admin/instructors", label: "ইনস্ট্রাক্টর প্যানেল", icon: GraduationCap },
+    { href: "/admin/evaluations", label: "মূল্যায়ন ও ফলাফল", icon: Award },
     { href: "/admin/settings", label: "সিস্টেম সেটিংস", icon: Settings },
   ];
 

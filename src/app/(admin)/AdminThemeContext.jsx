@@ -15,19 +15,20 @@ export function AdminThemeProvider({ children }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    try {
-      const savedTheme = localStorage.getItem('fajr_admin_theme');
-      if (savedTheme === 'dark' || savedTheme === 'light') {
-        setThemeState(savedTheme);
-      } else {
-        // Default to light
-        setThemeState('light');
-        localStorage.setItem('fajr_admin_theme', 'light');
+    const timer = setTimeout(() => {
+      try {
+        const savedTheme = localStorage.getItem('fajr_admin_theme');
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+          setThemeState(savedTheme);
+        } else {
+          localStorage.setItem('fajr_admin_theme', 'light');
+        }
+      } catch (e) {
+        // Ignore localStorage errors
       }
-    } catch (e) {
-      // Ignore localStorage errors
-    }
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const setTheme = (newTheme) => {

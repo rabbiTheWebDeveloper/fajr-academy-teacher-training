@@ -35,12 +35,63 @@ import {
 import { OfficialIDCard } from "@/components/TeacherOfficialIDCard";
 import TOTLogoutButton from "@/components/TOTLogoutButton";
 
-export default function DashboardClient({ trainee, payments = [], availableCourses = [], isNewlyEnrolled }) {
+export default function DashboardClient({ trainee: initialTrainee, payments = [], availableCourses = [], notices = [], isNewlyEnrolled }) {
+  const [trainee, setTrainee] = useState(initialTrainee);
   const [coursesList, setCoursesList] = useState(availableCourses);
-  const [activeTrack, setActiveTrack] = useState(trainee.track || "TOT-MEN");
+  const [activeTrack, setActiveTrack] = useState(initialTrainee.track || "TOT-MEN");
   const [activeTab, setActiveTab] = useState("overview");
   const [copiedLink, setCopiedLink] = useState(false);
   const [completedModules, setCompletedModules] = useState([1]);
+
+  // Profile Edit Modal State
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [profilePhone, setProfilePhone] = useState(initialTrainee.phone || "");
+  const [profileBloodGroup, setProfileBloodGroup] = useState(initialTrainee.bloodGroup || "");
+  const [profileQuranSkill, setProfileQuranSkill] = useState(initialTrainee.quranSkill || "fluent");
+  const [profileEnglishSkill, setProfileEnglishSkill] = useState(initialTrainee.englishSkill || "basic");
+  const [profileHasLaptop, setProfileHasLaptop] = useState(initialTrainee.hasLaptop || "yes");
+  const [profileEducation, setProfileEducation] = useState(initialTrainee.education || "");
+  const [profileBio, setProfileBio] = useState(initialTrainee.bio || "");
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [profileToast, setProfileToast] = useState(null);
+
+  const handleProfileSave = async (e) => {
+    e.preventDefault();
+    setIsUpdatingProfile(true);
+    try {
+      const res = await fetch("/api/tot/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: trainee.email,
+          tranId: trainee.tranId,
+          phone: profilePhone,
+          bloodGroup: profileBloodGroup,
+          quranSkill: profileQuranSkill,
+          englishSkill: profileEnglishSkill,
+          hasLaptop: profileHasLaptop,
+          education: profileEducation,
+          bio: profileBio,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.trainee) {
+        setTrainee((prev) => ({ ...prev, ...data.trainee }));
+        setProfileToast("প্রোফাইল সফলভাবে আপডেট হয়েছে!");
+        setTimeout(() => {
+          setProfileToast(null);
+          setIsProfileModalOpen(false);
+        }, 1500);
+      } else {
+        alert(data.message || "প্রোফাইল আপডেট করতে সমস্যা হয়েছে");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("সার্ভারে সমস্যা হয়েছে");
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
 
   useEffect(() => {
     if (!availableCourses || availableCourses.length === 0) {
@@ -198,6 +249,13 @@ export default function DashboardClient({ trainee, payments = [], availableCours
                 <span><strong>Email:</strong> {trainee.email}</span>
                 <span>•</span>
                 <span><strong>Phone:</strong> {trainee.phone}</span>
+                <span>•</span>
+                <button
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="text-[11px] text-[#D4AF37] hover:underline flex items-center gap-1 font-bold bg-[#C59B27]/15 px-2.5 py-0.5 rounded-full border border-[#C59B27]/30"
+                >
+                  ✎ প্রোফাইল এডিট
+                </button>
               </p>
             </div>
           </div>
@@ -224,6 +282,13 @@ export default function DashboardClient({ trainee, payments = [], availableCours
             </div>
 
             <Link
+              href="/results"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#C59B27]/20 hover:bg-[#C59B27]/30 text-[#D4AF37] border border-[#C59B27]/40 flex items-center justify-center gap-1.5 transition-all shadow-sm"
+            >
+              <Award className="w-4 h-4 text-[#D4AF37]" /> ফলাফল
+            </Link>
+
+            <Link
               href="/payments"
               className="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#081A3A] hover:bg-[#0B2545] text-[#D4AF37] border border-[#C59B27]/40 flex items-center justify-center gap-1.5 transition-all shadow-sm"
             >
@@ -241,6 +306,71 @@ export default function DashboardClient({ trainee, payments = [], availableCours
           </div>
         </div>
       </div>
+
+      {/* Trainee Evaluation Result Alert Banner (If Graded) */}
+      {trainee.evaluation && (
+        <div className="rounded-2xl bg-gradient-to-r from-indigo-950 via-[#081A3A] to-emerald-950 border-2 border-[#C59B27]/50 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#C59B27] via-[#D4AF37] to-[#B8860B] text-[#051329] font-black text-xl flex items-center justify-center shadow-lg shrink-0">
+              {trainee.evaluation.grade}
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-black text-sm text-white">
+                  আপনার চূড়ান্ত শিক্ষক মূল্যায়ন ও গ্রেড প্রকাশিত হয়েছে!
+                </h3>
+                <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  স্কোর: {trainee.evaluation.totalScore}/১০০
+                </span>
+              </div>
+              <p className="text-xs text-[#D4AF37] font-semibold mt-0.5">
+                {trainee.evaluation.qualificationStatus === "hired"
+                  ? "🎉 অভিনন্দন! আপনি সরাসরি ফজর একাডেমি অনলাইন শিক্ষক হিসেবে নির্বাচিত হয়েছেন (১৫,০০০–২২,০০০৳ মাসিক সম্মানী)"
+                  : "✓ অভিনন্দন! আপনি ফজর একাডেমি সার্টিফাইড শিক্ষক অনুমোদন পেয়েছেন"}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/results"
+            className="px-4 py-2 rounded-xl bg-[#C59B27] hover:bg-[#D4AF37] text-[#051329] font-black text-xs shadow-md transition-all whitespace-nowrap"
+          >
+            পূর্ণাঙ্গ ফলাফল ও সনদ দেখুন →
+          </Link>
+        </div>
+      )}
+
+      {/* Live Instructor Announcements Feed */}
+      {notices && notices.length > 0 && (
+        <div className="p-4 rounded-2xl bg-[#081A3A] border border-[#C59B27]/40 shadow-xl space-y-2.5">
+          <div className="flex items-center justify-between pb-2 border-b border-[#C59B27]/20">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#D4AF37] animate-pulse" />
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                ইনস্ট্রাক্টর লাইভ নোটিশ ও গুরুত্বপূর্ণ আপডেট ({notices.length}):
+              </h4>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#C59B27]/20 text-[#D4AF37]">
+              LATEST NOTICES
+            </span>
+          </div>
+          <div className="space-y-2">
+            {notices.map((n) => (
+              <div
+                key={n._id}
+                className="p-3 rounded-xl bg-[#051329] border border-slate-800 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2"
+              >
+                <div>
+                  <span className="font-bold text-[#D4AF37] block text-xs">{n.title}</span>
+                  <p className="text-slate-300 text-[11px] mt-0.5">{n.content}</p>
+                </div>
+                <span className="text-[10px] text-slate-500 whitespace-nowrap">
+                  {n.instructorName} • {n.createdAt ? new Date(n.createdAt).toLocaleDateString("bn-BD") : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tabs Navigation */}
       <div className="flex items-center gap-2 border-b border-[#C59B27]/20 overflow-x-auto pb-2 scrollbar-none">
@@ -857,7 +987,7 @@ export default function DashboardClient({ trainee, payments = [], availableCours
                       </div>
                     ) : (
                       <Link
-                        href={`/payment/ssl-checkout?tran_id=TOT-${Date.now()}&amount=${course.fee || 1000}&name=${encodeURIComponent(trainee.fullName)}&email=${encodeURIComponent(trainee.email)}&phone=${encodeURIComponent(trainee.phone)}`}
+                        href={`/payment/ssl-checkout?tran_id=${encodeURIComponent(trainee.tranId || 'TOT-ENROLL')}&amount=${course.fee || 1000}&name=${encodeURIComponent(trainee.fullName)}&email=${encodeURIComponent(trainee.email)}&phone=${encodeURIComponent(trainee.phone)}`}
                         className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 active:scale-[0.99] text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
                       >
                         <CreditCard className="w-4 h-4 stroke-[2.5]" />
@@ -868,6 +998,166 @@ export default function DashboardClient({ trainee, payments = [], availableCours
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Profile Edit Modal */}
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 bg-black/80 backdrop-blur-md"
+            onClick={() => setIsProfileModalOpen(false)}
+          />
+
+          <div className="relative z-10 w-full max-w-lg bg-[#081A3A] border border-[#C59B27]/40 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-[#C59B27]/20">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+                <h3 className="text-base font-bold text-white">টিচার প্রোফাইল তথ্য আপডেট</h3>
+              </div>
+              <button
+                onClick={() => setIsProfileModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleProfileSave} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">মোবাইল নম্বর:</label>
+                  <input
+                    type="text"
+                    value={profilePhone}
+                    onChange={(e) => setProfilePhone(e.target.value)}
+                    required
+                    className="w-full bg-[#051329] border border-[#C59B27]/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#D4AF37]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">রক্তের গ্রুপ:</label>
+                  <select
+                    value={profileBloodGroup}
+                    onChange={(e) => setProfileBloodGroup(e.target.value)}
+                    className="w-full bg-[#051329] border border-[#C59B27]/30 rounded-xl px-3 py-2 text-white focus:outline-none"
+                  >
+                    <option value="">নির্বাচন করুন</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">কুরআন পাঠ দক্ষতা:</label>
+                  <select
+                    value={profileQuranSkill}
+                    onChange={(e) => setProfileQuranSkill(e.target.value)}
+                    className="w-full bg-[#051329] border border-[#C59B27]/30 rounded-xl px-3 py-2 text-white focus:outline-none"
+                  >
+                    <option value="fluent">সাবলীল ও সহীহ (Fluent)</option>
+                    <option value="moderate">মধ্যম মানের (Moderate)</option>
+                    <option value="learning">শিখছি (Learning)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-300 font-semibold block mb-1">ইংরেজি স্পোকেন:</label>
+                  <select
+                    value={profileEnglishSkill}
+                    onChange={(e) => setProfileEnglishSkill(e.target.value)}
+                    className="w-full bg-[#051329] border border-[#C59B27]/30 rounded-xl px-3 py-2 text-white focus:outline-none"
+                  >
+                    <option value="basic">প্রাথমিক (Basic)</option>
+                    <option value="intermediate">মধ্যম (Intermediate)</option>
+                    <option value="fluent">সাবলীল (Fluent)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-semibold block mb-1">নিজস্ব ল্যাপটপ / কম্পিউটার:</label>
+                <div className="flex items-center gap-4 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="laptop"
+                      value="yes"
+                      checked={profileHasLaptop === "yes"}
+                      onChange={(e) => setProfileHasLaptop(e.target.value)}
+                      className="accent-[#D4AF37]"
+                    />
+                    <span>হ্যাঁ, আছে</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="laptop"
+                      value="no"
+                      checked={profileHasLaptop === "no"}
+                      onChange={(e) => setProfileHasLaptop(e.target.value)}
+                      className="accent-[#D4AF37]"
+                    />
+                    <span>না, সহায়তা প্রয়োজন</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-semibold block mb-1">শিক্ষাগত যোগ্যতা:</label>
+                <input
+                  type="text"
+                  value={profileEducation}
+                  onChange={(e) => setProfileEducation(e.target.value)}
+                  placeholder="যেমন: দাওরায়ে হাদীস / ফাজিল / অনার্স..."
+                  className="w-full bg-[#051329] border border-[#C59B27]/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-300 font-semibold block mb-1">সংক্ষিপ্ত বায়ো / শিক্ষকতা অভিজ্ঞতা:</label>
+                <textarea
+                  rows={2}
+                  value={profileBio}
+                  onChange={(e) => setProfileBio(e.target.value)}
+                  placeholder="অনলাইন বা মাদ্রাসায় পাঠদানের পূর্ব অভিজ্ঞতা..."
+                  className="w-full bg-[#051329] border border-[#C59B27]/30 rounded-xl p-3 text-white focus:outline-none focus:border-[#D4AF37]"
+                />
+              </div>
+
+              {profileToast && (
+                <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> {profileToast}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingProfile}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#C59B27] via-[#D4AF37] to-[#B8860B] text-[#051329] font-black shadow-md transition-all"
+                >
+                  {isUpdatingProfile ? "সংরক্ষণ হচ্ছে..." : "প্রোফাইল সেভ করুন"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
