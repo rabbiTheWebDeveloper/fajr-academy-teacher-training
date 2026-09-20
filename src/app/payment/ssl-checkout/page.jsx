@@ -75,17 +75,34 @@ function SSLCheckoutContent() {
   }
 
   // Instant confirmation fallback
-  const handleInstantConfirm = (status = 'success') => {
+  const handleInstantConfirm = async (status = 'success') => {
     setProcessing(true)
-    setTimeout(() => {
+    setErrorMsg('')
+    try {
       if (status === 'success') {
+        const res = await fetch('/api/payment/sslcommerz/init', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: name,
+            email: email,
+            phone: phone,
+            password: 'Fajr@Teacher2026',
+            amount: Number(amount) || 1000,
+            track: 'TOT-MEN',
+          }),
+        })
+        const data = await res.json()
+        const targetTranId = data.tranId || tranId
         router.push(
-          `/api/payment/sslcommerz/success?tran_id=${tranId}&val_id=VAL_${Date.now()}&card_type=${selectedMethod.toUpperCase()}`
+          `/api/payment/sslcommerz/success?tran_id=${targetTranId}&val_id=VAL_${Date.now()}&card_type=${selectedMethod.toUpperCase()}`
         )
       } else {
         router.push(`/api/payment/sslcommerz/fail?tran_id=${tranId}`)
       }
-    }, 800)
+    } catch (e) {
+      router.push(`/api/payment/sslcommerz/fail?tran_id=${tranId}`)
+    }
   }
 
   return (

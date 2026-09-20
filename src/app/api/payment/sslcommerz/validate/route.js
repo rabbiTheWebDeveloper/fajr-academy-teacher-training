@@ -35,7 +35,7 @@ async function processValidation(val_id) {
     if (result && (result.status === "VALID" || result.status === "VALIDATED")) {
       const tranId = result.tran_id;
       if (tranId) {
-        await PaymentModel.updateOne(
+        const payment = await PaymentModel.findOneAndUpdate(
           { tranId },
           {
             status: "VALID",
@@ -43,13 +43,49 @@ async function processValidation(val_id) {
             cardType: result.card_type || "",
             bankTranId: result.bank_tran_id || "",
             rawResponse: result,
-          }
+          },
+          { new: true }
         );
 
-        await UserModel.updateOne(
-          { tranId },
-          { paymentStatus: "paid", isActive: true }
-        );
+        let user = await UserModel.findOne({ tranId });
+        if (!user && payment?.userEmail) {
+          user = await UserModel.findOne({ email: payment.userEmail });
+        }
+
+        const reg = payment?.registrationData || {};
+
+        if (!user && payment) {
+          const userPassword = reg.password || "Fajr@Teacher2026";
+          const cleanEmail = (reg.email || payment.userEmail || "").toLowerCase().trim();
+
+          await UserModel.create({
+            fullName: reg.fullName || payment.userName || "Teacher Candidate",
+            email: cleanEmail,
+            phone: reg.phone || payment.userPhone || "",
+            password: userPassword,
+            role: "teacher",
+            track: reg.track || payment.track || "TOT-MEN",
+            gender: reg.gender === "female" ? "female" : "male",
+            hasLaptop: reg.hasLaptop || "yes",
+            quranSkill: reg.quranSkill || "fluent",
+            englishSkill: reg.englishSkill || "basic",
+            education: reg.education || "",
+            paymentStatus: "paid",
+            paidAmount: Number(result.amount) || payment.amount || 1000,
+            tranId: tranId,
+            paymentGateway: "sslcommerz",
+            enrolledAt: new Date(),
+            isActive: true,
+          });
+        } else if (user) {
+          user.paymentStatus = "paid";
+          user.paidAmount = Number(result.amount) || payment?.amount || 1000;
+          user.enrolledAt = user.enrolledAt || new Date();
+          user.isActive = true;
+          user.role = "teacher";
+          if (tranId) user.tranId = tranId;
+          await user.save();
+        }
       }
     }
 

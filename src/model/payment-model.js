@@ -63,6 +63,10 @@ const paymentSchema = new Schema(
       type: Schema.Types.Mixed,
       default: {},
     },
+    registrationData: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
   },
   {
     timestamps: true,

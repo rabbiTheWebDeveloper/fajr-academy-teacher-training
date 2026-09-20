@@ -50,16 +50,42 @@ export async function PATCH(request) {
     payment.status = status || "VALID";
     await payment.save();
 
-    // If marked VALID, activate the associated user
+    // If marked VALID, activate or create the associated user
     if (status === "VALID") {
-      const user = await UserModel.findOne({
+      let user = await UserModel.findOne({
         $or: [{ tranId: payment.tranId }, { email: payment.userEmail }],
       });
 
-      if (user) {
+      const reg = payment.registrationData || {};
+
+      if (!user && (payment.userEmail || reg.email)) {
+        const userPassword = reg.password || "Fajr@Teacher2026";
+        const cleanEmail = (reg.email || payment.userEmail || "").toLowerCase().trim();
+
+        await UserModel.create({
+          fullName: reg.fullName || payment.userName || "Teacher Candidate",
+          email: cleanEmail,
+          phone: reg.phone || payment.userPhone || "",
+          password: userPassword,
+          role: "teacher",
+          track: reg.track || payment.track || "TOT-MEN",
+          gender: reg.gender === "female" ? "female" : "male",
+          hasLaptop: reg.hasLaptop || "yes",
+          quranSkill: reg.quranSkill || "fluent",
+          englishSkill: reg.englishSkill || "basic",
+          education: reg.education || "",
+          paymentStatus: "paid",
+          paidAmount: payment.amount || 1000,
+          tranId: payment.tranId,
+          paymentGateway: payment.paymentGateway || "sslcommerz",
+          enrolledAt: new Date(),
+          isActive: true,
+        });
+      } else if (user) {
         user.paymentStatus = "paid";
         user.paidAmount = payment.amount || 1000;
         user.isActive = true;
+        if (payment.tranId) user.tranId = payment.tranId;
         await user.save();
       }
     }

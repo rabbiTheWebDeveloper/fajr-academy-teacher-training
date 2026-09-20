@@ -64,6 +64,21 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
   const [loading,   setLoading]   = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [errorMsg,  setErrorMsg]  = useState('')
+  const [alreadyPaid, setAlreadyPaid] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const paymentParam = urlParams.get('payment')
+      if (paymentParam === 'cancelled') {
+        setErrorMsg('আপনার পেমেন্ট সম্পন্ন হয়নি (বাতিল করা হয়েছে)। কোনো অ্যাকাউন্ট তৈরি করা হয়নি। কোর্স ফি ১,০০০৳ পরিশোধ করলেই অ্যাকাউন্ট তৈরি হবে।')
+      } else if (paymentParam === 'failed') {
+        setErrorMsg('পেমেন্ট ব্যর্থ হয়েছে! আপনার কোনো টাকা কাটা হয়নি এবং কোনো অ্যাকাউন্ট তৈরি হয়নি। অনুগ্রহ করে সঠিক পেমেন্ট তথ্য দিয়ে পুনরায় চেষ্টা করুন।')
+      } else if (paymentParam === 'error') {
+        setErrorMsg('পেমেন্টে সাময়িক সমস্যা হয়েছে। কোনো অ্যাকাউন্ট তৈরি হয়নি। অনুগ্রহ করে আবার চেষ্টা করুন।')
+      }
+    }
+  }, [])
 
   const handleTrackChange = (track) => {
     setSelectedTrack(track)
@@ -83,6 +98,26 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErrorMsg('')
+    setAlreadyPaid(false)
+
+    // Form field validations
+    if (!formData.fullName.trim()) {
+      setErrorMsg('অনুগ্রহ করে আপনার পূর্ণ নাম লিখুন।')
+      return
+    }
+    if (!formData.phone.trim() || formData.phone.trim().replace(/[^0-9]/g, '').length < 11) {
+      setErrorMsg('অনুগ্রহ করে সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমনঃ 01712345678)।')
+      return
+    }
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      setErrorMsg('অনুগ্রহ করে একটি সঠিক ইমেইল ঠিকানা দিন।')
+      return
+    }
+    if (!formData.password || formData.password.trim().length < 6) {
+      setErrorMsg('অ্যাকাউন্টের নিরাপত্তার জন্য কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন।')
+      return
+    }
+
     setLoading(true)
     const trackKey = selectedTrack === 'men' ? 'TOT-MEN' : 'TOT-WOMEN-014'
     try {
@@ -90,16 +125,16 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName:     formData.fullName,
-          email:        formData.email,
-          phone:        formData.phone,
-          password:     formData.password || 'Fajr@Teacher2026',
+          fullName:     formData.fullName.trim(),
+          email:        formData.email.trim(),
+          phone:        formData.phone.trim(),
+          password:     formData.password.trim(),
           gender:       selectedTrack === 'women' ? 'female' : 'male',
           track:        trackKey,
           hasLaptop:    formData.hasLaptop,
           quranSkill:   formData.quranSkill,
           englishSkill: formData.englishSkill,
-          education:    formData.education,
+          education:    formData.education.trim(),
           amount:       (selectedTrack === 'women' ? (womenCourse.fee || 1000) : (menCourse.fee || 1000)),
         }),
       })
@@ -107,6 +142,9 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
       if (data.success && data.gatewayUrl) {
         window.location.href = data.gatewayUrl
       } else {
+        if (data.alreadyPaid) {
+          setAlreadyPaid(true)
+        }
         setErrorMsg(data.message || 'SSLCommerz পেমেন্ট গেটওয়েতে সংযোগ করতে ব্যর্থ হয়েছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন অথবা সরাসরি WhatsApp-এ যোগাযোগ করুন।')
         setLoading(false)
       }
@@ -285,6 +323,19 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 <div className={styles.regErrorIcon}>⚠️</div>
                 <div className={styles.regErrorText}>
                   <strong>পেমেন্ট সংক্রান্ত বার্তা:</strong> {errorMsg}
+                  {alreadyPaid && (
+                    <div style={{ marginTop: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => router.push('/login')}
+                        className={`${styles.btn} ${styles.btnGold}`}
+                        style={{ padding: '7px 16px', fontSize: '13px', borderRadius: '8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <span>সরাসরি লগইন পেজে যান</span>
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

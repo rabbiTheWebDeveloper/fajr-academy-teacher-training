@@ -33,54 +33,51 @@ export async function POST(request) {
     const cleanEmail = email.toLowerCase().trim();
     const tranId = `TOT-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // Check if user already exists or create pending user
-    let user = await UserModel.findOne({ email: cleanEmail });
+    // Check if an account already exists and is paid
+    const existingUser = await UserModel.findOne({ email: cleanEmail });
+    if (existingUser && (existingUser.paymentStatus === "paid" || existingUser.paymentStatus === "free")) {
+      return NextResponse.json(
+        {
+          success: false,
+          alreadyPaid: true,
+          message: "এই ইমেইল দিয়ে ইতোমধ্যে কোর্স ফি পরিশোধ করা হয়েছে এবং অ্যাকাউন্টটি সক্রিয় রয়েছে। অনুগ্রহ করে সরাসরি লগইন করুন।",
+        },
+        { status: 400 }
+      );
+    }
+
+    // If an unpaid/pending user record was left over from a previous abandoned attempt, remove it
+    if (existingUser && existingUser.paymentStatus !== "paid") {
+      await UserModel.deleteMany({ email: cleanEmail, paymentStatus: { $ne: "paid" } });
+    }
 
     const userPassword = password || "Fajr@Teacher2026";
 
-    if (!user) {
-      user = await UserModel.create({
-        fullName,
-        email: cleanEmail,
-        phone,
-        password: userPassword,
-        role: "teacher",
-        track,
-        gender: gender === "female" ? "female" : "male",
-        hasLaptop,
-        quranSkill,
-        englishSkill,
-        education,
-        paymentStatus: "pending",
-        paidAmount: 0,
-        tranId,
-        paymentGateway: "sslcommerz",
-      });
-    } else {
-      user.fullName = fullName;
-      user.phone = phone;
-      user.track = track;
-      user.gender = gender === "female" ? "female" : "male";
-      user.hasLaptop = hasLaptop;
-      user.quranSkill = quranSkill;
-      user.englishSkill = englishSkill;
-      user.education = education;
-      user.tranId = tranId;
-      if (password) user.password = password;
-      await user.save();
-    }
-
-    // Save pending payment record
+    // Save pending payment record with full registration data
+    // NOTE: UserModel will ONLY be created once payment is confirmed VALID/SUCCESS!
     const paymentRecord = await PaymentModel.create({
       tranId,
       amount: Number(amount) || 1000,
       currency: "BDT",
       status: "PENDING",
       userEmail: cleanEmail,
-      userName: fullName,
-      userPhone: phone,
+      userName: fullName.trim(),
+      userPhone: phone.trim(),
       track,
       paymentMethod: "SSLCOMMERZ",
+      registrationData: {
+        fullName: fullName.trim(),
+        email: cleanEmail,
+        phone: phone.trim(),
+        password: userPassword,
+        gender: gender === "female" ? "female" : "male",
+        track,
+        hasLaptop: hasLaptop || "yes",
+        quranSkill: quranSkill || "fluent",
+        englishSkill: englishSkill || "basic",
+        education: education ? education.trim() : "",
+        amount: Number(amount) || 1000,
+      },
     });
 
     const host = request.headers.get("host") || "localhost:3000";

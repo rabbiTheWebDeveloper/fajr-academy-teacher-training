@@ -15,11 +15,19 @@ async function handleFail(request) {
   try {
     await dbConnect();
     const { searchParams } = new URL(request.url);
-    const tranId = searchParams.get("tran_id");
+    let tranId = searchParams.get("tran_id");
+
+    if (request.method === "POST") {
+      try {
+        const formData = await request.formData();
+        tranId = formData.get("tran_id") || tranId;
+      } catch {}
+    }
 
     if (tranId) {
       await PaymentModel.updateOne({ tranId }, { status: "FAILED" });
-      await UserModel.updateOne({ tranId }, { paymentStatus: "failed" });
+      // Ensure no unpaid user account exists for failed payment
+      await UserModel.deleteMany({ tranId, paymentStatus: { $ne: "paid" } });
     }
 
     const host = request.headers.get("host") || "localhost:3000";

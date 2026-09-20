@@ -82,11 +82,47 @@ async function handleIPN(request) {
         user = await UserModel.findOne({ email: payment.userEmail });
       }
 
-      if (user) {
+      const reg = payment?.registrationData || {};
+
+      if (!user && payment) {
+        const userPassword = reg.password || "Fajr@Teacher2026";
+        const cleanEmail = (reg.email || payment.userEmail || "").toLowerCase().trim();
+
+        user = await UserModel.create({
+          fullName: reg.fullName || payment.userName || "Teacher Candidate",
+          email: cleanEmail,
+          phone: reg.phone || payment.userPhone || "",
+          password: userPassword,
+          role: "teacher",
+          track: reg.track || payment.track || "TOT-MEN",
+          gender: reg.gender === "female" ? "female" : "male",
+          hasLaptop: reg.hasLaptop || "yes",
+          quranSkill: reg.quranSkill || "fluent",
+          englishSkill: reg.englishSkill || "basic",
+          education: reg.education || "",
+          paymentStatus: "paid",
+          paidAmount: Number(amount) || payment.amount || 1000,
+          tranId: tranId,
+          paymentGateway: "sslcommerz",
+          enrolledAt: new Date(),
+          isActive: true,
+        });
+      } else if (user) {
         user.paymentStatus = "paid";
         user.paidAmount = Number(amount) || payment?.amount || 1000;
+        user.enrolledAt = user.enrolledAt || new Date();
         user.isActive = true;
         user.role = "teacher";
+        if (tranId) user.tranId = tranId;
+        if (reg.fullName) user.fullName = reg.fullName;
+        if (reg.phone) user.phone = reg.phone;
+        if (reg.password) user.password = reg.password;
+        if (reg.gender) user.gender = reg.gender;
+        if (reg.track) user.track = reg.track;
+        if (reg.hasLaptop) user.hasLaptop = reg.hasLaptop;
+        if (reg.quranSkill) user.quranSkill = reg.quranSkill;
+        if (reg.englishSkill) user.englishSkill = reg.englishSkill;
+        if (reg.education) user.education = reg.education;
         await user.save();
       }
     }
