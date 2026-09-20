@@ -77,13 +77,13 @@ export default function MarketingNavbar() {
           ভর্তি হোন
         </a>
         <a
-          href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
+          href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 bg-[#25D366] text-white font-bold py-1.5 px-3 sm:py-2 sm:px-4 md:px-5 rounded-full text-xs sm:text-sm hover:bg-[#20bd5a] hover:shadow-lg hover:shadow-green-500/20 hover:scale-105 transition-all duration-300 shrink-0"
         >
           <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white" />
-          <span className="hidden xs:inline sm:inline">01641028312</span>
+          <span className="hidden xs:inline sm:inline">01410764581</span>
           <span className="inline xs:hidden sm:hidden">WhatsApp</span>
         </a>
 

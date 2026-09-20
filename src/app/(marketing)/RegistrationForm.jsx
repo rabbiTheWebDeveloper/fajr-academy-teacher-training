@@ -92,7 +92,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
   const handleWhatsAppConfirm = () => {
     const trackName = selectedTrack === 'men' ? 'TOT - MEN BATCH' : 'TOT - WOMEN (Batch 014)'
     const msg = `আসসালামু আলাইকুম। আমি ফজর একাডেমি ${trackName} শিক্ষক প্রশিক্ষণের জন্য নিবন্ধন করেছি।\nনাম: ${formData.fullName}\nমোবাইল: ${formData.phone}\nইমেইল: ${formData.email}`
-    window.open(`https://wa.me/8801641028312?text=${encodeURIComponent(msg)}`, '_blank')
+    window.open(`https://wa.me/8801410764581?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
   const handleSubmit = async (e) => {

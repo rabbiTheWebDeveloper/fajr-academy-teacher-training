@@ -119,7 +119,7 @@ export default function MarketingHeader() {
           </div>
 
           <a
-            href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20ফজর%20একাডেমির%20কুরআন%20টিচার%20ট্রেনিং%20সম্পর্কে%20জানতে%20চাই।"
+            href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20ফজর%20একাডেমির%20কুরআন%20টিচার%20ট্রেনিং%20সম্পর্কে%20জানতে%20চাই।"
             target="_blank"
             rel="noopener noreferrer"
             className={styles.headerWhatsappBtn}
@@ -130,7 +130,7 @@ export default function MarketingHeader() {
               <MessageCircle size={15} fill="#fff" color="#25D366" />
             </div>
             <div className={styles.whatsappTextBox}>
-              <span className={styles.whatsappNum}>01641028312</span>
+              <span className={styles.whatsappNum}>01410764581</span>
               <span className={styles.whatsappLabel}>
                 <span className={styles.onlineDot} /> WhatsApp
               </span>
@@ -235,7 +235,7 @@ export default function MarketingHeader() {
             {/* Drawer Footer CTA */}
             <div className={styles.mobileDrawerFooter}>
               <a
-                href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20ফজর%20একাডেমির%20কুরআন%20টিচার%20ট্রেনিং%20সম্পর্কে%20জানতে%20চাই।"
+                href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20ফজর%20একাডেমির%20কুরআন%20টিচার%20ট্রেনিং%20সম্পর্কে%20জানতে%20চাই।"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.mobileWhatsappCta}
@@ -246,7 +246,7 @@ export default function MarketingHeader() {
                 <span>WhatsApp-এ সরাসরি কথা বলুন</span>
               </a>
               <div className={styles.mobileHotlineNote}>
-                হটলাইন: <strong>01641028312</strong>
+                হটলাইন: <strong>01410764581</strong>
               </div>
             </div>
           </div>

@@ -6,7 +6,7 @@ import styles from './page.module.css'
 export default function FloatingWhatsApp() {
   return (
     <a
-      href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20ফজর%20একাডেমির%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
+      href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20ফজর%20একাডেমির%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
       target="_blank"
       rel="noopener noreferrer"
       className={styles.floatingWhatsApp}
