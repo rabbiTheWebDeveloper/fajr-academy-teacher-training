@@ -83,6 +83,22 @@ const userSchema = new Schema(
       type: String,
       default: "",
     },
+    bio: {
+      type: String,
+      default: "",
+    },
+    specialization: {
+      type: String,
+      default: "আন্তর্জাতিক কুরআন টিচিং পেডাগজি ও তাজবীদ",
+    },
+    experienceYears: {
+      type: Number,
+      default: 5,
+    },
+    rating: {
+      type: Number,
+      default: 4.9,
+    },
     paymentStatus: {
       type: String,
       enum: ["paid", "pending", "failed", "free"],

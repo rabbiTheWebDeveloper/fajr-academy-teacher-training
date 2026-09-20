@@ -55,7 +55,13 @@ export default function AdminSidebar({ adminUser }) {
   return (
     <>
       {/* Mobile Top Bar Toggle */}
-      <div className="md:hidden bg-[#070A11] border-b border-slate-800 p-4 flex items-center justify-between z-50">
+      <div
+        className={`md:hidden border-b p-4 flex items-center justify-between z-50 transition-colors ${
+          isLight
+            ? "bg-white border-slate-200"
+            : "bg-[#070A11] border-slate-800"
+        }`}
+      >
         <div className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -63,7 +69,9 @@ export default function AdminSidebar({ adminUser }) {
             alt="Fajr Academy"
             className="w-8 h-8 rounded-lg object-cover border border-amber-500/40"
           />
-          <span className="font-extrabold text-sm text-white">FAJR ADMIN</span>
+          <span className={`font-extrabold text-sm ${isLight ? "text-slate-900" : "text-white"}`}>
+            FAJR ADMIN
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -77,14 +85,18 @@ export default function AdminSidebar({ adminUser }) {
             title={`Switch to ${isLight ? "Dark" : "Light"} Mode`}
           >
             {isLight ? (
-              <Sun className="w-4 h-4 text-amber-500 fill-amber-500" />
+              <Sun className="w-4 h-4 text-amber-600 fill-amber-500" />
             ) : (
               <Moon className="w-4 h-4 text-amber-400 fill-amber-400" />
             )}
           </button>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 cursor-pointer"
+            className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+              isLight
+                ? "bg-slate-100 border-slate-300 text-slate-800"
+                : "bg-slate-900 border-slate-800 text-slate-300"
+            }`}
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -95,7 +107,7 @@ export default function AdminSidebar({ adminUser }) {
       <aside
         className={`fixed md:static inset-y-0 left-0 z-50 w-64 border-r flex flex-col justify-between p-4 transition-transform duration-300 md:translate-x-0 ${
           isLight
-            ? "bg-white border-slate-200 shadow-xs"
+            ? "bg-white border-slate-200/90 shadow-xs"
             : "bg-slate-950 border-slate-900"
         } ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
@@ -111,7 +123,7 @@ export default function AdminSidebar({ adminUser }) {
               className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform border border-amber-500/40 shrink-0"
             />
             <div className="flex flex-col">
-              <span className={`font-extrabold text-base tracking-tight font-serif ${isLight ? "text-slate-900" : "text-white"}`}>
+              <span className={`font-black text-base tracking-tight font-serif ${isLight ? "text-slate-900" : "text-white"}`}>
                 FAJR ACADEMY
               </span>
               <span className={`text-[10px] uppercase font-bold tracking-widest ${isLight ? "text-amber-700" : "text-amber-400"}`}>
@@ -121,7 +133,7 @@ export default function AdminSidebar({ adminUser }) {
           </Link>
 
           {/* Navigation Links */}
-          <nav className="space-y-1">
+          <nav className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item);
@@ -130,19 +142,27 @@ export default function AdminSidebar({ adminUser }) {
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all ${
                     active
-                      ? "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold"
+                      ? "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-md shadow-amber-500/25"
                       : isLight
-                      ? "text-slate-700 hover:text-slate-950 hover:bg-slate-100 font-semibold"
-                      : "text-slate-400 hover:text-white hover:bg-slate-900"
+                      ? "text-slate-800 hover:text-slate-950 hover:bg-slate-100 font-bold"
+                      : "text-slate-400 hover:text-white hover:bg-slate-900 font-medium"
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Icon className={`w-4 h-4 ${active ? "text-slate-950" : isLight ? "text-slate-500" : "text-slate-400"}`} />
-                    <span>{item.label}</span>
+                    <Icon
+                      className={`w-4 h-4 shrink-0 transition-colors ${
+                        active
+                          ? "text-slate-950"
+                          : isLight
+                          ? "text-slate-700"
+                          : "text-slate-400"
+                      }`}
+                    />
+                    <span className="truncate">{item.label}</span>
                   </div>
-                  {active && <ChevronRight className="w-3.5 h-3.5" />}
+                  {active && <ChevronRight className="w-3.5 h-3.5 shrink-0" />}
                 </Link>
               );
             })}
@@ -157,8 +177,8 @@ export default function AdminSidebar({ adminUser }) {
             onClick={toggleTheme}
             className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
               isLight
-                ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800 shadow-xs"
-                : "bg-slate-900 hover:bg-slate-850 border-slate-800 text-amber-300 shadow-xs"
+                ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800 shadow-2xs"
+                : "bg-slate-900 hover:bg-slate-800 border-slate-800 text-amber-300 shadow-xs"
             }`}
           >
             <div className="flex items-center gap-2">
@@ -167,7 +187,7 @@ export default function AdminSidebar({ adminUser }) {
               ) : (
                 <Moon className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />
               )}
-              <span>{isLight ? "লাইট মোড চালু" : "ডার্ক মোড চালু"}</span>
+              <span>{isLight ? "লাইট মোড সক্রিয়" : "ডার্ক মোড সক্রিয়"}</span>
             </div>
             <span
               className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
@@ -184,10 +204,10 @@ export default function AdminSidebar({ adminUser }) {
             <Link
               href="/dashboard"
               target="_blank"
-              className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors font-medium ${
+              className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors font-bold ${
                 isLight
-                  ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                  ? "text-slate-700 hover:text-slate-950 hover:bg-slate-100"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900 font-medium"
               }`}
             >
               <span>টিচার পোর্টাল</span>
@@ -196,10 +216,10 @@ export default function AdminSidebar({ adminUser }) {
             <Link
               href="/instructor"
               target="_blank"
-              className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors font-medium ${
+              className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors font-bold ${
                 isLight
-                  ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+                  ? "text-slate-700 hover:text-slate-950 hover:bg-slate-100"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-900 font-medium"
               }`}
             >
               <span>ইনস্ট্রাক্টর পোর্টাল</span>

@@ -17,8 +17,8 @@ export default async function AdminPaymentsPage() {
 
     initialPayments = data.map((p) => ({
       ...p,
-      _id: p._id.toString(),
-      createdAt: p.createdAt ? p.createdAt.toISOString() : "",
+      _id: p._id ? p._id.toString() : "",
+      createdAt: p.createdAt ? (typeof p.createdAt === "string" ? p.createdAt : (p.createdAt instanceof Date ? p.createdAt.toISOString() : new Date(p.createdAt).toISOString())) : "",
     }));
   } catch (error) {
     console.error("Error fetching payments:", error);

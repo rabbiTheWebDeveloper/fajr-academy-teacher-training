@@ -17,7 +17,17 @@ import {
   ExternalLink,
   ChevronRight,
   Sparkles,
-  Download
+  Download,
+  GraduationCap,
+  Star,
+  Eye,
+  Edit,
+  X,
+  Save,
+  Phone,
+  Mail,
+  MessageCircle,
+  Check
 } from "lucide-react";
 import { useAdminTheme } from "../AdminThemeContext";
 
@@ -25,6 +35,17 @@ export default function AdminDashboardClient({ initialStats }) {
   const [stats, setStats] = useState(initialStats);
   const [verifyingId, setVerifyingId] = useState(null);
   const { isLight } = useAdminTheme();
+
+  // Instructor modals & live updates
+  const [selectedInstructorForProfile, setSelectedInstructorForProfile] = useState(null);
+  const [editingInstructor, setEditingInstructor] = useState(null);
+  const [savingInstructor, setSavingInstructor] = useState(false);
+  const [toastMsg, setToastMsg] = useState(null);
+
+  const showToast = (text, type = "success") => {
+    setToastMsg({ text, type });
+    setTimeout(() => setToastMsg(null), 3500);
+  };
 
   const handleVerifyPayment = async (paymentId, tranId) => {
     setVerifyingId(paymentId || tranId);
@@ -45,16 +66,86 @@ export default function AdminDashboardClient({ initialStats }) {
             p._id === paymentId || p.tranId === tranId ? { ...p, status: "VALID" } : p
           ),
         }));
+        showToast("পেমেন্ট সফলভাবে ভেরিফাই করা হয়েছে!");
       }
     } catch (err) {
       console.error(err);
+      showToast("পেমেন্ট ভেরিফিকেশন ব্যর্থ হয়েছে", "error");
     } finally {
       setVerifyingId(null);
     }
   };
 
+  // Direct Quick Update Instructor from Dashboard
+  const handleUpdateInstructor = async (e) => {
+    e.preventDefault();
+    if (!editingInstructor) return;
+    setSavingInstructor(true);
+
+    try {
+      const res = await fetch("/api/admin/instructors", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          instructorId: editingInstructor._id,
+          fullName: editingInstructor.fullName,
+          phone: editingInstructor.phone,
+          designation: editingInstructor.designation,
+          specialization: editingInstructor.specialization,
+          track: editingInstructor.track,
+          bio: editingInstructor.bio,
+          experienceYears: editingInstructor.experienceYears,
+          rating: editingInstructor.rating,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success && data.instructor) {
+        setStats((prev) => ({
+          ...prev,
+          recentInstructors: (prev.recentInstructors || []).map((i) =>
+            i._id === editingInstructor._id ? data.instructor : i
+          ),
+        }));
+        showToast("ইনস্ট্রাক্টর তথ্য সফলভাবে আপডেট হয়েছে!");
+        setEditingInstructor(null);
+        if (selectedInstructorForProfile?._id === editingInstructor._id) {
+          setSelectedInstructorForProfile(data.instructor);
+        }
+      } else {
+        showToast(data.message || "আপডেট ব্যর্থ হয়েছে", "error");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("সার্ভার ত্রুটি: পুনরায় চেষ্টা করুন", "error");
+    } finally {
+      setSavingInstructor(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
+      {/* Toast Notification */}
+      {toastMsg && (
+        <div className="fixed bottom-6 right-6 z-50 animate-bounce">
+          <div
+            className={`px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-bold border ${
+              toastMsg.type === "error"
+                ? "bg-rose-900 border-rose-700 text-white"
+                : "bg-emerald-950 border-emerald-500 text-emerald-100"
+            }`}
+          >
+            {toastMsg.type === "error" ? (
+              <AlertCircle className="w-4 h-4 text-rose-400" />
+            ) : (
+              <Check className="w-4 h-4 text-emerald-400" />
+            )}
+            <span>{toastMsg.text}</span>
+          </div>
+        </div>
+      )}
+
       {/* Executive Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -76,11 +167,17 @@ export default function AdminDashboardClient({ initialStats }) {
             TOT অ্যাডমিন ওভারভিউ ও এনালিটিক্স
           </h1>
           <p className={`text-xs sm:text-sm mt-1 font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-            ফজর একাডেমি টিচার্স ট্রেনিং (TOT) প্রোগ্রামের লাইভ এনরোলমেন্ট ও পেমেন্ট ট্র্যাকার
+            ফজর একাডেমি টিচার্স ট্রেনিং (TOT) প্রোগ্রামের লাইভ এনরোলমেন্ট, পেমেন্ট ও ইনস্ট্রাক্টর ট্র্যাকার
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href="/admin/instructors"
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-purple-500/20 transition-all"
+          >
+            <GraduationCap className="w-4 h-4" /> ইনস্ট্রাক্টর প্যানেল
+          </Link>
           <Link
             href="/admin/users"
             className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all"
@@ -216,12 +313,13 @@ export default function AdminDashboardClient({ initialStats }) {
           </div>
         </div>
 
-        {/* KPI 4: Instructors */}
-        <div
-          className={`p-5 rounded-3xl relative overflow-hidden border transition-all ${
+        {/* KPI 4: Instructors (Direct Link to Management) */}
+        <Link
+          href="/admin/instructors"
+          className={`group p-5 rounded-3xl relative overflow-hidden border transition-all block ${
             isLight
-              ? "bg-white border-slate-200 shadow-sm hover:shadow-md"
-              : "bg-slate-900/90 border-slate-800 shadow-xl"
+              ? "bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-purple-300"
+              : "bg-slate-900/90 border-slate-800 shadow-xl hover:border-purple-500/40"
           }`}
         >
           <div className="flex items-center justify-between mb-2">
@@ -229,7 +327,7 @@ export default function AdminDashboardClient({ initialStats }) {
               সিনিয়র ইনস্ট্রাক্টর
             </span>
             <div
-              className={`p-2 rounded-xl ${
+              className={`p-2 rounded-xl transition-transform group-hover:scale-110 ${
                 isLight ? "bg-purple-100 text-purple-700" : "bg-purple-500/20 text-purple-400"
               }`}
             >
@@ -241,15 +339,18 @@ export default function AdminDashboardClient({ initialStats }) {
               isLight ? "text-purple-700" : "text-purple-400"
             }`}
           >
-            {stats.totalInstructors || 4}{" "}
+            {stats.totalInstructors || stats.recentInstructors?.length || 4}{" "}
             <span className={`text-xs font-sans font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
               জন ট্রেইনার
             </span>
           </div>
-          <div className={`mt-2 text-[11px] font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-            পুরুষ ও মহিলা ফ্যাকাল্টি
+          <div className="mt-2 text-[11px] font-medium flex items-center justify-between">
+            <span className={isLight ? "text-slate-600" : "text-slate-400"}>পুরুষ ও মহিলা ফ্যাকাল্টি</span>
+            <span className={`font-bold flex items-center gap-0.5 group-hover:translate-x-0.5 transition-transform ${isLight ? "text-purple-700" : "text-purple-400"}`}>
+              ম্যানেজ করুন <ChevronRight className="w-3 h-3" />
+            </span>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Grid: Recent Payments & Recent Trainees */}
@@ -429,6 +530,449 @@ export default function AdminDashboardClient({ initialStats }) {
           </div>
         </div>
       </div>
+
+      {/* Box 3: Senior Instructors Roster & Quick Update Module */}
+      <div
+        className={`rounded-3xl p-6 border space-y-5 transition-all ${
+          isLight
+            ? "bg-white border-slate-200 shadow-sm"
+            : "bg-slate-900 border-slate-800 shadow-xl"
+        }`}
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h3
+              className={`text-base font-bold flex items-center gap-2 ${
+                isLight ? "text-slate-900" : "text-white"
+              }`}
+            >
+              <GraduationCap className={`w-5 h-5 ${isLight ? "text-purple-600" : "text-purple-400"}`} />
+              অনুমোদিত সিনিয়র ইনস্ট্রাক্টর ও ফ্যাকাল্টি প্যানেল
+            </h3>
+            <p className={`text-xs mt-0.5 ${isLight ? "text-slate-500 font-medium" : "text-slate-400"}`}>
+              সরাসরি ড্যাশবোর্ড থেকে ফ্যাকাল্টি প্রোফাইল পরিদর্শন ও তাৎক্ষণিক তথ্য আপডেট
+            </p>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <Link
+              href="/admin/instructors"
+              className={`text-xs font-bold px-3.5 py-2 rounded-xl border flex items-center gap-1.5 transition-all ${
+                isLight
+                  ? "bg-purple-50 text-purple-800 border-purple-200 hover:bg-purple-100"
+                  : "bg-purple-500/10 text-purple-300 border-purple-500/30 hover:bg-purple-500/20"
+              }`}
+            >
+              ইনস্ট্রাক্টর ম্যানেজমেন্টে যান <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Instructors Card Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {!stats.recentInstructors || stats.recentInstructors.length === 0 ? (
+            <div className="col-span-full text-center py-8 text-xs text-slate-500">
+              কোনো ইনস্ট্রাক্টর ডাটা পাওয়া যায়নি।
+            </div>
+          ) : (
+            stats.recentInstructors.map((inst) => (
+              <div
+                key={inst._id}
+                className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
+                  isLight
+                    ? "bg-slate-50/80 border-slate-200 hover:border-purple-300 hover:bg-white shadow-xs"
+                    : "bg-slate-800/60 border-slate-700 hover:border-purple-500/50 hover:bg-slate-800"
+                }`}
+              >
+                {/* Header */}
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`w-10 h-10 rounded-xl font-black text-sm flex items-center justify-center shrink-0 border ${
+                          inst.gender === "female"
+                            ? isLight
+                              ? "bg-rose-100 text-rose-800 border-rose-200"
+                              : "bg-rose-500/20 text-rose-300 border-rose-500/30"
+                            : isLight
+                            ? "bg-purple-100 text-purple-800 border-purple-200"
+                            : "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                        }`}
+                      >
+                        {inst.fullName ? inst.fullName[0].toUpperCase() : "I"}
+                      </div>
+                      <div>
+                        <h4 className={`text-xs font-bold leading-tight ${isLight ? "text-slate-900" : "text-white"}`}>
+                          {inst.fullName}
+                        </h4>
+                        <p className={`text-[10px] mt-0.5 ${isLight ? "text-purple-700 font-semibold" : "text-purple-300"}`}>
+                          {inst.designation || "Senior Lead Trainer"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+                        inst.track === "TOT-MEN"
+                          ? isLight
+                            ? "bg-blue-100 text-blue-800 border-blue-200"
+                            : "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                          : isLight
+                          ? "bg-pink-100 text-pink-800 border-pink-200"
+                          : "bg-pink-500/20 text-pink-300 border-pink-500/30"
+                      }`}
+                    >
+                      {inst.track === "TOT-MEN" ? "TOT Men" : "TOT Women"}
+                    </span>
+                  </div>
+
+                  {/* Specialization snippet */}
+                  <p className={`text-[11px] leading-relaxed line-clamp-2 ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                    {inst.specialization || "আন্তর্জাতিক কুরআন টিচিং পেডাগজি ও আধুনিক তাজবীদ মেথডোলজি"}
+                  </p>
+
+                  {/* Badges / Rating */}
+                  <div className="flex items-center gap-2 mt-2.5 pt-2 border-t border-dashed border-slate-200 dark:border-slate-700/60 text-[10px]">
+                    <span className="flex items-center gap-1 font-bold text-amber-500">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      {inst.rating || 4.9}
+                    </span>
+                    <span className={`text-[10px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>•</span>
+                    <span className={`font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                      {inst.experienceYears || 5}+ বছর অভিজ্ঞতা
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card Actions: View Profile & Quick Update */}
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={() => setSelectedInstructorForProfile(inst)}
+                    className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold border flex items-center justify-center gap-1 transition-colors cursor-pointer ${
+                      isLight
+                        ? "bg-white hover:bg-slate-100 border-slate-300 text-slate-700 shadow-2xs"
+                        : "bg-slate-700/60 hover:bg-slate-700 border-slate-600 text-slate-200"
+                    }`}
+                  >
+                    <Eye className="w-3 h-3 text-indigo-500" /> প্রোফাইল
+                  </button>
+                  <button
+                    onClick={() => setEditingInstructor({ ...inst })}
+                    className="flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center gap-1 shadow-sm transition-colors cursor-pointer"
+                  >
+                    <Edit className="w-3 h-3" /> আপডেট
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* ----------------- MODAL 1: VIEW INSTRUCTOR PROFILE ----------------- */}
+      {selectedInstructorForProfile && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div
+            className={`w-full max-w-lg rounded-3xl p-6 border shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 ${
+              isLight ? "bg-white border-slate-200 text-slate-900" : "bg-slate-900 border-slate-800 text-white"
+            }`}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-14 h-14 rounded-2xl font-black text-xl flex items-center justify-center border shadow-inner ${
+                    selectedInstructorForProfile.gender === "female"
+                      ? "bg-rose-500/20 text-rose-400 border-rose-500/30"
+                      : "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                  }`}
+                >
+                  {selectedInstructorForProfile.fullName ? selectedInstructorForProfile.fullName[0].toUpperCase() : "I"}
+                </div>
+                <div>
+                  <h3 className="text-base font-black flex items-center gap-1.5">
+                    {selectedInstructorForProfile.fullName}
+                    <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  </h3>
+                  <p className={`text-xs ${isLight ? "text-purple-700 font-bold" : "text-purple-300"}`}>
+                    {selectedInstructorForProfile.designation || "Senior Lead Trainer"}
+                  </p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        selectedInstructorForProfile.track === "TOT-MEN"
+                          ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
+                          : "bg-pink-500/10 text-pink-400 border-pink-500/30"
+                      }`}
+                    >
+                      {selectedInstructorForProfile.track === "TOT-MEN" ? "TOT Men Track" : "TOT Women Track"}
+                    </span>
+                    <span className="text-xs text-amber-500 font-bold flex items-center gap-0.5">
+                      <Star className="w-3 h-3 fill-amber-400" /> {selectedInstructorForProfile.rating || 4.95}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedInstructorForProfile(null)}
+                className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                  isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-700" : "bg-slate-800 hover:bg-slate-700 text-slate-300"
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Specialization & Bio */}
+            <div className={`p-4 rounded-2xl border space-y-3 ${isLight ? "bg-slate-50 border-slate-200" : "bg-slate-800/50 border-slate-700/60"}`}>
+              <div>
+                <div className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  বিশেষজ্ঞ ক্ষেত্র (Specialization)
+                </div>
+                <div className={`text-xs font-semibold ${isLight ? "text-slate-800" : "text-slate-200"}`}>
+                  {selectedInstructorForProfile.specialization || "আন্তর্জাতিক কুরআন টিচিং পেডাগজি ও তাজবীদ"}
+                </div>
+              </div>
+
+              <div>
+                <div className={`text-[11px] font-bold uppercase tracking-wider mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  প্রশিক্ষকের বিবরণ (Bio)
+                </div>
+                <p className={`text-xs leading-relaxed ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                  {selectedInstructorForProfile.bio || "ফজর একাডেমি ট্রেনিং অব ট্রেইনার্স (TOT) কোর্সের সিনিয়র প্রশিক্ষক।"}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700 text-xs">
+                <div>
+                  <span className={isLight ? "text-slate-500 font-medium" : "text-slate-400"}>শিক্ষকতা অভিজ্ঞতা:</span>{" "}
+                  <strong className={isLight ? "text-slate-900" : "text-white"}>{selectedInstructorForProfile.experienceYears || 5}+ বছর</strong>
+                </div>
+                <div>
+                  <span className={isLight ? "text-slate-500 font-medium" : "text-slate-400"}>রেটিং:</span>{" "}
+                  <strong className="text-amber-500 font-bold">{selectedInstructorForProfile.rating || 4.95} / 5.0</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Details */}
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center gap-2">
+                <Phone className={`w-3.5 h-3.5 ${isLight ? "text-slate-500" : "text-slate-400"}`} />
+                <span className={isLight ? "text-slate-600" : "text-slate-400"}>ফোন:</span>
+                <span className="font-mono font-bold">{selectedInstructorForProfile.phone || "তথ্য নেই"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className={`w-3.5 h-3.5 ${isLight ? "text-slate-500" : "text-slate-400"}`} />
+                <span className={isLight ? "text-slate-600" : "text-slate-400"}>ইমেইল:</span>
+                <span className="font-mono font-semibold">{selectedInstructorForProfile.email}</span>
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="flex items-center gap-2 pt-2">
+              {selectedInstructorForProfile.phone && (
+                <a
+                  href={`https://wa.me/88${selectedInstructorForProfile.phone.replace(/[^0-9]/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" /> WhatsApp যোগাযোগ
+                </a>
+              )}
+              <button
+                onClick={() => {
+                  setEditingInstructor({ ...selectedInstructorForProfile });
+                  setSelectedInstructorForProfile(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Edit className="w-3.5 h-3.5" /> প্রোফাইল আপডেট
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ----------------- MODAL 2: QUICK EDIT INSTRUCTOR (DIRECT DASHBOARD UPDATE) ----------------- */}
+      {editingInstructor && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div
+            className={`w-full max-w-lg rounded-3xl p-6 border shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 ${
+              isLight ? "bg-white border-slate-200 text-slate-900" : "bg-slate-900 border-slate-800 text-white"
+            }`}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
+                  <Edit className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold">ইনস্ট্রাক্টর তথ্য আপডেট</h3>
+                  <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                    ড্যাশবোর্ড থেকে সরাসরি ডাটাবেস পরিবর্তন
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingInstructor(null)}
+                className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                  isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-700" : "bg-slate-800 hover:bg-slate-700 text-slate-300"
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateInstructor} className="space-y-4">
+              <div className="space-y-1">
+                <label className={`text-xs font-bold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                  পুরো নাম (Full Name) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingInstructor.fullName || ""}
+                  onChange={(e) => setEditingInstructor({ ...editingInstructor, fullName: e.target.value })}
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-hidden font-medium ${
+                    isLight ? "bg-slate-50 border-slate-300 text-slate-900 focus:border-purple-600" : "bg-slate-800 border-slate-700 text-white focus:border-purple-500"
+                  }`}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className={`text-xs font-bold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                    পদবি (Designation)
+                  </label>
+                  <input
+                    type="text"
+                    value={editingInstructor.designation || ""}
+                    onChange={(e) => setEditingInstructor({ ...editingInstructor, designation: e.target.value })}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-hidden font-medium ${
+                      isLight ? "bg-slate-50 border-slate-300 text-slate-900 focus:border-purple-600" : "bg-slate-800 border-slate-700 text-white focus:border-purple-500"
+                    }`}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className={`text-xs font-bold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                    ফোন নম্বর (WhatsApp)
+                  </label>
+                  <input
+                    type="tel"
+                    value={editingInstructor.phone || ""}
+                    onChange={(e) => setEditingInstructor({ ...editingInstructor, phone: e.target.value })}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-hidden font-mono ${
+                      isLight ? "bg-slate-50 border-slate-300 text-slate-900 focus:border-purple-600" : "bg-slate-800 border-slate-700 text-white focus:border-purple-500"
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className={`text-xs font-bold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                    কোর্স ট্র্যাক
+                  </label>
+                  <select
+                    value={editingInstructor.track || "TOT-MEN"}
+                    onChange={(e) => setEditingInstructor({ ...editingInstructor, track: e.target.value })}
+                    className={`w-full px-3 py-2.5 rounded-xl border text-xs outline-hidden font-medium ${
+                      isLight ? "bg-slate-50 border-slate-300 text-slate-900 focus:border-purple-600" : "bg-slate-800 border-slate-700 text-white focus:border-purple-500"
+                    }`}
+                  >
+                    <option value="TOT-MEN">TOT Men (পুরুষ)</option>
+                    <option value="TOT-WOMEN-014">TOT Women (মহিলা)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className={`text-xs font-bold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                    অভিজ্ঞতা (বছর)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="40"
+                    value={editingInstructor.experienceYears || 5}
+                    onChange={(e) => setEditingInstructor({ ...editingInstructor, experienceYears: Number(e.target.value) })}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-hidden font-mono ${
+                      isLight ? "bg-slate-50 border-slate-300 text-slate-900 focus:border-purple-600" : "bg-slate-800 border-slate-700 text-white focus:border-purple-500"
+                    }`}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className={`text-xs font-bold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                    রেটিং (১-৫)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    max="5"
+                    value={editingInstructor.rating || 4.95}
+                    onChange={(e) => setEditingInstructor({ ...editingInstructor, rating: parseFloat(e.target.value) })}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-hidden font-mono ${
+                      isLight ? "bg-slate-50 border-slate-300 text-slate-900 focus:border-purple-600" : "bg-slate-800 border-slate-700 text-white focus:border-purple-500"
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className={`text-xs font-bold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                  বিশেষজ্ঞ ক্ষেত্র (Specialization)
+                </label>
+                <input
+                  type="text"
+                  value={editingInstructor.specialization || ""}
+                  onChange={(e) => setEditingInstructor({ ...editingInstructor, specialization: e.target.value })}
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-hidden font-medium ${
+                    isLight ? "bg-slate-50 border-slate-300 text-slate-900 focus:border-purple-600" : "bg-slate-800 border-slate-700 text-white focus:border-purple-500"
+                  }`}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className={`text-xs font-bold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                  প্রশিক্ষক পরিচিতি (Bio)
+                </label>
+                <textarea
+                  rows={3}
+                  value={editingInstructor.bio || ""}
+                  onChange={(e) => setEditingInstructor({ ...editingInstructor, bio: e.target.value })}
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs outline-hidden font-medium resize-none ${
+                    isLight ? "bg-slate-50 border-slate-300 text-slate-900 focus:border-purple-600" : "bg-slate-800 border-slate-700 text-white focus:border-purple-500"
+                  }`}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingInstructor(null)}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                    isLight ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700" : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300"
+                  }`}
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingInstructor}
+                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-purple-500/20 transition-all cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  {savingInstructor ? "সংরক্ষণ হচ্ছে..." : "আপডেট সংরক্ষণ করুন"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

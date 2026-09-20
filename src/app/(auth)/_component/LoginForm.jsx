@@ -25,8 +25,9 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [unpaidInfo, setUnpaidInfo] = useState(null);
-  const [defaultPwdNotice, setDefaultPwdNotice] = useState(false);
+  const redirectParam = searchParams.get("redirect");
+  const reasonParam = searchParams.get("reason");
+  const isAdminRedirect = redirectParam?.startsWith("/admin") || reasonParam === "auth_required";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,7 +48,9 @@ export default function LoginForm() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        router.push(data.redirectUrl || "/dashboard");
+        // Redirect to requested protected page if user has permissions, or default role url
+        const targetUrl = redirectParam || data.redirectUrl || "/dashboard";
+        router.push(targetUrl);
         router.refresh();
       } else {
         if (data.isUnpaid) {
@@ -69,8 +72,15 @@ export default function LoginForm() {
 
   const handleUseDefaultPassword = () => {
     setPassword("Fajr@Teacher2026");
-    setDefaultPwdNotice(true);
-    setTimeout(() => setDefaultPwdNotice(false), 4000);
+    setDefaultPwdNotice("টিচার পাসওয়ার্ড Fajr@Teacher2026 বসানো হয়েছে");
+    setTimeout(() => setDefaultPwdNotice(null), 4000);
+  };
+
+  const handleFillAdminCredentials = () => {
+    setIdentifier("admin@fajracademy.io");
+    setPassword("Fajr@Admin2026");
+    setDefaultPwdNotice("অ্যাডমিন ক্রেডেনশিয়াল বসানো হয়েছে (admin@fajracademy.io)!");
+    setTimeout(() => setDefaultPwdNotice(null), 4000);
   };
 
   return (
@@ -104,11 +114,29 @@ export default function LoginForm() {
           </div>
         )}
 
-        {/* Default Password Copied Alert */}
+        {/* Admin Security Banner */}
+        {isAdminRedirect && (
+          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5 mb-4 animate-fadeIn">
+            <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex-1 font-medium">
+              <strong className="text-amber-200 block mb-0.5">অ্যাডমিন এক্সেস সংরক্ষিত</strong>
+              অ্যাডমিন ড্যাশবোর্ডে প্রবেশ করতে অনুগ্রহ করে অনুমোদিত অ্যাডমিন একাউন্টে লগইন করুন।
+              <button
+                type="button"
+                onClick={handleFillAdminCredentials}
+                className="mt-1.5 text-[11px] font-bold text-amber-400 hover:text-amber-300 underline block cursor-pointer"
+              >
+                অ্যাডমিন লগইন অটো-ফিল করুন (admin@fajracademy.io)
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Notice Alert */}
         {defaultPwdNotice && (
           <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2 mb-4 animate-fadeIn">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>ডিফল্ট পাসওয়ার্ড <strong className="text-white font-mono">Fajr@Teacher2026</strong> বসানো হয়েছে!</span>
+            <span>{defaultPwdNotice}</span>
           </div>
         )}
 
