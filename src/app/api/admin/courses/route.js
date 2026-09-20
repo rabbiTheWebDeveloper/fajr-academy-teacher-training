@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
-import { CourseModel } from "@/model/course-model";
+import {
+  CourseModel,
+  DEFAULT_TOT_CURRICULUM,
+  DEFAULT_TOT_RESOURCES,
+} from "@/model/course-model";
 
-// GET all courses for Admin
+// GET all courses for Admin with populated Curriculum and Resources
 export async function GET() {
   try {
     await dbConnect();
     let courses = await CourseModel.find().sort({ createdAt: 1 }).lean();
 
+    // Auto-seed default courses if empty
     if (!courses || courses.length === 0) {
-      // Trigger default seeding if empty
       const defaultCourses = [
         {
           courseId: "TOT-MEN",
@@ -30,6 +34,8 @@ export async function GET() {
           maxSeats: 60,
           status: "Active & Enrolling",
           isPublished: true,
+          curriculum: DEFAULT_TOT_CURRICULUM,
+          resources: DEFAULT_TOT_RESOURCES,
         },
         {
           courseId: "TOT-WOMEN-014",
@@ -50,10 +56,32 @@ export async function GET() {
           maxSeats: 60,
           status: "Active & Enrolling",
           isPublished: true,
+          curriculum: DEFAULT_TOT_CURRICULUM,
+          resources: DEFAULT_TOT_RESOURCES,
         },
       ];
       await CourseModel.insertMany(defaultCourses);
       courses = await CourseModel.find().sort({ createdAt: 1 }).lean();
+    } else {
+      // Ensure existing courses have curriculum and resources if previously empty
+      let needsUpdate = false;
+      for (const c of courses) {
+        if (!c.curriculum || c.curriculum.length === 0 || !c.resources || c.resources.length === 0) {
+          await CourseModel.updateOne(
+            { _id: c._id },
+            {
+              $set: {
+                curriculum: (!c.curriculum || c.curriculum.length === 0) ? DEFAULT_TOT_CURRICULUM : c.curriculum,
+                resources: (!c.resources || c.resources.length === 0) ? DEFAULT_TOT_RESOURCES : c.resources,
+              },
+            }
+          );
+          needsUpdate = true;
+        }
+      }
+      if (needsUpdate) {
+        courses = await CourseModel.find().sort({ createdAt: 1 }).lean();
+      }
     }
 
     return NextResponse.json({ success: true, courses });
@@ -63,7 +91,7 @@ export async function GET() {
   }
 }
 
-// POST new course
+// POST new course with curriculum and resources
 export async function POST(request) {
   try {
     await dbConnect();
@@ -87,6 +115,8 @@ export async function POST(request) {
       maxSeats = 60,
       status = "Active & Enrolling",
       perks = [],
+      curriculum,
+      resources,
     } = body;
 
     if (!name) {
@@ -128,11 +158,13 @@ export async function POST(request) {
       status,
       perks: Array.isArray(perks) ? perks : [],
       isPublished: true,
+      curriculum: (curriculum && curriculum.length > 0) ? curriculum : DEFAULT_TOT_CURRICULUM,
+      resources: (resources && resources.length > 0) ? resources : DEFAULT_TOT_RESOURCES,
     });
 
     return NextResponse.json({
       success: true,
-      message: "নতুন কোর্স সফলভাবে যুক্ত হয়েছে!",
+      message: "নতুন কোর্স ও কারিকুলাম সফলভাবে যুক্ত হয়েছে!",
       course,
     });
   } catch (error) {
@@ -141,7 +173,7 @@ export async function POST(request) {
   }
 }
 
-// PUT update course
+// PUT update course (including Curriculum & Resources)
 export async function PUT(request) {
   try {
     await dbConnect();
@@ -158,10 +190,16 @@ export async function PUT(request) {
       );
     }
 
+    // If numerical fields present, cast safely
+    if (updateFields.fee !== undefined) updateFields.fee = Number(updateFields.fee) || 1000;
+    if (updateFields.regularFee !== undefined) updateFields.regularFee = Number(updateFields.regularFee) || 2500;
+    if (updateFields.maxSeats !== undefined) updateFields.maxSeats = Number(updateFields.maxSeats) || 60;
+    if (updateFields.enrolledCount !== undefined) updateFields.enrolledCount = Number(updateFields.enrolledCount) || 0;
+
     const updatedCourse = await CourseModel.findOneAndUpdate(
       query,
       { $set: updateFields },
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!updatedCourse) {
@@ -173,7 +211,7 @@ export async function PUT(request) {
 
     return NextResponse.json({
       success: true,
-      message: "কোর্স তথ্য সফলভাবে আপডেট করা হয়েছে!",
+      message: "কোর্স, কারিকুলাম ও রিসোর্স সফলভাবে আপডেট করা হয়েছে!",
       course: updatedCourse,
     });
   } catch (error) {

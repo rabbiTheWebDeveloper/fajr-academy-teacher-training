@@ -1,5 +1,114 @@
 import mongoose, { Schema } from "mongoose";
 
+// Sub-schema for individual lessons in a curriculum module
+const lessonSchema = new Schema(
+  {
+    lessonNo: {
+      type: Number,
+      default: 1,
+    },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    duration: {
+      type: String,
+      default: "৪৫ মিনিট",
+    },
+    videoUrl: {
+      type: String,
+      default: "",
+    },
+    isFreePreview: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { _id: true }
+);
+
+// Sub-schema for curriculum modules / weekly sessions
+const moduleSchema = new Schema(
+  {
+    moduleNo: {
+      type: Number,
+      required: true,
+      default: 1,
+    },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    subtitle: {
+      type: String,
+      default: "",
+    },
+    description: {
+      type: String,
+      default: "",
+    },
+    duration: {
+      type: String,
+      default: "১ সপ্তাহ",
+    },
+    liveDate: {
+      type: String,
+      default: "",
+    },
+    topics: {
+      type: [String],
+      default: [],
+    },
+    lessons: {
+      type: [lessonSchema],
+      default: [],
+    },
+  },
+  { _id: true }
+);
+
+// Sub-schema for learning resources / downloadable study materials
+const resourceSchema = new Schema(
+  {
+    resourceId: {
+      type: String,
+      default: () => `RES-${Date.now().toString().slice(-4)}`,
+    },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    category: {
+      type: String,
+      default: "কুরআন শিক্ষা ও তাজবীদ", // "টিচিং পেডাগজি", "লেসন প্ল্যান", "ডিজিটাল স্কিলস", "লার্নার সাইকোলজি", "সার্টিফিকেশন"
+    },
+    format: {
+      type: String,
+      default: "PDF", // "PDF", "DOCX", "SLIDES", "VIDEO", "DRIVE", "ZIP"
+    },
+    size: {
+      type: String,
+      default: "2.5 MB",
+    },
+    desc: {
+      type: String,
+      default: "",
+    },
+    fileUrl: {
+      type: String,
+      default: "https://drive.google.com/drive/folders/tot-fajr-resources",
+    },
+    isDownloadable: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  { _id: true }
+);
+
 const courseSchema = new Schema(
   {
     courseId: {
@@ -93,11 +202,26 @@ const courseSchema = new Schema(
       type: String,
       default: "",
     },
+
+    // Rich Curriculum Modules & Topics
+    curriculum: {
+      type: [moduleSchema],
+      default: [],
+    },
+
+    // Downloadable Learning Resources & Books
+    resources: {
+      type: [resourceSchema],
+      default: [],
+    },
   },
   {
     timestamps: true,
   }
 );
 
+export { DEFAULT_TOT_CURRICULUM, DEFAULT_TOT_RESOURCES } from "@/constant/course-defaults";
+
 export const CourseModel =
   mongoose.models.Course || mongoose.model("Course", courseSchema);
+

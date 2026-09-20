@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
-import { CourseModel } from "@/model/course-model";
+import {
+  CourseModel,
+  DEFAULT_TOT_CURRICULUM,
+  DEFAULT_TOT_RESOURCES,
+} from "@/model/course-model";
 
 const DEFAULT_COURSES = [
   {
@@ -23,6 +27,8 @@ const DEFAULT_COURSES = [
     status: "Active & Enrolling",
     isPublished: true,
     videoUrl: "https://youtube.com/shorts/UxzqLHfjrGc",
+    curriculum: DEFAULT_TOT_CURRICULUM,
+    resources: DEFAULT_TOT_RESOURCES,
     perks: [
       "মাসিক সম্মানী: ১৫,০০০ থেকে ২২,০০০ টাকা অফার",
       "১ মাসে ৪টি প্রফেশনাল ট্রেনিং ও পেডাগোজি",
@@ -51,6 +57,8 @@ const DEFAULT_COURSES = [
     status: "Active & Enrolling",
     isPublished: true,
     videoUrl: "https://youtube.com/shorts/zPXTzup-2ok",
+    curriculum: DEFAULT_TOT_CURRICULUM,
+    resources: DEFAULT_TOT_RESOURCES,
     perks: [
       "মাসিক সম্মানী: ১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত জব অপরচুনিটি",
       "১ মাসে ৪টি প্রফেশনাল ট্রেনিং ও ক্লাস ম্যানেজমেন্ট",
