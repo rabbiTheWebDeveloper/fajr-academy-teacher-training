@@ -264,7 +264,10 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
         {submitted ? (
           /* Success State */
           <div className={styles.successBox}>
-            <div className={styles.successIcon}>🎉</div>
+            <div className="w-16 h-16 rounded-2xl overflow-hidden border border-fajr-gold/50 shadow-lg mx-auto mb-3 bg-[#0B1A45]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/fajr-logo.png" alt="Fajr Academy" className="w-full h-full object-cover" />
+            </div>
             <h3 className={styles.successTitle}>রেজিস্ট্রেশন সফলভাবে গ্রহণ করা হয়েছে!</h3>
             <p className={styles.successSubtitle}>
               আপনার নির্বাচিত কোর্স:{' '}
@@ -292,7 +295,10 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
             {/* Form Header */}
             <div className={styles.regFormHeader}>
               <div className={styles.regFormTitleRow}>
-                <div className={styles.regStepBadgeCircle}><User size={20} /></div>
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden border border-fajr-gold/50 shadow-md shadow-fajr-gold/15 shrink-0 bg-[#0B1A45]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/fajr-logo.png" alt="Fajr Academy" className="w-full h-full object-cover" />
+                </div>
                 <div className={styles.regFormTitleBlock}>
                   <h3 className={styles.regFormTitleMain}>
                     {selectedTrack === 'men' ? '👨‍🏫 পুরুষ ব্যাচ' : '🧕 নারী ব্যাচ (Batch 014)'} — নিবন্ধন তথ্য

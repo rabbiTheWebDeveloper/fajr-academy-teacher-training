@@ -13,6 +13,16 @@ const SITE_URL = `https://${BASE_URL}`;
 export const metadata = {
   metadataBase: new URL(SITE_URL),
 
+  icons: {
+    icon: [
+      { url: '/fajr-logo.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/fajr-logo.png', sizes: '192x192', type: 'image/png' },
+    ],
+    shortcut: '/fajr-logo.png',
+  },
+
   title: {
     default: "ফজর একাডেমি | Fajr Academy — Quran Teacher Training",
     template: "%s | ফজর একাডেমি",

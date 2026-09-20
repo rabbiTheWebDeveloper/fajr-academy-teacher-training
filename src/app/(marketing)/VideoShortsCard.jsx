@@ -24,7 +24,7 @@ export default function VideoShortsCard({
       </div>
 
       {/* 9:16 Shorts Card */}
-      <div className="relative w-full max-w-[320px] aspect-[9/16] rounded-3xl overflow-hidden shadow-2xl group cursor-pointer card-3d border border-gray-700/50 bg-black">
+      <div className="relative w-full max-w-[280px] sm:max-w-[320px] aspect-[9/16] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl group cursor-pointer card-3d border border-gray-700/50 bg-black">
         {isPlaying ? (
           <iframe
             src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&controls=1&playsinline=1`}

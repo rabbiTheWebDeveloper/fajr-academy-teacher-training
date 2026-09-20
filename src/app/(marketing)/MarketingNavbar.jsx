@@ -20,19 +20,28 @@ export default function MarketingNavbar() {
       id="navbar"
       className={`sticky top-0 w-full z-50 transition-all duration-300 ${
         scrolled
-          ? 'py-3 shadow-xl bg-[#0B1120]/95 backdrop-blur-md border-b border-white/10'
-          : 'py-4 glass-dark border-b border-white/5'
-      } px-6 md:px-12 flex justify-between items-center`}
+          ? 'py-2.5 sm:py-3 shadow-xl bg-[#0B1120]/95 backdrop-blur-md border-b border-white/10'
+          : 'py-3 sm:py-4 glass-dark border-b border-white/5'
+      } px-3 sm:px-6 md:px-12 flex justify-between items-center`}
     >
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-3 sm:gap-6 lg:gap-8">
         {/* Brand */}
-        <a href="#home" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-lg bg-fajr-blue border border-fajr-gold/50 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-            <BookOpen className="w-5 h-5 text-fajr-gold" />
+        <a href="#home" className="flex items-center gap-2 sm:gap-3 group">
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl overflow-hidden border border-fajr-gold/50 shadow-md shadow-fajr-gold/15 group-hover:border-fajr-gold group-hover:scale-105 transition-all shrink-0 bg-[#0B1A45]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/fajr-logo.png"
+              alt="FAJR Academy Logo"
+              className="w-full h-full object-cover"
+            />
           </div>
-          <div>
-            <div className="text-xl font-bold tracking-wider text-white leading-tight">FAJR</div>
-            <div className="text-[10px] text-fajr-gold tracking-widest uppercase font-semibold">Academy</div>
+          <div className="flex flex-col justify-center">
+            <div className="text-lg sm:text-xl font-extrabold tracking-wider text-white leading-none font-serif">
+              FAJR <span className="text-gradient-gold">ACADEMY</span>
+            </div>
+            <div className="text-[8px] sm:text-[9px] text-fajr-gold tracking-widest uppercase font-semibold mt-1">
+              Balanced Education
+            </div>
           </div>
         </a>
 
@@ -60,7 +69,7 @@ export default function MarketingNavbar() {
       </div>
 
       {/* Right Action Buttons */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3">
         <a
           href="#register"
           className="hidden md:inline-flex items-center justify-center bg-gradient-to-r from-fajr-gold to-yellow-600 text-fajr-dark font-bold py-2.5 px-6 rounded-full text-sm hover:shadow-lg hover:shadow-fajr-gold/30 hover:scale-105 transition-all duration-300"
@@ -71,26 +80,27 @@ export default function MarketingNavbar() {
           href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 bg-[#25D366] text-white font-bold py-2 px-4 md:px-5 rounded-full text-xs md:text-sm hover:bg-[#20bd5a] hover:shadow-lg hover:shadow-green-500/20 hover:scale-105 transition-all duration-300"
+          className="inline-flex items-center gap-1.5 bg-[#25D366] text-white font-bold py-1.5 px-3 sm:py-2 sm:px-4 md:px-5 rounded-full text-xs sm:text-sm hover:bg-[#20bd5a] hover:shadow-lg hover:shadow-green-500/20 hover:scale-105 transition-all duration-300 shrink-0"
         >
-          <MessageCircle className="w-4 h-4 fill-white" />
-          <span>01641028312</span>
+          <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white" />
+          <span className="hidden xs:inline sm:inline">01641028312</span>
+          <span className="inline xs:hidden sm:hidden">WhatsApp</span>
         </a>
 
         {/* Mobile Hamburger Toggle */}
         <button
           type="button"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 rounded-lg text-gray-300 hover:text-fajr-gold hover:bg-white/5 transition-colors focus:outline-none"
+          className="lg:hidden p-1.5 sm:p-2 rounded-lg text-gray-300 hover:text-fajr-gold hover:bg-white/5 transition-colors focus:outline-none shrink-0"
           aria-label="Toggle navigation menu"
         >
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {mobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
         </button>
       </div>
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden absolute top-full left-0 w-full bg-[#0B1120]/95 backdrop-blur-xl border-b border-white/10 py-6 px-8 flex flex-col gap-4 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden absolute top-full left-0 w-full bg-[#0B1120]/95 backdrop-blur-xl border-b border-white/10 py-5 px-5 sm:px-8 flex flex-col gap-3.5 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
           <a
             href="#home"
             onClick={() => setMobileMenuOpen(false)}
