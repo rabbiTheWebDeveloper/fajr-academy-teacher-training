@@ -22,11 +22,17 @@ import {
   Sparkles,
   Loader2,
 } from 'lucide-react'
+import { toBengaliNumber } from '@/lib/utils'
 
-export default function RegistrationForm({ initialTrack = 'men', courses: initialCourses = [] }) {
+export default function RegistrationForm({
+  initialTrack = 'men',
+  courses: initialCourses = [],
+  settings: initialSettings = {},
+}) {
   const router = useRouter()
   const [selectedTrack, setSelectedTrack] = useState(initialTrack)
   const [coursesList, setCoursesList]     = useState(initialCourses)
+  const [settings, setSettings]           = useState(initialSettings)
 
   useEffect(() => {
     if (!initialCourses || initialCourses.length === 0) {
@@ -35,20 +41,29 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
         .then((d) => { if (d.success && d.courses?.length > 0) setCoursesList(d.courses) })
         .catch(() => {})
     }
-  }, [initialCourses])
+    if (!initialSettings || Object.keys(initialSettings).length === 0) {
+      fetch('/api/settings')
+        .then((r) => r.json())
+        .then((d) => { if (d.success && d.settings) setSettings(d.settings) })
+        .catch(() => {})
+    }
+  }, [initialCourses, initialSettings])
+
+  const defaultPrice = settings?.coursePrice || 1000
 
   const menCourse = coursesList.find((c) => c.track === 'men' || c.courseId === 'TOT-MEN') || {
     name: 'Training of Trainers (TOT) – MEN',
-    orientationDate: '২০ সেপ্টেম্বর ২০২৬',
-    orientationTime: 'রাত ৮:০০ টা',
-    fee: 1000,
+    orientationDate: settings?.orientationDate || '২০ সেপ্টেম্বর ২০২৬',
+    orientationTime: settings?.orientationTime || 'রাত ৮:০০ টা',
+    fee: defaultPrice,
   }
   const womenCourse = coursesList.find((c) => c.track === 'women' || c.courseId?.includes('WOMEN')) || {
     name: 'Training of Trainers (TOT) – WOMEN (Batch 014)',
     orientationDate: '২১ সেপ্টেম্বর ২০২৬',
     orientationTime: 'রাত ৮:০০ টা',
-    fee: 1000,
+    fee: defaultPrice,
   }
+
 
   const [formData, setFormData] = useState({
     fullName:     '',
@@ -92,7 +107,10 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
   const handleWhatsAppConfirm = () => {
     const trackName = selectedTrack === 'men' ? 'TOT - MEN BATCH' : 'TOT - WOMEN (Batch 014)'
     const msg = `আসসালামু আলাইকুম। আমি ফজর একাডেমি ${trackName} শিক্ষক প্রশিক্ষণের জন্য নিবন্ধন করেছি।\nনাম: ${formData.fullName}\nমোবাইল: ${formData.phone}\nইমেইল: ${formData.email}`
-    window.open(`https://wa.me/8801410764581?text=${encodeURIComponent(msg)}`, '_blank')
+    const helpline = settings?.helplinePhone || '01410764581'
+    const cleanPhone = helpline.replace(/[^0-9]/g, '')
+    const intlPhone = cleanPhone.startsWith('880') ? cleanPhone : `88${cleanPhone.replace(/^0/, '')}`
+    window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
   const handleSubmit = async (e) => {
@@ -120,6 +138,11 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
 
     setLoading(true)
     const trackKey = selectedTrack === 'men' ? 'TOT-MEN' : 'TOT-WOMEN-014'
+    const courseFeeToPay =
+      selectedTrack === 'women'
+        ? Number(womenCourse.fee || defaultPrice)
+        : Number(menCourse.fee || defaultPrice)
+
     try {
       const res = await fetch('/api/payment/sslcommerz/init', {
         method: 'POST',
@@ -135,9 +158,10 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
           quranSkill:   formData.quranSkill,
           englishSkill: formData.englishSkill,
           education:    formData.education.trim(),
-          amount:       (selectedTrack === 'women' ? (womenCourse.fee || 1000) : (menCourse.fee || 1000)),
+          amount:       courseFeeToPay,
         }),
       })
+
       const data = await res.json()
       if (data.success && data.gatewayUrl) {
         window.location.href = data.gatewayUrl
@@ -175,7 +199,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
           <div className={styles.regTrackCardContent}>
             <div className={styles.regTrackTopPills}>
               <span className={styles.regPillMenTag}><User size={13} /> পুরুষদের জন্য বিশেষায়িত</span>
-              <span className={styles.regPillFeeTag}><Tag size={12} /><span>৳ {menCourse.fee || 1000}</span></span>
+              <span className={styles.regPillFeeTag}><Tag size={12} /><span>৳ {toBengaliNumber(menCourse.fee || defaultPrice)}</span></span>
             </div>
             <div className={styles.regTrackTitleBlock}>
               <div className={`${styles.regTrackAvatar} ${styles.avatarMen}`}><User size={22} /></div>
@@ -192,7 +216,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
               </div>
               <div className={styles.regTrackMetaItem}>
                 <CreditCard size={15} className={styles.regMetaIcon} />
-                <span><strong>কোর্স ফি:</strong> ৳{menCourse.fee || 1000} (এককালীন)</span>
+                <span><strong>কোর্স ফি:</strong> ৳{toBengaliNumber(menCourse.fee || defaultPrice)} (এককালীন)</span>
               </div>
               <div className={styles.regTrackMetaItem}>
                 <Users size={15} className={styles.regMetaIcon} />
@@ -206,7 +230,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
           >
             {selectedTrack === 'men' ? (
               <><Check size={16} strokeWidth={3} /><span>কোর্সটি নির্বাচন করা হয়েছে</span></>
-            ) : `কোর্সটি নির্বাচন করুন (৳${menCourse.fee || 1000})`}
+            ) : `কোর্সটি নির্বাচন করুন (৳${toBengaliNumber(menCourse.fee || defaultPrice)})`}
           </button>
         </div>
 
@@ -223,7 +247,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
           <div className={styles.regTrackCardContent}>
             <div className={styles.regTrackTopPills}>
               <span className={styles.regPillWomenTag}><Sparkles size={13} /> নারীদের জন্য · Batch 014</span>
-              <span className={styles.regPillFeeTag}><Tag size={12} /><span>৳ {womenCourse.fee || 1000}</span></span>
+              <span className={styles.regPillFeeTag}><Tag size={12} /><span>৳ {toBengaliNumber(womenCourse.fee || defaultPrice)}</span></span>
             </div>
             <div className={styles.regTrackTitleBlock}>
               <div className={`${styles.regTrackAvatar} ${styles.avatarWomen}`}><Sparkles size={20} /></div>
@@ -240,7 +264,7 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
               </div>
               <div className={styles.regTrackMetaItem}>
                 <CreditCard size={15} className={styles.regMetaIcon} />
-                <span><strong>কোর্স ফি:</strong> ৳{womenCourse.fee || 1000} (এককালীন)</span>
+                <span><strong>কোর্স ফি:</strong> ৳{toBengaliNumber(womenCourse.fee || defaultPrice)} (এককালীন)</span>
               </div>
               <div className={styles.regTrackMetaItem}>
                 <Users size={15} className={styles.regMetaIcon} />
@@ -254,9 +278,10 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
           >
             {selectedTrack === 'women' ? (
               <><Check size={16} strokeWidth={3} /><span>কোর্সটি নির্বাচন করা হয়েছে</span></>
-            ) : `কোর্সটি নির্বাচন করুন (৳${womenCourse.fee || 1000})`}
+            ) : `কোর্সটি নির্বাচন করুন (৳${toBengaliNumber(womenCourse.fee || defaultPrice)})`}
           </button>
         </div>
+
       </div>
 
       {/* ── Registration Form Card ── */}
@@ -322,6 +347,18 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 </div>
               </div>
             </div>
+
+            {/* Admission Status / Waitlist Alert */}
+            {(settings?.registrationOpen === false || settings?.admissionStatus === 'closed' || settings?.admissionStatus === 'waitlist') && (
+              <div style={{ margin: '0 0 1.25rem 0', padding: '0.85rem 1rem', background: '#FEF3C7', color: '#92400E', borderRadius: '12px', border: '1px solid #FDE68A', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem', fontWeight: 600 }}>
+                <Sparkles size={18} className="shrink-0 text-amber-600" />
+                <span>
+                  {settings?.admissionStatus === 'closed' || settings?.registrationOpen === false
+                    ? 'বর্তমানে সরাসরি ব্যাচ ভর্তি কোটা পূর্ণ। আপনি ফরম পূরণ করে রাখলে পরবর্তী অগ্রাধিকার ব্যাচে সুযোগ পাবেন।'
+                    : 'বর্তমানে এই ব্যাচে অপেক্ষমাণ তালিকা (Waitlist) চলছে। আসন ফাঁকা সাপেক্ষে যোগাযোগ করা হবে।'}
+                </span>
+              </div>
+            )}
 
             {/* Error Alert */}
             {errorMsg && (
@@ -499,14 +536,14 @@ export default function RegistrationForm({ initialTrack = 'men', courses: initia
                 <div className={styles.regSecurityText}>
                   <span className={styles.regSecurityTitle}>নিরাপদ ও সহজ পেমেন্ট গেটওয়ে</span>
                   <span className={styles.regSecuritySub}>
-                    SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, কার্ড ও ব্যাংকে ১,০০০৳ পরিশোধ করুন।
+                    SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, কার্ড ও ব্যাংকে {toBengaliNumber(currentCourse.fee || defaultPrice)}৳ পরিশোধ করুন।
                   </span>
                 </div>
               </div>
               <div className={styles.regFeeActionWrap}>
                 <div className={styles.regFeePillDark}>
                   <span className={styles.regFeePillLabel}>রেজিস্ট্রেশন ফি</span>
-                  <span className={styles.regFeePillAmount}>৳১,০০০</span>
+                  <span className={styles.regFeePillAmount}>৳{toBengaliNumber(currentCourse.fee || defaultPrice)}</span>
                 </div>
                 <button
                   type="submit"

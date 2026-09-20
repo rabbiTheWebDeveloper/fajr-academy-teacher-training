@@ -13,6 +13,7 @@ import {
   Sparkles,
   CreditCard,
   CheckCircle2,
+  ShieldCheck,
 } from "lucide-react";
 
 export default function LoginForm() {
@@ -25,9 +26,12 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [defaultPwdNotice, setDefaultPwdNotice] = useState(null);
+  const [unpaidInfo, setUnpaidInfo] = useState(null);
   const redirectParam = searchParams.get("redirect");
   const reasonParam = searchParams.get("reason");
   const isAdminRedirect = redirectParam?.startsWith("/admin") || reasonParam === "auth_required";
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();

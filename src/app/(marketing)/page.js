@@ -6,7 +6,11 @@ import FloatingWhatsApp from './FloatingWhatsApp'
 import VideoShortsCard from './VideoShortsCard'
 import { BASE_URL } from '@/constant'
 import { dbConnect } from '@/service/mongo'
-import { CourseModel } from '@/model/course-model'
+import { CourseModel, DEFAULT_TOT_CURRICULUM } from '@/model/course-model'
+import { SettingModel } from '@/model/setting-model'
+import { UserModel } from '@/model/user-model'
+import { DEFAULT_INSTRUCTORS } from '@/constant/instructor-defaults'
+import { toBengaliNumber } from '@/lib/utils'
 import {
   BookOpen,
   UserCheck,
@@ -27,6 +31,9 @@ import {
   Lock,
   Play,
   Plus,
+  GraduationCap,
+  Clock,
+  Layers,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -40,7 +47,7 @@ const PAGE_URL = `${SITE_URL}/`
 export const metadata = {
   title: 'অনলাইন কুরআন টিচার ট্রেনিং ও জব অপরচুনিটি (TOT) — পুরুষ ও নারী ব্যাচ ২০২৬ | ফজর একাডেমি',
   description:
-    'ফজর একাডেমির পক্ষ থেকে ১০,০০০+ শিক্ষার্থীর সফলতার ধারাবাহিকতায় এবার ৩,০০০+ শিক্ষক তৈরি করার লক্ষ্যে প্রফেশনাল কুরআন টিচার ট্রেনিং প্রোগ্রাম। পুরুষ ও নারী ব্যাচ (ওরিয়েন্টেশন ২০ ও ২১ সেপ্টেম্বর)। ৪টি প্রফেশনাল সেশন, সার্টিফিকেট ও মাসিক ১৫,০০০–২২,০০০ টাকা সম্মানী!',
+    'ফজর একাডেমির পক্ষ থেকে ১০,০০০+ শিক্ষার্থীর সফলতার ধারাবাহিকতায় এবার ৩,০০০+ শিক্ষক তৈরি করার লক্ষ্যে প্রফেশনাল কুরআন টিচার ট্রেনিং প্রোগ্রাম। পুরুষ ও নারী ব্যাচ। ৪টি প্রফেশনাল সেশন, সার্টিফিকেট ও মাসিক ১৫,০০০–২২,০০০ টাকা সম্মানী!',
   alternates: { canonical: PAGE_URL },
   openGraph: {
     title: 'অনলাইন কুরআন টিচার ট্রেনিং ২০২৬ (TOT - Men & Women) — ফজর একাডেমি',
@@ -52,93 +59,188 @@ export const metadata = {
 }
 
 /* ------------------------------------------------------------------ */
-/*  JSON-LD Structured Data                                            */
-/* ------------------------------------------------------------------ */
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@graph': [
-    {
-      '@type': 'Organization',
-      '@id': `${SITE_URL}/#organization`,
-      name: 'Fajr Academy',
-      alternateName: 'ফজর একাডেমি',
-      url: SITE_URL,
-      logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon.ico`, width: 80, height: 80 },
-      description: 'Balanced Education for Dunya and Akhirah — Online Quran Teacher Training in Bangladesh.',
-      contactPoint: {
-        '@type': 'ContactPoint',
-        contactType: 'customer support',
-        telephone: '+8801410764581',
-        availableLanguage: ['Bengali', 'English'],
-        contactOption: 'TollFree',
-      },
-      sameAs: ['https://wa.me/8801410764581', 'https://youtube.com/shorts/zPXTzup-2ok'],
-    },
-    {
-      '@type': 'Course',
-      '@id': `${PAGE_URL}#course-men`,
-      name: 'Training of Trainers (TOT) – MEN',
-      description: 'ছেলেদের জন্য ফজর একাডেমি অনলাইন কুরআন শিক্ষক প্রশিক্ষণ। ৪টি প্রফেশনাল সেশন, সার্টিফিকেট ও মাসিক ১৫,০০০–২২,০০০ টাকা সম্মানী।',
-      url: PAGE_URL,
-      provider: { '@type': 'Organization', name: 'Fajr Academy', sameAs: SITE_URL },
-      educationalLevel: 'Intermediate',
-      courseMode: ['Online'],
-      inLanguage: 'bn',
-      offers: { '@type': 'Offer', price: '1000', priceCurrency: 'BDT', availability: 'https://schema.org/InStock', url: PAGE_URL },
-    },
-    {
-      '@type': 'Course',
-      '@id': `${PAGE_URL}#course-women`,
-      name: 'Training of Trainers (TOT) – WOMEN (Batch 014)',
-      description: 'দ্বীনে ফেরা আপুদের জন্য ফজর একাডেমি অনলাইন কুরআন শিক্ষক প্রশিক্ষণ (Batch 014)। ৪টি প্রফেশনাল সেশন, সার্টিফিকেট ও মাসিক ১৫,০০০–২২,০০০ টাকা সম্মানী।',
-      url: PAGE_URL,
-      provider: { '@type': 'Organization', name: 'Fajr Academy', sameAs: SITE_URL },
-      educationalLevel: 'Intermediate',
-      courseMode: ['Online'],
-      inLanguage: 'bn',
-      offers: { '@type': 'Offer', price: '1000', priceCurrency: 'BDT', availability: 'https://schema.org/InStock', url: PAGE_URL },
-    },
-    {
-      '@type': 'WebPage',
-      '@id': PAGE_URL,
-      url: PAGE_URL,
-      name: 'কুরআন টিচার ট্রেনিং ও জব অপরচুনিটি (TOT) | ফজর একাডেমি',
-      isPartOf: { '@id': `${SITE_URL}/#website` },
-    },
-  ],
-}
-
-/* ------------------------------------------------------------------ */
 /*  Page Component (Server Component)                                  */
 /* ------------------------------------------------------------------ */
 export default async function TeacherRegistrationMarketingPage() {
   let courses = []
+  let settingsDoc = null
+  let instructorsData = []
+
   try {
     await dbConnect()
-    courses = await CourseModel.find({ isPublished: true }).sort({ createdAt: 1 }).lean()
+    const [coursesResult, settingsResult, instructorsResult] = await Promise.all([
+      CourseModel.find({ isPublished: true }).sort({ createdAt: 1 }).lean(),
+      SettingModel.findOne({ key: 'system_settings' }).lean(),
+      UserModel.find({ role: { $in: ['instructor', 'admin'] }, isActive: { $ne: false } })
+        .sort({ rating: -1, experienceYears: -1 })
+        .select('fullName designation specialization bio experienceYears rating gender avatar track')
+        .limit(6)
+        .lean(),
+    ])
+
+    courses = coursesResult || []
+    settingsDoc = settingsResult ? JSON.parse(JSON.stringify(settingsResult)) : null
+    instructorsData = instructorsResult || []
   } catch (err) {
-    console.error('Error fetching courses in page.js:', err)
+    console.error('Error fetching marketing page data in page.js:', err)
   }
 
+  // System Settings Defaults & Merging
+  const defaultSettings = {
+    siteTitle: 'ফজর একাডেমি | টিচার্স ট্রেনিং (TOT) প্রোগ্রাম',
+    instituteName: 'Fajr Academy',
+    tagline: 'শুদ্ধভাবে কুরআন ও ইংরেজি জানেন? ঘরে বসেই হয়ে উঠুন প্রফেশনাল কুরআন টিচার',
+    coursePrice: 1000,
+    regularCoursePrice: 2500,
+    currency: 'BDT',
+    currentBatch: 'BATCH 2026',
+    admissionStatus: 'open', // 'open' | 'waitlist' | 'closed'
+    orientationDate: '২০ ও ২১ সেপ্টেম্বর ২০২৬',
+    orientationTime: 'রাত ৮:০০ টা – ৯:৩০ টা',
+    bkashMerchantNumber: '01410764581',
+    nagadMerchantNumber: '01410764581',
+    helplinePhone: '01410764581',
+    supportEmail: 'support@fajracademy.io',
+    whatsappSupport: 'https://wa.me/8801410764581',
+    registrationOpen: true,
+  }
+
+  const liveSettings = { ...defaultSettings, ...(settingsDoc || {}) }
+  const coursePrice = liveSettings.coursePrice || 1000
+  const regularPrice = liveSettings.regularCoursePrice || 2500
+  const helplinePhone = liveSettings.helplinePhone || '01410764581'
+  const cleanPhone = helplinePhone.replace(/[^0-9]/g, '')
+  const intlPhone = cleanPhone.startsWith('880') ? cleanPhone : `88${cleanPhone.replace(/^0/, '')}`
+  const whatsappUrl =
+    liveSettings.whatsappSupport ||
+    `https://wa.me/${intlPhone}?text=${encodeURIComponent(
+      'আসসালামু আলাইকুম, কুরআন টিচার ট্রেনিং কোর্স সম্পর্কে জানতে চাই।'
+    )}`
+
+  // Live Courses extraction
   const menCourse = courses?.find((c) => c.track === 'men' || c.courseId === 'TOT-MEN') || {
     name: 'Training of Trainers (TOT) - MEN BATCH',
     tag: 'MEN BATCH',
-    fee: 1000,
+    fee: coursePrice,
+    regularFee: regularPrice,
     orientationDate: '২০ সেপ্টেম্বর ২০২৬',
     orientationTime: 'রাত ৮:০০ টা – ৯:৩০ টা',
     summary: 'ছেলেদের জন্য ঘরে বসে কুরআন শিক্ষার সুযোগ ও আধুনিক পদ্ধতি',
+    perks: [
+      'মাসিক সম্মানী: ১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত',
+      '৪টি প্রফেশনাল প্যাকেজ: ইসলামিক পেডাগগি ও শিক্ষাদানের কৌশল',
+      'অভিজ্ঞ ট্রেনার: বিশেষ আলোচনা ও আন্তর্জাতিক শিক্ষাবিদ',
+      'সার্টিফিকেট প্রদান: কোর্স শেষে অফিসিয়াল মূল্যায়ন সার্টিফিকেট',
+      'Training & Grooming: নিয়মিত ক্যারিয়ার প্রোগ্রেসের সুযোগ',
+    ],
   }
 
   const womenCourse = courses?.find((c) => c.track === 'women' || c.courseId?.includes('WOMEN')) || {
     name: 'Training of Trainers (TOT) - WOMEN BATCH',
     tag: 'WOMEN BATCH 014',
-    fee: 1000,
+    fee: coursePrice,
+    regularFee: regularPrice,
     orientationDate: '২১ সেপ্টেম্বর ২০২৬',
     orientationTime: 'রাত ৮:০০ টা – ৯:৩০ টা',
     summary: 'নিজের ঘরে থেকেই আন্তর্জাতিক মানের অনলাইন কুরআন শিক্ষার সুযোগ',
+    perks: [
+      'মাসিক সম্মানী: ১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত',
+      '৪টি প্রফেশনাল প্যাকেজ: ইসলামিক পেডাগগি ও শিক্ষাদানের কৌশল',
+      'অভিজ্ঞ ট্রেনার: বিশেষ আলোচনা ও আন্তর্জাতিক শিক্ষাবিদ',
+      'সার্টিফিকেট প্রদান: কোর্স শেষে অফিসিয়াল মূল্যায়ন সার্টিফিকেট',
+      'পর্দা ও শৃঙ্খলার সুরক্ষা: ১০০% ঘরে বসেই পাঠদানের সুযোগ',
+    ],
   }
 
+  // Active Instructors Roster (Live from UserModel or Fallback)
+  const activeInstructors =
+    instructorsData && instructorsData.length > 0
+      ? JSON.parse(JSON.stringify(instructorsData))
+      : DEFAULT_INSTRUCTORS.map((i) => ({
+          fullName: i.fullName,
+          designation: i.designation,
+          specialization: i.specialization,
+          bio: i.bio,
+          experienceYears: i.experienceYears,
+          rating: i.rating,
+          gender: i.gender,
+          track: i.track,
+        }))
+
+  // Dynamic Curriculum from Course Model
+  const curriculumModules =
+    (menCourse?.curriculum && menCourse.curriculum.length > 0)
+      ? menCourse.curriculum
+      : DEFAULT_TOT_CURRICULUM
+
   const sanitizedCourses = JSON.parse(JSON.stringify(courses || []))
+
+  /* Dynamic JSON-LD Structured Data */
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': `${SITE_URL}/#organization`,
+        name: liveSettings.instituteName || 'Fajr Academy',
+        alternateName: 'ফজর একাডেমি',
+        url: SITE_URL,
+        logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon.ico`, width: 80, height: 80 },
+        description: 'Balanced Education for Dunya and Akhirah — Online Quran Teacher Training in Bangladesh.',
+        contactPoint: {
+          '@type': 'ContactPoint',
+          contactType: 'customer support',
+          telephone: `+88${cleanPhone.replace(/^88/, '')}`,
+          availableLanguage: ['Bengali', 'English'],
+          contactOption: 'TollFree',
+        },
+        sameAs: [whatsappUrl, 'https://youtube.com/shorts/zPXTzup-2ok'],
+      },
+      {
+        '@type': 'Course',
+        '@id': `${PAGE_URL}#course-men`,
+        name: menCourse.name || 'Training of Trainers (TOT) – MEN',
+        description: menCourse.summary || 'ছেলেদের জন্য ফজর একাডেমি অনলাইন কুরআন শিক্ষক প্রশিক্ষণ। ৪টি প্রফেশনাল সেশন, সার্টিফিকেট ও মাসিক ১৫,০০০–২২,০০০ টাকা সম্মানী।',
+        url: PAGE_URL,
+        provider: { '@type': 'Organization', name: 'Fajr Academy', sameAs: SITE_URL },
+        educationalLevel: 'Intermediate',
+        courseMode: ['Online'],
+        inLanguage: 'bn',
+        offers: {
+          '@type': 'Offer',
+          price: String(menCourse.fee || coursePrice),
+          priceCurrency: 'BDT',
+          availability: 'https://schema.org/InStock',
+          url: PAGE_URL,
+        },
+      },
+      {
+        '@type': 'Course',
+        '@id': `${PAGE_URL}#course-women`,
+        name: womenCourse.name || 'Training of Trainers (TOT) – WOMEN',
+        description: womenCourse.summary || 'দ্বীনে ফেরা আপুদের জন্য ফজর একাডেমি অনলাইন কুরআন শিক্ষক প্রশিক্ষণ। ৪টি প্রফেশনাল সেশন, সার্টিফিকেট ও মাসিক ১৫,০০০–২২,০০০ টাকা সম্মানী।',
+        url: PAGE_URL,
+        provider: { '@type': 'Organization', name: 'Fajr Academy', sameAs: SITE_URL },
+        educationalLevel: 'Intermediate',
+        courseMode: ['Online'],
+        inLanguage: 'bn',
+        offers: {
+          '@type': 'Offer',
+          price: String(womenCourse.fee || coursePrice),
+          priceCurrency: 'BDT',
+          availability: 'https://schema.org/InStock',
+          url: PAGE_URL,
+        },
+      },
+      {
+        '@type': 'WebPage',
+        '@id': PAGE_URL,
+        url: PAGE_URL,
+        name: 'কুরআন টিচার ট্রেনিং ও জব অপরচুনিটি (TOT) | ফজর একাডেমি',
+        isPartOf: { '@id': `${SITE_URL}/#website` },
+      },
+    ],
+  }
 
   return (
     <div className="bg-fajr-dark text-white font-bengali antialiased selection:bg-fajr-gold selection:text-fajr-dark min-h-screen">
@@ -151,27 +253,33 @@ export default async function TeacherRegistrationMarketingPage() {
       {/* ==================== TOP BAR ==================== */}
       <div className="bg-fajr-gold/10 border-b border-white/5 py-2 px-3 sm:px-6 md:px-12 flex justify-between items-center text-xs md:text-sm text-fajr-gold">
         <div className="flex items-center gap-1.5 sm:gap-2 font-medium">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0"></span>
-          <span className="text-[11px] sm:text-xs md:text-sm">ভর্তি চলছে — সীমিত আসন</span>
+          <span className={`w-2 h-2 rounded-full animate-pulse shrink-0 ${liveSettings.admissionStatus === 'closed' ? 'bg-red-500' : liveSettings.admissionStatus === 'waitlist' ? 'bg-amber-400' : 'bg-green-500'}`}></span>
+          <span className="text-[11px] sm:text-xs md:text-sm">
+            {liveSettings.admissionStatus === 'closed'
+              ? 'ভর্তি সাময়িক সমাপ্ত — পরবর্তী ব্যাচ শীঘ্রই'
+              : liveSettings.admissionStatus === 'waitlist'
+              ? 'অপেক্ষমাণ তালিকা চলছে — আসন সীমিত'
+              : 'ভর্তি চলছে — সীমিত আসন'}
+          </span>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <span className="hidden md:inline">
-            <Calendar className="w-3.5 h-3.5 inline mr-1" /> ফার্স্ট ওরিয়েন্টেশন: ২০ ও ২১ সেপ্টেম্বর
+            <Calendar className="w-3.5 h-3.5 inline mr-1" /> ফার্স্ট ওরিয়েন্টেশন: {menCourse.orientationDate || liveSettings.orientationDate} ও {womenCourse.orientationDate || '২১ সেপ্টেম্বর'}
           </span>
           <span className="hidden md:inline text-fajr-gold/40">|</span>
           <a
-            href="https://wa.me/8801410764581"
+            href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:underline flex items-center gap-1 text-fajr-gold text-[11px] sm:text-xs md:text-sm shrink-0"
           >
-            <MessageCircle className="w-3.5 h-3.5 text-green-400" /> WhatsApp: 01410764581
+            <MessageCircle className="w-3.5 h-3.5 text-green-400" /> WhatsApp: {helplinePhone}
           </a>
         </div>
       </div>
 
       {/* ==================== NAVBAR ==================== */}
-      <MarketingNavbar />
+      <MarketingNavbar settings={liveSettings} />
 
       {/* ==================== HERO SECTION ==================== */}
       <section id="home" className="relative min-h-[92vh] flex items-center justify-center bg-gradient-hero pt-8 sm:pt-12 pb-16 sm:pb-24 overflow-hidden">
@@ -188,7 +296,7 @@ export default async function TeacherRegistrationMarketingPage() {
           <div data-reveal className="space-y-5 sm:space-y-6 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 bg-fajr-gold/10 border border-fajr-gold/30 rounded-full px-3.5 py-1 text-fajr-gold text-[11px] sm:text-xs font-semibold tracking-wide">
               <Star className="w-3.5 h-3.5 fill-fajr-gold text-fajr-gold" />
-              <span>TRAINING OF TRAINERS (TOT) - 2026</span>
+              <span>TRAINING OF TRAINERS (TOT) — {liveSettings.currentBatch || '2026'}</span>
             </div>
             
             <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.25] text-shadow text-white">
@@ -243,10 +351,10 @@ export default async function TeacherRegistrationMarketingPage() {
                 className="w-full sm:w-auto btn-glow bg-gradient-to-r from-fajr-gold via-yellow-500 to-yellow-600 text-fajr-dark font-bold py-3.5 px-6 sm:py-4 sm:px-8 rounded-full text-center text-sm sm:text-base md:text-lg shadow-lg shadow-fajr-gold/25 flex items-center justify-center gap-2 hover:scale-105 transition-all"
               >
                 <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>রেজিস্ট্রেশন করুন (১,০০০ ৳)</span>
+                <span>রেজিস্ট্রেশন করুন ({toBengaliNumber(coursePrice)} ৳)</span>
               </a>
               <a
-                href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
+                href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto btn-glow border border-fajr-gold/50 text-fajr-gold font-bold py-3.5 px-6 sm:py-4 sm:px-8 rounded-full text-center text-sm sm:text-base md:text-lg hover:bg-fajr-gold/10 transition-all flex items-center justify-center gap-2"
@@ -273,7 +381,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 tracking-wide">কুরআন টিচার ট্রেনিং (TOT)</h2>
                 <span className="inline-block bg-fajr-gold/20 text-fajr-gold text-[11px] sm:text-xs px-3 py-0.5 sm:px-3.5 sm:py-1 rounded-full border border-fajr-gold/40 font-semibold tracking-wider">
-                  BATCH 2026
+                  {liveSettings.currentBatch || 'BATCH 2026'}
                 </span>
               </div>
 
@@ -310,10 +418,10 @@ export default async function TeacherRegistrationMarketingPage() {
                   className="block w-full text-center btn-glow bg-gradient-to-r from-fajr-gold to-yellow-600 text-fajr-dark font-bold py-3 sm:py-3.5 rounded-xl text-sm sm:text-base md:text-lg shadow-md"
                 >
                   <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 inline mr-2" />
-                  রেজিস্ট্রেশন করুন (১,০০০ ৳)
+                  রেজিস্ট্রেশন করুন ({toBengaliNumber(coursePrice)} ৳)
                 </a>
                 <a
-                  href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
+                  href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full text-center border border-fajr-gold/50 text-fajr-gold font-bold py-2.5 sm:py-3 rounded-xl text-xs sm:text-base hover:bg-fajr-gold/10 transition-all"
@@ -381,15 +489,15 @@ export default async function TeacherRegistrationMarketingPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-fajr-dark via-fajr-dark/60 to-transparent"></div>
                   
                   <div className="absolute top-3 sm:top-4 left-3 sm:left-4 bg-blue-600 text-white text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-md">
-                    MEN BATCH
+                    {menCourse.tag || 'MEN BATCH'}
                   </div>
                   <div className="absolute top-3 sm:top-4 right-3 sm:top-4 bg-fajr-gold text-fajr-dark text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-md">
-                    ১,০০০ ৳
+                    {toBengaliNumber(menCourse.fee || coursePrice)} ৳
                   </div>
                   
                   <div className="absolute bottom-3 sm:bottom-4 left-4 sm:left-6 right-4 sm:right-6">
-                    <h3 className="text-lg sm:text-2xl font-bold text-white leading-tight">Training of Trainers (TOT) - MEN BATCH</h3>
-                    <p className="text-blue-300 text-xs sm:text-sm mt-1 font-medium">ছেলেদের জন্য ঘরে বসে কুরআন শিক্ষার সুযোগ ও আধুনিক পদ্ধতি</p>
+                    <h3 className="text-lg sm:text-2xl font-bold text-white leading-tight">{menCourse.name}</h3>
+                    <p className="text-blue-300 text-xs sm:text-sm mt-1 font-medium">{menCourse.summary}</p>
                   </div>
                 </div>
                 
@@ -399,32 +507,24 @@ export default async function TeacherRegistrationMarketingPage() {
                     <div>
                       <p className="text-[11px] sm:text-xs text-blue-300 font-semibold uppercase tracking-wider">First Orientation Class:</p>
                       <p className="text-xs sm:text-sm font-bold text-white">
-                        {menCourse.orientationDate || '২০ সেপ্টেম্বর ২০২৬'} – {menCourse.orientationTime || 'রাত ৮:০০ টা – ৯:৩০ টা'}
+                        {menCourse.orientationDate || liveSettings.orientationDate} – {menCourse.orientationTime || liveSettings.orientationTime}
                       </p>
                     </div>
                   </div>
 
                   <ul className="space-y-2.5 sm:space-y-3.5 mb-6 sm:mb-8 text-xs sm:text-sm text-gray-300">
-                    <li className="flex items-start gap-2.5 sm:gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-fajr-gold mt-0.5 shrink-0" />
-                      <span><strong>মাসিক সম্মানী:</strong> ১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 sm:gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-fajr-gold mt-0.5 shrink-0" />
-                      <span><strong>৪টি প্রফেশনাল প্যাকেজ:</strong> ইসলামিক পেডাগগি ও শিক্ষাদানের কৌশল</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 sm:gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-fajr-gold mt-0.5 shrink-0" />
-                      <span><strong>অভিজ্ঞ ট্রেনার:</strong> বিশেষ আলোচনা ও আন্তর্জাতিক শিক্ষাবিদ</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 sm:gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-fajr-gold mt-0.5 shrink-0" />
-                      <span><strong>সার্টিফিকেট প্রদান:</strong> কোর্স শেষে অফিসিয়াল মূল্যায়ন সার্টিফিকেট</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 sm:gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-fajr-gold mt-0.5 shrink-0" />
-                      <span><strong>Training &amp; Grooming:</strong> নিয়মিত ক্যারিয়ার প্রোগ্রেসের সুযোগ</span>
-                    </li>
+                    {(menCourse.perks && menCourse.perks.length > 0 ? menCourse.perks : [
+                      'মাসিক সম্মানী: ১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত',
+                      '৪টি প্রফেশনাল প্যাকেজ: ইসলামিক পেডাগগি ও শিক্ষাদানের কৌশল',
+                      'অভিজ্ঞ ট্রেনার: বিশেষ আলোচনা ও আন্তর্জাতিক শিক্ষাবিদ',
+                      'সার্টিফিকেট প্রদান: কোর্স শেষে অফিসিয়াল মূল্যায়ন সার্টিফিকেট',
+                      'Training & Grooming: নিয়মিত ক্যারিয়ার প্রোগ্রেসের সুযোগ',
+                    ]).map((perk, idx) => (
+                      <li key={idx} className="flex items-start gap-2.5 sm:gap-3">
+                        <CheckCircle2 className="w-4 h-4 text-fajr-gold mt-0.5 shrink-0" />
+                        <span>{perk}</span>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
@@ -434,7 +534,7 @@ export default async function TeacherRegistrationMarketingPage() {
                   href="#register"
                   className="block text-center btn-glow bg-gradient-to-r from-fajr-gold to-yellow-600 text-fajr-dark font-bold py-3.5 sm:py-4 rounded-xl hover:shadow-lg hover:shadow-fajr-gold/30 transition-all text-sm sm:text-base md:text-lg"
                 >
-                  রেজিস্ট্রেশন করুন এখনই (১,০০০ ৳)
+                  রেজিস্ট্রেশন করুন এখনই ({toBengaliNumber(menCourse.fee || coursePrice)} ৳)
                 </a>
                 <p className="text-center text-[11px] sm:text-xs text-gray-400 mt-2.5 sm:mt-3 flex items-center justify-center gap-1">
                   <Lock className="w-3 h-3 text-fajr-gold shrink-0" /> নিশ্চিত SSLCommerz ও বিকাশ পেমেন্ট
@@ -442,7 +542,7 @@ export default async function TeacherRegistrationMarketingPage() {
               </div>
             </div>
 
-            {/* Course 2: WOMEN BATCH 014 */}
+            {/* Course 2: WOMEN BATCH */}
             <div id="course-women" className="card-3d glass-dark rounded-2xl sm:rounded-3xl overflow-hidden border border-white/10 group relative flex flex-col justify-between" data-reveal>
               <div>
                 <div className="relative h-52 sm:h-64 overflow-hidden">
@@ -455,15 +555,15 @@ export default async function TeacherRegistrationMarketingPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-fajr-dark via-fajr-dark/60 to-transparent"></div>
                   
                   <div className="absolute top-3 sm:top-4 left-3 sm:left-4 bg-purple-600 text-white text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-md">
-                    WOMEN BATCH 014
+                    {womenCourse.tag || 'WOMEN BATCH 014'}
                   </div>
                   <div className="absolute top-3 sm:top-4 right-3 sm:top-4 bg-fajr-gold text-fajr-dark text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-md">
-                    ১,০০০ ৳
+                    {toBengaliNumber(womenCourse.fee || coursePrice)} ৳
                   </div>
                   
                   <div className="absolute bottom-3 sm:bottom-4 left-4 sm:left-6 right-4 sm:right-6">
-                    <h3 className="text-lg sm:text-2xl font-bold text-white leading-tight">Training of Trainers (TOT) - WOMEN BATCH</h3>
-                    <p className="text-purple-300 text-xs sm:text-sm mt-1 font-medium">নিজের ঘরে থেকেই আন্তর্জাতিক মানের অনলাইন কুরআন শিক্ষার সুযোগ</p>
+                    <h3 className="text-lg sm:text-2xl font-bold text-white leading-tight">{womenCourse.name}</h3>
+                    <p className="text-purple-300 text-xs sm:text-sm mt-1 font-medium">{womenCourse.summary}</p>
                   </div>
                 </div>
                 
@@ -473,32 +573,24 @@ export default async function TeacherRegistrationMarketingPage() {
                     <div>
                       <p className="text-[11px] sm:text-xs text-purple-300 font-semibold uppercase tracking-wider">First Orientation Class:</p>
                       <p className="text-xs sm:text-sm font-bold text-white">
-                        {womenCourse.orientationDate || '২১ সেপ্টেম্বর ২০২৬'} – {womenCourse.orientationTime || 'রাত ৮:০০ টা – ৯:৩০ টা'}
+                        {womenCourse.orientationDate || '২১ সেপ্টেম্বর ২০২৬'} – {womenCourse.orientationTime || liveSettings.orientationTime}
                       </p>
                     </div>
                   </div>
 
                   <ul className="space-y-2.5 sm:space-y-3.5 mb-6 sm:mb-8 text-xs sm:text-sm text-gray-300">
-                    <li className="flex items-start gap-2.5 sm:gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
-                      <span><strong>মাসিক সম্মানী:</strong> ১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 sm:gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
-                      <span><strong>৪টি প্রফেশনাল প্যাকেজ:</strong> ইসলামিক পেডাগগি ও শিক্ষাদানের কৌশল</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 sm:gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
-                      <span><strong>অভিজ্ঞ ট্রেনার:</strong> বিশেষ আলোচনা ও আন্তর্জাতিক শিক্ষাবিদ</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 sm:gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
-                      <span><strong>সার্টিফিকেট প্রদান:</strong> কোর্স শেষে অফিসিয়াল মূল্যায়ন সার্টিফিকেট</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 sm:gap-3">
-                      <CheckCircle2 className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
-                      <span><strong>পর্দা ও শৃঙ্খলার সুরক্ষা:</strong> ১০০% ঘরে বসেই পাঠদানের সুযোগ</span>
-                    </li>
+                    {(womenCourse.perks && womenCourse.perks.length > 0 ? womenCourse.perks : [
+                      'মাসিক সম্মানী: ১৫,০০০ থেকে ২২,০০০ টাকা পর্যন্ত',
+                      '৪টি প্রফেশনাল প্যাকেজ: ইসলামিক পেডাগগি ও শিক্ষাদানের কৌশল',
+                      'অভিজ্ঞ ট্রেনার: বিশেষ আলোচনা ও আন্তর্জাতিক শিক্ষাবিদ',
+                      'সার্টিফিকেট প্রদান: কোর্স শেষে অফিসিয়াল মূল্যায়ন সার্টিফিকেট',
+                      'পর্দা ও শৃঙ্খলার সুরক্ষা: ১০০% ঘরে বসেই পাঠদানের সুযোগ',
+                    ]).map((perk, idx) => (
+                      <li key={idx} className="flex items-start gap-2.5 sm:gap-3">
+                        <CheckCircle2 className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
+                        <span>{perk}</span>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
@@ -508,7 +600,7 @@ export default async function TeacherRegistrationMarketingPage() {
                   href="#register"
                   className="block text-center btn-glow bg-gradient-to-r from-purple-600 to-purple-800 text-white font-bold py-3.5 sm:py-4 rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all text-sm sm:text-base md:text-lg"
                 >
-                  রেজিস্ট্রেশন করুন এখনই (১,০০০ ৳)
+                  রেজিস্ট্রেশন করুন এখনই ({toBengaliNumber(womenCourse.fee || coursePrice)} ৳)
                 </a>
                 <p className="text-center text-[11px] sm:text-xs text-gray-400 mt-2.5 sm:mt-3 flex items-center justify-center gap-1">
                   <Lock className="w-3 h-3 text-fajr-gold shrink-0" /> নিশ্চিত SSLCommerz ও বিকাশ পেমেন্ট
@@ -532,6 +624,82 @@ export default async function TeacherRegistrationMarketingPage() {
               <p className="text-2xl sm:text-3xl font-bold text-fajr-gold">১৫,০০০ - ২২,০০০ ৳</p>
               <p className="text-[11px] sm:text-xs text-gray-400 font-medium uppercase tracking-wider">মাসিক সম্ভাব্য সম্মানী</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== CURRICULUM SECTION (LIVE FROM ADMIN) ==================== */}
+      <section id="curriculum" className="py-14 sm:py-20 md:py-24 bg-[#0A1128] relative border-t border-white/5 font-bengali">
+        <div className="container mx-auto px-4 sm:px-6 max-w-6xl relative z-10">
+          <div className="text-center mb-10 sm:mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 bg-fajr-gold/10 border border-fajr-gold/30 rounded-full px-3.5 py-1 text-fajr-gold text-xs sm:text-sm font-semibold mb-3 sm:mb-4">
+              <Layers className="w-4 h-4" /> পূর্ণাঙ্গ সিলেবাস ও সাপ্তাহিক সেশন
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white mb-3 sm:mb-4 leading-tight">
+              কোর্স কারিকুলাম ও <span className="text-gradient-gold">৪টি প্রফেশনাল প্যাকেজ</span>
+            </h2>
+            <div className="w-20 sm:w-24 h-1 bg-gradient-to-r from-transparent via-fajr-gold to-transparent mx-auto mb-4 sm:mb-6"></div>
+            <p className="text-gray-300 max-w-2xl mx-auto text-xs sm:text-sm md:text-base">
+              আন্তর্জাতিক মানের ভার্চুয়াল ক্লাসরুম আর্ট, নূরানী তাজবীদ মেথডোলজি ও শিশু-কিশোর সাইকোলজির সমন্বয়ে সাজানো ৪ সপ্তাহের কম্প্রিহেন্সিভ পাঠ্যক্রম।
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+            {curriculumModules.map((mod, idx) => (
+              <div
+                key={idx}
+                className="glass rounded-2xl p-6 sm:p-7 border border-white/10 hover:border-fajr-gold/40 transition-all card-3d flex flex-col justify-between"
+                data-reveal
+              >
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="bg-fajr-gold/20 text-fajr-gold text-xs font-bold px-3 py-1 rounded-full border border-fajr-gold/30">
+                      মডিউল {toBengaliNumber(mod.moduleNo || idx + 1)} • {mod.duration || '১ সপ্তাহ'}
+                    </span>
+                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-fajr-gold" /> {mod.liveDate || 'লাইভ সেশন'}
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-2 leading-snug">
+                    {mod.title}
+                  </h3>
+                  {mod.subtitle && (
+                    <p className="text-xs sm:text-sm text-yellow-400/90 mb-3 font-medium">
+                      {mod.subtitle}
+                    </p>
+                  )}
+                  {mod.description && (
+                    <p className="text-xs text-gray-300 leading-relaxed mb-4">
+                      {mod.description}
+                    </p>
+                  )}
+
+                  {mod.topics && mod.topics.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-white/5 space-y-2">
+                      <p className="text-[11px] sm:text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                        প্রধান আলোচ্য বিষয়সমূহ:
+                      </p>
+                      <ul className="space-y-1.5 text-xs sm:text-sm text-gray-300">
+                        {mod.topics.map((t, tIdx) => (
+                          <li key={tIdx} className="flex items-start gap-2">
+                            <Check className="w-3.5 h-3.5 text-fajr-gold mt-0.5 shrink-0 stroke-[3]" />
+                            <span>{t}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-5 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-gray-400">
+                  <span className="flex items-center gap-1.5">
+                    <Award className="w-3.5 h-3.5 text-fajr-gold" /> হ্যান্ডস-অন প্র্যাকটিস
+                  </span>
+                  <span className="text-fajr-gold font-semibold">সম্পূর্ণ লাইভ ও রেকর্ডিং</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -563,8 +731,8 @@ export default async function TeacherRegistrationMarketingPage() {
                   ০১
                 </div>
                 <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-200/80 w-full hover:shadow-md transition-shadow duration-300 h-full flex flex-col justify-center">
-                  <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">রেজিস্ট্রেশন ও ১,০০০ টাকা ফি</h3>
-                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">পছন্দের ট্র্যাক নির্বাচন করে ১,০০০ টাকা ফি পরিশোধ করে নিবন্ধন সম্পন্ন করুন।</p>
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">রেজিস্ট্রেশন ও {toBengaliNumber(coursePrice)} টাকা ফি</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">পছন্দের ট্র্যাক নির্বাচন করে {toBengaliNumber(coursePrice)} টাকা ফি পরিশোধ করে নিবন্ধন সম্পন্ন করুন।</p>
                 </div>
               </div>
 
@@ -575,7 +743,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 </div>
                 <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-200/80 w-full hover:shadow-md transition-shadow duration-300 h-full flex flex-col justify-center">
                   <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">লাইভ ওরিয়েন্টেশন ক্লাস</h3>
-                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">পুরুষদের ২০ সেপ্টেম্বর এবং নারীদের ২১ সেপ্টেম্বর রাত ৮:০০ টায় জুম/মিটে লাইভ ওরিয়েন্টেশন ক্লাসে যুক্ত হোন।</p>
+                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">পুরুষদের {menCourse.orientationDate} এবং নারীদের {womenCourse.orientationDate} {menCourse.orientationTime}-এ লাইভ ওরিয়েন্টেশন ক্লাসে যুক্ত হোন।</p>
                 </div>
               </div>
 
@@ -665,8 +833,80 @@ export default async function TeacherRegistrationMarketingPage() {
         </div>
       </section>
 
+      {/* ==================== SENIOR INSTRUCTORS & FACULTY (LIVE FROM ADMIN) ==================== */}
+      <section id="instructors" className="py-14 sm:py-20 md:py-24 bg-[#070D1E] relative border-t border-white/5 font-bengali">
+        <div className="container mx-auto px-4 sm:px-6 max-w-6xl relative z-10">
+          <div className="text-center mb-10 sm:mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 bg-fajr-gold/10 border border-fajr-gold/30 rounded-full px-3.5 py-1 text-fajr-gold text-xs sm:text-sm font-semibold mb-3 sm:mb-4">
+              <GraduationCap className="w-4 h-4" /> বিশিষ্ট ট্রেইনার ও শিক্ষক পরিষদ
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white mb-3 sm:mb-4 leading-tight">
+              আমাদের প্রখ্যাত ইনস্ট্রাক্টর ও <span className="text-gradient-gold">মাস্টার ট্রেইনার প্যানেল</span>
+            </h2>
+            <div className="w-20 sm:w-24 h-1 bg-gradient-to-r from-transparent via-fajr-gold to-transparent mx-auto mb-4 sm:mb-6"></div>
+            <p className="text-gray-300 max-w-2xl mx-auto text-xs sm:text-sm md:text-base">
+              আন্তর্জাতিক বিশ্ববিদ্যালয় ও সুপরিচিত শিক্ষক প্রশিক্ষণ কেন্দ্র থেকে অভিজ্ঞ উস্তাদ ও উস্তাজাগণ সরাসরি আপনার ক্যারিয়ার মেন্টরিং করবেন।
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto">
+            {activeInstructors.map((inst, idx) => (
+              <div
+                key={idx}
+                className="glass rounded-2xl p-6 sm:p-7 border border-white/10 hover:border-fajr-gold/40 transition-all card-3d flex flex-col sm:flex-row gap-5 items-start"
+                data-reveal
+              >
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-fajr-gold/20 via-blue-900/40 to-[#0B1A45] border border-fajr-gold/40 flex items-center justify-center text-fajr-gold font-bold text-2xl shrink-0 shadow-lg shadow-fajr-gold/10 overflow-hidden">
+                  {inst.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={inst.avatar} alt={inst.fullName} className="w-full h-full object-cover" />
+                  ) : (
+                    inst.fullName.charAt(0)
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                    <h3 className="text-lg sm:text-xl font-bold text-white truncate">
+                      {inst.fullName}
+                    </h3>
+                    <div className="flex items-center gap-1 text-xs bg-fajr-gold/20 text-fajr-gold px-2.5 py-0.5 rounded-full font-bold border border-fajr-gold/30 shrink-0">
+                      <Star className="w-3 h-3 fill-fajr-gold" />
+                      <span>{inst.rating || 4.9}</span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-yellow-400 font-semibold mb-2">
+                    {inst.designation || 'Master Trainer'}
+                  </p>
+
+                  {inst.specialization && (
+                    <div className="inline-block bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg text-xs text-blue-200 mb-3">
+                      {inst.specialization}
+                    </div>
+                  )}
+
+                  <p className="text-xs text-gray-300 leading-relaxed line-clamp-3">
+                    {inst.bio || 'আন্তর্জাতিক কুরআন শিক্ষাদান মেথডোলজি ও পেডাগোজি বিশেষজ্ঞ।'}
+                  </p>
+
+                  <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] sm:text-xs text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <Award className="w-3.5 h-3.5 text-fajr-gold" /> {inst.experienceYears || 5}+ বছরের অভিজ্ঞতা
+                    </span>
+                    <span className="text-green-400 font-medium flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span> ভেরিফাইড ফ্যাকাল্টি
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ==================== ELIGIBILITY & PAYMENT ==================== */}
-      <section className="py-14 sm:py-20 md:py-24 bg-white text-gray-800 font-bengali relative overflow-hidden">
+      <section id="payment-info" className="py-14 sm:py-20 md:py-24 bg-white text-gray-800 font-bengali relative overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <div className="text-center mb-10 sm:mb-14" data-reveal>
             <div className="inline-flex items-center gap-2 text-yellow-700 text-xs sm:text-sm font-bold tracking-wider mb-3 sm:mb-4">
@@ -727,7 +967,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 
                 <div className="flex items-baseline gap-2 mb-6 sm:mb-8">
                   <span className="text-xl sm:text-2xl font-bold text-fajr-gold">৳</span>
-                  <span className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight">১,০০০</span>
+                  <span className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight">{toBengaliNumber(coursePrice)}</span>
                   <span className="text-xs sm:text-sm font-medium text-gray-500 ml-1 sm:ml-2">(এককালীন রেজিস্ট্রেশন ফি)</span>
                 </div>
               </div>
@@ -739,7 +979,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 </div>
                 <div className="flex justify-between items-center border-b border-gray-200 pb-2.5 sm:pb-3">
                   <span className="text-gray-600 font-medium">বিকাশ / নগদ / রকেট</span>
-                  <span className="text-gray-900 font-bold">01410764581</span>
+                  <span className="text-gray-900 font-bold">{liveSettings.bkashMerchantNumber || '01410764581'}</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-gray-200 pb-2.5 sm:pb-3">
                   <span className="text-gray-600 font-medium">কোর্স ট্র্যাক</span>
@@ -747,7 +987,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 </div>
                 <div className="flex justify-between items-center pb-1 sm:pb-2">
                   <span className="text-gray-600 font-medium">হটলাইন / WhatsApp</span>
-                  <span className="text-gray-900 font-bold">01410764581</span>
+                  <span className="text-gray-900 font-bold">{helplinePhone}</span>
                 </div>
               </div>
             </div>
@@ -764,11 +1004,11 @@ export default async function TeacherRegistrationMarketingPage() {
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">কোর্স নির্বাচন ও শিক্ষক নিবন্ধন ফর্ম</h2>
             <p className="text-gray-300 text-xs sm:text-sm md:text-base max-w-2xl mx-auto">
-              পছন্দের ট্র্যাক নির্বাচন করে ১,০০০৳ কোর্স ফি পরিশোধের মাধ্যমে আপনার নিবন্ধন সম্পন্ন করুন।
+              পছন্দের ট্র্যাক নির্বাচন করে {toBengaliNumber(coursePrice)}৳ কোর্স ফি পরিশোধের মাধ্যমে আপনার নিবন্ধন সম্পন্ন করুন।
             </p>
           </div>
 
-          <RegistrationForm initialTrack="men" courses={sanitizedCourses} />
+          <RegistrationForm initialTrack="men" courses={sanitizedCourses} settings={liveSettings} />
         </div>
       </section>
 
@@ -859,7 +1099,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 </div>
               </summary>
               <div className="faq-answer px-4 sm:px-6 pb-4 sm:pb-6 text-xs sm:text-sm md:text-base text-gray-600 border-t border-yellow-100 pt-3 sm:pt-4 hidden leading-relaxed">
-                <p>পুরুষদের (TOT - MEN) ফার্স্ট ওরিয়েন্টেশন ক্লাস হবে <strong>২০ সেপ্টেম্বর, রাত ৮:০০ টায়</strong>। নারীদের (TOT - WOMEN Batch 014) ফার্স্ট ওরিয়েন্টেশন ক্লাস হবে <strong>২১ সেপ্টেম্বর, রাত ৮:০০ টায়</strong>।</p>
+                <p>পুরুষদের ({menCourse.name}) ফার্স্ট ওরিয়েন্টেশন ক্লাস হবে <strong>{menCourse.orientationDate} ({menCourse.orientationTime})</strong>। নারীদের ({womenCourse.name}) ফার্স্ট ওরিয়েন্টেশন ক্লাস হবে <strong>{womenCourse.orientationDate} ({womenCourse.orientationTime})</strong>।</p>
               </div>
             </details>
 
@@ -872,7 +1112,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 </div>
               </summary>
               <div className="faq-answer px-4 sm:px-6 pb-4 sm:pb-6 text-xs sm:text-sm md:text-base text-gray-600 border-t border-yellow-100 pt-3 sm:pt-4 hidden leading-relaxed">
-                <p>উভয় কোর্সের এককালীন রেজিস্ট্রেশন ফি ১,০০০ টাকা। SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, কার্ড অথবা সরাসরি বিকাশ মাস্টার নম্বরে (<strong>01410764581</strong>) পেমেন্ট করতে পারবেন।</p>
+                <p>উভয় কোর্সের এককালীন রেজিস্ট্রেশন ফি {toBengaliNumber(coursePrice)} টাকা। SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, কার্ড অথবা সরাসরি বিকাশ মার্চেন্ট নম্বরে (<strong>{liveSettings.bkashMerchantNumber || '01410764581'}</strong>) পেমেন্ট করতে পারবেন।</p>
               </div>
             </details>
 
@@ -940,7 +1180,7 @@ export default async function TeacherRegistrationMarketingPage() {
         <div className="container mx-auto px-4 sm:px-6 text-center relative z-10" data-reveal>
           <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3.5 sm:px-4 py-1.5 text-gray-300 text-xs sm:text-sm mb-6 sm:mb-8">
             <span className="w-2 h-2 rounded-full bg-fajr-gold animate-pulse"></span>
-            <span>Batch 2026 • সীমিত আসন সংখ্যা</span>
+            <span>{liveSettings.currentBatch || 'Batch 2026'} • সীমিত আসন সংখ্যা</span>
           </div>
           
           <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-white leading-tight">
@@ -949,7 +1189,7 @@ export default async function TeacherRegistrationMarketingPage() {
           </h2>
           
           <p className="text-gray-300 max-w-2xl mx-auto mb-8 sm:mb-10 text-sm sm:text-base md:text-lg leading-relaxed">
-            ফর্ম পূরণ করে ১,০০০ টাকা রেজিস্ট্রেশন ফি প্রদান করুন। প্রয়োজনীয় তথ্য জানতে আমাদের সরাসরি WhatsApp হটলাইনে যোগাযোগ করুন।
+            ফর্ম পূরণ করে {toBengaliNumber(coursePrice)} টাকা রেজিস্ট্রেশন ফি প্রদান করুন। প্রয়োজনীয় তথ্য জানতে আমাদের সরাসরি WhatsApp হটলাইনে যোগাযোগ করুন।
           </p>
           
           <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 sm:gap-4 max-w-md sm:max-w-none mx-auto">
@@ -958,10 +1198,10 @@ export default async function TeacherRegistrationMarketingPage() {
               className="btn-glow bg-gradient-to-r from-fajr-gold via-yellow-500 to-yellow-600 text-fajr-dark font-bold py-3.5 sm:py-4 px-6 sm:px-10 rounded-full text-base sm:text-lg shadow-lg shadow-fajr-gold/20 flex items-center justify-center gap-2 hover:scale-105 transition-all text-center"
             >
               <CreditCard className="w-5 h-5 shrink-0" />
-              <span>রেজিস্ট্রেশন ফর্মে যান (১,০০০ ৳)</span>
+              <span>রেজিস্ট্রেশন ফর্মে যান ({toBengaliNumber(coursePrice)} ৳)</span>
             </a>
             <a
-              href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
+              href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-glow border border-white/20 text-white font-bold py-3.5 sm:py-4 px-6 sm:px-10 rounded-full text-base sm:text-lg hover:bg-white/10 transition-all flex items-center justify-center gap-2 text-center"
@@ -988,11 +1228,11 @@ export default async function TeacherRegistrationMarketingPage() {
                 />
               </div>
               <div className="text-left">
-                <h3 className="text-xl sm:text-2xl font-extrabold text-white leading-tight tracking-wider font-serif">FAJR ACADEMY</h3>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-white leading-tight tracking-wider font-serif">{liveSettings.instituteName || 'FAJR ACADEMY'}</h3>
                 <p className="text-[9px] sm:text-[10px] text-fajr-gold tracking-widest uppercase font-medium">Balanced Education for Dunya and Akhirah</p>
               </div>
             </div>
-            <p className="text-gray-400 text-xs sm:text-sm">Training of Trainers (TOT) Program - Batch 2026</p>
+            <p className="text-gray-400 text-xs sm:text-sm">Training of Trainers (TOT) Program - {liveSettings.currentBatch || 'Batch 2026'}</p>
           </div>
 
           {/* Payment Gateway Partner Box */}
@@ -1040,25 +1280,25 @@ export default async function TeacherRegistrationMarketingPage() {
           {/* Contact Info */}
           <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 md:gap-12 text-xs sm:text-sm text-gray-300 mb-6 sm:mb-8 text-center">
             <span className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-fajr-gold shrink-0" /> হটলাইন: 01410764581
+              <Phone className="w-4 h-4 text-fajr-gold shrink-0" /> হটলাইন: {helplinePhone}
             </span>
             <span className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-fajr-gold shrink-0" /> হেল্পলাইন: +880 1857-381244
+              <Phone className="w-4 h-4 text-fajr-gold shrink-0" /> হেল্পলাইন: {liveSettings.helplinePhone || helplinePhone}
             </span>
             <span className="flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-fajr-gold shrink-0" /> ইমেইল: info@fajracademy.io
+              <MessageCircle className="w-4 h-4 text-fajr-gold shrink-0" /> ইমেইল: {liveSettings.supportEmail || 'info@fajracademy.io'}
             </span>
           </div>
 
           {/* Copyright */}
           <div className="border-t border-white/5 pt-5 sm:pt-6 text-center text-[11px] sm:text-xs text-gray-500">
-            <p>&copy; 2026 Fajr Academy. All Rights Reserved. Registered Islamic Education Institute.</p>
+            <p>&copy; {new Date().getFullYear()} {liveSettings.instituteName || 'Fajr Academy'}. All Rights Reserved. Registered Islamic Education Institute.</p>
           </div>
         </div>
       </footer>
 
       {/* Floating WhatsApp Widget */}
-      <FloatingWhatsApp />
+      <FloatingWhatsApp phone={helplinePhone} whatsappUrl={whatsappUrl} />
     </div>
   )
 }

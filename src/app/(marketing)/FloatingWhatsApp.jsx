@@ -3,15 +3,26 @@
 import { MessageCircle } from 'lucide-react'
 import styles from './page.module.css'
 
-export default function FloatingWhatsApp() {
+export default function FloatingWhatsApp({
+  phone = '01410764581',
+  whatsappUrl = '',
+}) {
+  const cleanPhone = phone ? phone.replace(/[^0-9]/g, '') : '01410764581'
+  const internationalPhone = cleanPhone.startsWith('880') ? cleanPhone : `88${cleanPhone.replace(/^0/, '')}`
+  const targetUrl =
+    whatsappUrl ||
+    `https://wa.me/${internationalPhone}?text=${encodeURIComponent(
+      'আসসালামু আলাইকুম, ফজর একাডেমির কুরআন টিচার ট্রেনিং কোর্স সম্পর্কে জানতে চাই।'
+    )}`
+
   return (
     <a
-      href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20ফজর%20একাডেমির%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
+      href={targetUrl}
       target="_blank"
       rel="noopener noreferrer"
       className={styles.floatingWhatsApp}
       aria-label="Chat on WhatsApp"
-      title="WhatsApp-এ মেসেজ দিন"
+      title={`WhatsApp-এ মেসেজ দিন (${phone})`}
       id="floating-whatsapp-btn"
     >
       <div className={styles.floatingPulseRing} />
@@ -25,3 +36,4 @@ export default function FloatingWhatsApp() {
     </a>
   )
 }
+

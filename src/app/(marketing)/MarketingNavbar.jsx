@@ -3,9 +3,21 @@
 import { useState, useEffect } from 'react'
 import { BookOpen, Menu, X, Phone, MessageCircle } from 'lucide-react'
 
-export default function MarketingNavbar() {
+import { toBengaliNumber } from '@/lib/utils'
+
+export default function MarketingNavbar({ settings = {} }) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const helplinePhone = settings?.helplinePhone || '01410764581'
+  const coursePrice = settings?.coursePrice || 1000
+  const cleanPhone = helplinePhone.replace(/[^0-9]/g, '')
+  const intlPhone = cleanPhone.startsWith('880') ? cleanPhone : `88${cleanPhone.replace(/^0/, '')}`
+  const whatsappUrl =
+    settings?.whatsappSupport ||
+    `https://wa.me/${intlPhone}?text=${encodeURIComponent(
+      'আসসালামু আলাইকুম, কুরআন টিচার ট্রেনিং কোর্স সম্পর্কে জানতে চাই।'
+    )}`
 
   useEffect(() => {
     const handleScroll = () => {
@@ -46,21 +58,27 @@ export default function MarketingNavbar() {
         </a>
 
         {/* Desktop Navigation Links */}
-        <div className="hidden lg:flex items-center gap-7 text-sm font-medium text-gray-300">
+        <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-gray-300">
           <a href="#home" className="hover:text-fajr-gold transition-colors nav-link">
             হোম
           </a>
           <a href="#courses" className="hover:text-fajr-gold transition-colors nav-link">
             কোর্সসমূহ
           </a>
+          <a href="#curriculum" className="hover:text-fajr-gold transition-colors nav-link">
+            কারিকুলাম
+          </a>
+          <a href="#instructors" className="hover:text-fajr-gold transition-colors nav-link">
+            শিক্ষক প্যানেল
+          </a>
           <a href="#process" className="hover:text-fajr-gold transition-colors nav-link">
             ধাপসমূহ
           </a>
           <a href="#why" className="hover:text-fajr-gold transition-colors nav-link">
-            কেন ফজর একাডেমি
+            কেন ফজর
           </a>
           <a href="#videos" className="hover:text-fajr-gold transition-colors nav-link">
-            ভিডিওস
+            ভিডিও
           </a>
           <a href="#faq" className="hover:text-fajr-gold transition-colors nav-link">
             FAQ
@@ -74,16 +92,16 @@ export default function MarketingNavbar() {
           href="#register"
           className="hidden md:inline-flex items-center justify-center bg-gradient-to-r from-fajr-gold to-yellow-600 text-fajr-dark font-bold py-2.5 px-6 rounded-full text-sm hover:shadow-lg hover:shadow-fajr-gold/30 hover:scale-105 transition-all duration-300"
         >
-          ভর্তি হোন
+          ভর্তি হোন ({toBengaliNumber(coursePrice)} ৳)
         </a>
         <a
-          href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
+          href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 bg-[#25D366] text-white font-bold py-1.5 px-3 sm:py-2 sm:px-4 md:px-5 rounded-full text-xs sm:text-sm hover:bg-[#20bd5a] hover:shadow-lg hover:shadow-green-500/20 hover:scale-105 transition-all duration-300 shrink-0"
         >
           <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white" />
-          <span className="hidden xs:inline sm:inline">01410764581</span>
+          <span className="hidden xs:inline sm:inline">{helplinePhone}</span>
           <span className="inline xs:hidden sm:hidden">WhatsApp</span>
         </a>
 
@@ -114,6 +132,20 @@ export default function MarketingNavbar() {
             className="text-base text-gray-200 hover:text-fajr-gold font-medium py-1 border-b border-white/5"
           >
             কোর্সসমূহ
+          </a>
+          <a
+            href="#curriculum"
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-base text-gray-200 hover:text-fajr-gold font-medium py-1 border-b border-white/5"
+          >
+            কারিকুলাম
+          </a>
+          <a
+            href="#instructors"
+            onClick={() => setMobileMenuOpen(false)}
+            className="text-base text-gray-200 hover:text-fajr-gold font-medium py-1 border-b border-white/5"
+          >
+            শিক্ষক প্যানেল
           </a>
           <a
             href="#process"
@@ -149,7 +181,7 @@ export default function MarketingNavbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="w-full text-center bg-gradient-to-r from-fajr-gold to-yellow-600 text-fajr-dark font-bold py-3 rounded-full text-sm shadow-md"
             >
-              ভর্তি হোন (১,০০০ ৳)
+              ভর্তি হোন ({toBengaliNumber(coursePrice)} ৳)
             </a>
           </div>
         </div>
@@ -157,3 +189,5 @@ export default function MarketingNavbar() {
     </nav>
   )
 }
+
+
