@@ -68,11 +68,11 @@ const jsonLd = {
       contactPoint: {
         '@type': 'ContactPoint',
         contactType: 'customer support',
-        telephone: '+8801641028312',
+        telephone: '+8801410764581',
         availableLanguage: ['Bengali', 'English'],
         contactOption: 'TollFree',
       },
-      sameAs: ['https://wa.me/8801641028312', 'https://youtube.com/shorts/zPXTzup-2ok'],
+      sameAs: ['https://wa.me/8801410764581', 'https://youtube.com/shorts/zPXTzup-2ok'],
     },
     {
       '@type': 'Course',
@@ -160,12 +160,12 @@ export default async function TeacherRegistrationMarketingPage() {
           </span>
           <span className="hidden md:inline text-fajr-gold/40">|</span>
           <a
-            href="https://wa.me/8801641028312"
+            href="https://wa.me/8801410764581"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:underline flex items-center gap-1 text-fajr-gold text-[11px] sm:text-xs md:text-sm shrink-0"
           >
-            <MessageCircle className="w-3.5 h-3.5 text-green-400" /> WhatsApp: 01641028312
+            <MessageCircle className="w-3.5 h-3.5 text-green-400" /> WhatsApp: 01410764581
           </a>
         </div>
       </div>
@@ -246,7 +246,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 <span>রেজিস্ট্রেশন করুন (১,০০০ ৳)</span>
               </a>
               <a
-                href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
+                href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto btn-glow border border-fajr-gold/50 text-fajr-gold font-bold py-3.5 px-6 sm:py-4 sm:px-8 rounded-full text-center text-sm sm:text-base md:text-lg hover:bg-fajr-gold/10 transition-all flex items-center justify-center gap-2"
@@ -313,7 +313,7 @@ export default async function TeacherRegistrationMarketingPage() {
                   রেজিস্ট্রেশন করুন (১,০০০ ৳)
                 </a>
                 <a
-                  href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
+                  href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full text-center border border-fajr-gold/50 text-fajr-gold font-bold py-2.5 sm:py-3 rounded-xl text-xs sm:text-base hover:bg-fajr-gold/10 transition-all"
@@ -739,7 +739,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 </div>
                 <div className="flex justify-between items-center border-b border-gray-200 pb-2.5 sm:pb-3">
                   <span className="text-gray-600 font-medium">বিকাশ / নগদ / রকেট</span>
-                  <span className="text-gray-900 font-bold">01641028312</span>
+                  <span className="text-gray-900 font-bold">01410764581</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-gray-200 pb-2.5 sm:pb-3">
                   <span className="text-gray-600 font-medium">কোর্স ট্র্যাক</span>
@@ -747,7 +747,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 </div>
                 <div className="flex justify-between items-center pb-1 sm:pb-2">
                   <span className="text-gray-600 font-medium">হটলাইন / WhatsApp</span>
-                  <span className="text-gray-900 font-bold">01641028312</span>
+                  <span className="text-gray-900 font-bold">01410764581</span>
                 </div>
               </div>
             </div>
@@ -872,7 +872,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 </div>
               </summary>
               <div className="faq-answer px-4 sm:px-6 pb-4 sm:pb-6 text-xs sm:text-sm md:text-base text-gray-600 border-t border-yellow-100 pt-3 sm:pt-4 hidden leading-relaxed">
-                <p>উভয় কোর্সের এককালীন রেজিস্ট্রেশন ফি ১,০০০ টাকা। SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, কার্ড অথবা সরাসরি বিকাশ মাস্টার নম্বরে (<strong>01641028312</strong>) পেমেন্ট করতে পারবেন।</p>
+                <p>উভয় কোর্সের এককালীন রেজিস্ট্রেশন ফি ১,০০০ টাকা। SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, কার্ড অথবা সরাসরি বিকাশ মাস্টার নম্বরে (<strong>01410764581</strong>) পেমেন্ট করতে পারবেন।</p>
               </div>
             </details>
 
@@ -961,7 +961,7 @@ export default async function TeacherRegistrationMarketingPage() {
               <span>রেজিস্ট্রেশন ফর্মে যান (১,০০০ ৳)</span>
             </a>
             <a
-              href="https://wa.me/8801641028312?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
+              href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20কুরআন%20টিচার%20ট্রেনিং%20কোর্স%20সম্পর্কে%20জানতে%20চাই।"
               target="_blank"
               rel="noopener noreferrer"
               className="btn-glow border border-white/20 text-white font-bold py-3.5 sm:py-4 px-6 sm:px-10 rounded-full text-base sm:text-lg hover:bg-white/10 transition-all flex items-center justify-center gap-2 text-center"
@@ -997,7 +997,7 @@ export default async function TeacherRegistrationMarketingPage() {
 
           {/* Payment Gateway Partner Box */}
           <div className="max-w-4xl mx-auto bg-white text-gray-900 rounded-2xl p-5 sm:p-7 md:p-8 mb-10 sm:mb-12 shadow-2xl relative overflow-hidden" data-reveal>
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mb-5 sm:mb-6 text-center sm:text-left">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mb-4 sm:mb-5 text-center sm:text-left">
               <div className="flex items-center gap-2 text-gray-800 font-bold text-xs sm:text-sm tracking-wide">
                 <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-fajr-gold shrink-0" /> OFFICIAL PAYMENT GATEWAY PARTNER
               </div>
@@ -1006,16 +1006,22 @@ export default async function TeacherRegistrationMarketingPage() {
               </div>
             </div>
             
-            {/* Payment Badges */}
-            <div className="bg-gray-100/90 rounded-xl p-3 sm:p-4 flex flex-wrap justify-center items-center gap-2.5 sm:gap-4 mb-5 sm:mb-6 text-xs sm:text-sm">
-              <span className="text-gray-600 font-bold">SSLCommerz</span>
-              <span className="text-gray-300">|</span>
-              <span className="text-pink-600 font-bold">bKash</span>
-              <span className="text-orange-600 font-bold">Nagad</span>
-              <span className="text-purple-600 font-bold">Rocket</span>
-              <span className="text-blue-600 font-bold">Visa</span>
-              <span className="text-red-500 font-bold">Mastercard</span>
-              <span className="text-emerald-700 font-bold">Bank Transfer</span>
+            {/* SSLCommerz Official Pay-With Banner */}
+            <div className="bg-gray-50 rounded-xl p-3 sm:p-4 flex justify-center items-center mb-5 sm:mb-6 border border-gray-200/80 shadow-inner">
+              <a
+                target="_blank"
+                rel="noopener noreferrer"
+                href="https://www.sslcommerz.com/"
+                title="SSLCommerz"
+                className="inline-block transition-transform hover:scale-[1.01] max-w-full"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://securepay.sslcommerz.com/public/image/SSLCommerz-Pay-With-logo-All-Size-01.png"
+                  alt="SSLCommerz Pay With Logo"
+                  className="w-full max-w-2xl h-auto object-contain mx-auto"
+                />
+              </a>
             </div>
             
             <div className="flex flex-wrap justify-center gap-3 sm:gap-6 text-[11px] sm:text-xs text-gray-600 font-medium">
@@ -1034,7 +1040,7 @@ export default async function TeacherRegistrationMarketingPage() {
           {/* Contact Info */}
           <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 md:gap-12 text-xs sm:text-sm text-gray-300 mb-6 sm:mb-8 text-center">
             <span className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-fajr-gold shrink-0" /> হটলাইন: 01641028312
+              <Phone className="w-4 h-4 text-fajr-gold shrink-0" /> হটলাইন: 01410764581
             </span>
             <span className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-fajr-gold shrink-0" /> হেল্পলাইন: +880 1857-381244
