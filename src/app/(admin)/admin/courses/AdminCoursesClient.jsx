@@ -29,8 +29,7 @@ import {
   FileCode,
   Tag,
   User,
-  RotateCcw,
-  Sparkles
+  RotateCcw
 } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
 import {
