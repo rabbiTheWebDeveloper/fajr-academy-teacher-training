@@ -3,6 +3,7 @@ import { validateSSLCommerzPayment } from "@/lib/sslcommerz";
 import { dbConnect } from "@/service/mongo";
 import { PaymentModel } from "@/model/payment-model";
 import { UserModel } from "@/model/user-model";
+import { enrollUserInCourse } from "@/service/participant-service";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -85,6 +86,24 @@ async function processValidation(val_id) {
           user.role = "teacher";
           if (tranId) user.tranId = tranId;
           await user.save();
+        }
+
+        // Enroll user as course Participant in ParticipantModel
+        try {
+          const userEmail = reg.email || payment?.userEmail || user?.email;
+          const courseTrack = reg.track || payment?.track || user?.track || "TOT-MEN";
+          if (userEmail) {
+            await enrollUserInCourse({
+              userEmail,
+              courseId: courseTrack,
+              tranId: tranId,
+              amount: Number(result.amount) || payment?.amount || 1000,
+              paymentStatus: "paid",
+              status: "active",
+            });
+          }
+        } catch (enrollErr) {
+          console.error("Auto participant enrollment in validate error:", enrollErr);
         }
       }
     }

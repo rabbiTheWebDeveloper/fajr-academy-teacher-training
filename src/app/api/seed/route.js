@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
 import { PaymentModel } from "@/model/payment-model";
+import { enrollUserInCourse } from "@/service/participant-service";
 
 export async function GET() {
   return handleSeed();
@@ -113,6 +114,23 @@ async function handleSeed() {
         },
         { upsert: true, new: true }
       );
+
+      // If user is a trainee teacher or participant, auto-enroll in their course
+      if (u.role === "teacher" || u.role === "participant") {
+        try {
+          await enrollUserInCourse({
+            userId: user._id,
+            userEmail: user.email,
+            courseId: u.track,
+            tranId: u.tranId,
+            amount: u.paidAmount || 1000,
+            paymentStatus: "paid",
+            status: "active",
+          });
+        } catch (e) {
+          console.warn("Seed participant enroll warning:", e.message);
+        }
+      }
 
       results.push({
         name: user.fullName,

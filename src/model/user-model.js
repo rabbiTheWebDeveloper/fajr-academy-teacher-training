@@ -51,7 +51,7 @@ const userSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ["teacher", "admin", "instructor", "student", "organizer", "super-admin", "staff"],
+      enum: ["teacher", "admin", "instructor", "student", "organizer", "super-admin", "staff", "participant"],
       default: "teacher",
       index: true,
     },
@@ -126,6 +126,13 @@ const userSchema = new Schema(
       type: String, 
       default: "" 
     },
+    enrolledCourses: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Course",
+      },
+    ],
+    enrolledCourseIds: [{ type: String }],
     permissions: [{ type: String }],
     isActive: { 
       type: Boolean, 

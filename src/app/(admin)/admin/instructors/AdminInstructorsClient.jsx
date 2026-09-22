@@ -26,9 +26,12 @@ import {
   Check,
   AlertCircle,
   Save,
-  RotateCcw
+  RotateCcw,
+  Camera,
+  Cloud
 } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
+import CloudinaryImageUpload from "@/components/CloudinaryImageUpload";
 
 export default function AdminInstructorsClient({ initialInstructors }) {
   const [instructors, setInstructors] = useState(initialInstructors || []);
@@ -53,6 +56,7 @@ export default function AdminInstructorsClient({ initialInstructors }) {
     password: "Fajr@Instructor2026",
     experienceYears: 5,
     bio: "ফজর একাডেমি ট্রেনিং অব ট্রেইনার্স (TOT) কোর্সের সিনিয়র প্রশিক্ষক।",
+    avatar: "",
   });
 
   const notify = (text, type = "success") => {
@@ -89,6 +93,7 @@ export default function AdminInstructorsClient({ initialInstructors }) {
           password: "Fajr@Instructor2026",
           experienceYears: 5,
           bio: "ফজর একাডেমি ট্রেনিং অব ট্রেইনার্স (TOT) কোর্সের সিনিয়র প্রশিক্ষক।",
+          avatar: "",
         });
       } else {
         notify(data.message || "ইনস্ট্রাক্টর যোগ করা ব্যর্থ হয়েছে", "error");
@@ -119,6 +124,7 @@ export default function AdminInstructorsClient({ initialInstructors }) {
           track: editingInstructor.track,
           bio: editingInstructor.bio,
           experienceYears: editingInstructor.experienceYears,
+          avatar: editingInstructor.avatar || "",
         }),
       });
 
@@ -297,8 +303,26 @@ export default function AdminInstructorsClient({ initialInstructors }) {
 
                 {/* Avatar & Title */}
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-black text-lg flex items-center justify-center shadow-md shrink-0">
-                    {inst.fullName ? inst.fullName[0].toUpperCase() : "I"}
+                  <div className="relative group shrink-0">
+                    {inst.avatar ? (
+                      <img
+                        src={inst.avatar}
+                        alt={inst.fullName}
+                        className="w-12 h-12 rounded-2xl object-cover border border-amber-500/30 shadow-md bg-slate-800"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-black text-lg flex items-center justify-center shadow-md">
+                        {inst.fullName ? inst.fullName[0].toUpperCase() : "I"}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setEditingInstructor(inst)}
+                      title="ছবি আপলোড / পরিবর্তন করুন"
+                      className="absolute -bottom-1 -right-1 p-1 rounded-full bg-slate-900 border border-slate-700 text-amber-400 hover:text-white hover:bg-amber-500 hover:border-amber-400 shadow transition-all cursor-pointer"
+                    >
+                      <Camera className="w-3 h-3" />
+                    </button>
                   </div>
                   <div>
                     <h3 className={`font-black text-base tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
@@ -403,9 +427,17 @@ export default function AdminInstructorsClient({ initialInstructors }) {
             {/* Modal Top */}
             <div className="flex items-start justify-between border-b pb-4 border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-black text-2xl flex items-center justify-center shadow-lg shrink-0">
-                  {selectedInstructorForProfile.fullName ? selectedInstructorForProfile.fullName[0].toUpperCase() : "I"}
-                </div>
+                {selectedInstructorForProfile.avatar ? (
+                  <img
+                    src={selectedInstructorForProfile.avatar}
+                    alt={selectedInstructorForProfile.fullName}
+                    className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-500 shadow-xl shrink-0 bg-slate-800"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-black text-2xl flex items-center justify-center shadow-lg shrink-0">
+                    {selectedInstructorForProfile.fullName ? selectedInstructorForProfile.fullName[0].toUpperCase() : "I"}
+                  </div>
+                )}
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-amber-500 text-slate-950">
@@ -549,7 +581,14 @@ export default function AdminInstructorsClient({ initialInstructors }) {
               </button>
             </div>
 
-            <form onSubmit={handleUpdateInstructor} className="space-y-3 text-xs">
+            <form onSubmit={handleUpdateInstructor} className="space-y-4 text-xs">
+              <CloudinaryImageUpload
+                value={editingInstructor.avatar || ""}
+                onChange={(url) => setEditingInstructor({ ...editingInstructor, avatar: url })}
+                label="ইনস্ট্রাক্টরের ছবি (Cloudinary Photo)"
+                isLight={isLight}
+              />
+
               <div>
                 <label className="block font-bold mb-1">পূর্ণ নাম *</label>
                 <input
@@ -667,7 +706,14 @@ export default function AdminInstructorsClient({ initialInstructors }) {
               </button>
             </div>
 
-            <form onSubmit={handleAddInstructor} className="space-y-3 text-xs">
+            <form onSubmit={handleAddInstructor} className="space-y-4 text-xs">
+              <CloudinaryImageUpload
+                value={formData.avatar || ""}
+                onChange={(url) => setFormData({ ...formData, avatar: url })}
+                label="ইনস্ট্রাক্টরের ছবি (Cloudinary Photo)"
+                isLight={isLight}
+              />
+
               <div>
                 <label className="block font-bold mb-1">উস্তাদ / উস্তাজার পূর্ণ নাম *</label>
                 <input

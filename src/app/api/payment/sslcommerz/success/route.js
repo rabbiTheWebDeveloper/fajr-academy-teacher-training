@@ -4,6 +4,7 @@ import { UserModel } from "@/model/user-model";
 import { PaymentModel } from "@/model/payment-model";
 import { signToken } from "@/lib/auth";
 import { validateSSLCommerzPayment } from "@/lib/sslcommerz";
+import { enrollUserInCourse } from "@/service/participant-service";
 
 export async function POST(request) {
   return handleSuccess(request);
@@ -134,6 +135,24 @@ async function handleSuccess(request) {
       if (reg.englishSkill) user.englishSkill = reg.englishSkill;
       if (reg.education) user.education = reg.education;
       await user.save();
+    }
+
+    // Automatically enroll user as course Participant in ParticipantModel
+    if (user) {
+      try {
+        const courseTrack = user.track || payment?.track || reg.track || "TOT-MEN";
+        await enrollUserInCourse({
+          userId: user._id,
+          userEmail: user.email,
+          courseId: courseTrack,
+          tranId: tranId,
+          amount: Number(amount) || payment?.amount || 1000,
+          paymentStatus: "paid",
+          status: "active",
+        });
+      } catch (enrollErr) {
+        console.error("Auto participant enrollment error:", enrollErr);
+      }
     }
 
     // Sign authentication JWT

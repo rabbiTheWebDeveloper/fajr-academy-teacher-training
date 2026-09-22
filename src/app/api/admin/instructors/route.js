@@ -79,6 +79,7 @@ export async function POST(request) {
       specialization = "আন্তর্জাতিক কুরআন টিচিং পেডাগজি ও তাজবীদ",
       bio = "",
       experienceYears = 5,
+      avatar = "",
     } = body;
 
     if (!fullName || !email) {
@@ -103,6 +104,7 @@ export async function POST(request) {
       existing.role = "instructor";
       existing.designation = designation;
       existing.track = track;
+      if (avatar) existing.avatar = avatar;
       if (specialization) existing.specialization = specialization;
       if (bio) existing.bio = bio;
       await existing.save();
@@ -120,6 +122,7 @@ export async function POST(request) {
           designation: existing.designation,
           specialization: existing.specialization,
           bio: existing.bio,
+          avatar: existing.avatar || "",
         },
       });
     }
@@ -142,6 +145,7 @@ export async function POST(request) {
       paymentStatus: "paid",
       paidAmount: 1000,
       tranId,
+      avatar: avatar || "",
       isActive: true,
       enrolledAt: new Date(),
     });
@@ -163,6 +167,7 @@ export async function POST(request) {
         experienceYears: newInstructor.experienceYears,
         rating: newInstructor.rating,
         tranId: newInstructor.tranId,
+        avatar: newInstructor.avatar || "",
         createdAt: newInstructor.createdAt.toISOString(),
       },
     });
