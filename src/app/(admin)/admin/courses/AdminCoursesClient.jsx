@@ -27,10 +27,18 @@ import {
   ChevronRight,
   Eye,
   FileCode,
-  Tag
+  Tag,
+  User,
+  RotateCcw,
+  Sparkles
 } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
-import { DEFAULT_TOT_CURRICULUM, DEFAULT_TOT_RESOURCES } from "@/constant/course-defaults";
+import {
+  DEFAULT_TOT_CURRICULUM,
+  WOMEN_TOT_CURRICULUM,
+  MEN_TOT_CURRICULUM,
+  DEFAULT_TOT_RESOURCES,
+} from "@/constant/course-defaults";
 
 export default function AdminCoursesClient({ initialBatches }) {
   const [batches, setBatches] = useState(initialBatches || []);
@@ -49,11 +57,18 @@ export default function AdminCoursesClient({ initialBatches }) {
   // New Module Form State
   const [newModule, setNewModule] = useState({
     moduleNo: 1,
+    sessionBadge: "SESSION 01",
     title: "",
     subtitle: "",
     description: "",
-    duration: "১ সপ্তাহ (৩টি লাইভ সেশন)",
-    liveDate: "১ম সপ্তাহ",
+    themeQuote: "",
+    trainerName: "",
+    trainerRole: "",
+    trainerQualifications: "",
+    sessionDate: "",
+    sessionTime: "",
+    duration: "১ ঘণ্টা",
+    liveDate: "",
     topics: "",
   });
 
@@ -215,15 +230,22 @@ export default function AdminCoursesClient({ initialBatches }) {
 
     const moduleObj = {
       moduleNo: Number(newModule.moduleNo) || (selectedCourseForCurriculum.curriculum?.length || 0) + 1,
+      sessionBadge: newModule.sessionBadge || `SESSION 0${(selectedCourseForCurriculum.curriculum?.length || 0) + 1}`,
       title: newModule.title,
       subtitle: newModule.subtitle,
       description: newModule.description,
-      duration: newModule.duration,
-      liveDate: newModule.liveDate,
+      themeQuote: newModule.themeQuote,
+      trainerName: newModule.trainerName,
+      trainerRole: newModule.trainerRole,
+      trainerQualifications: newModule.trainerQualifications,
+      sessionDate: newModule.sessionDate,
+      sessionTime: newModule.sessionTime,
+      duration: newModule.duration || "১ ঘণ্টা",
+      liveDate: newModule.liveDate || newModule.sessionDate,
       topics: topicsArray,
       lessons: [
-        { lessonNo: 1, title: `${newModule.title} - সেশন ০১`, duration: "৫০ মিনিট", isFreePreview: false },
-        { lessonNo: 2, title: `${newModule.title} - সেশন ০২`, duration: "৫০ মিনিট", isFreePreview: false },
+        { lessonNo: 1, title: `${newModule.title} - লেসন ০১`, duration: "৪৫ মিনিট", isFreePreview: false },
+        { lessonNo: 2, title: `${newModule.title} - লেসন ০২`, duration: "৪৫ মিনিট", isFreePreview: false },
       ],
     };
 
@@ -235,13 +257,33 @@ export default function AdminCoursesClient({ initialBatches }) {
     setShowAddModuleModal(false);
     setNewModule({
       moduleNo: updatedCurriculum.length + 1,
+      sessionBadge: `SESSION 0${updatedCurriculum.length + 1}`,
       title: "",
       subtitle: "",
       description: "",
-      duration: "১ সপ্তাহ (৩টি লাইভ সেশন)",
-      liveDate: `${updatedCurriculum.length + 1}ম সপ্তাহ`,
+      themeQuote: "",
+      trainerName: "",
+      trainerRole: "",
+      trainerQualifications: "",
+      sessionDate: "",
+      sessionTime: "",
+      duration: "১ ঘণ্টা",
+      liveDate: "",
       topics: "",
     });
+  };
+
+  const handleReloadOfficialCurriculum = () => {
+    if (!selectedCourseForCurriculum) return;
+    const isMen = selectedCourseForCurriculum.track === "men" || selectedCourseForCurriculum.courseId === "TOT-MEN";
+    const officialCurriculum = isMen ? MEN_TOT_CURRICULUM : WOMEN_TOT_CURRICULUM;
+
+    if (!window.confirm(`আপনি কি "${selectedCourseForCurriculum.name}" কোর্সের কারিকুলাম অফিশিয়াল পোস্টার সেশন তথ্য অনুযায়ী রিলোড ও আপডেট করতে চান?`)) return;
+
+    const updatedCourse = { ...selectedCourseForCurriculum, curriculum: officialCurriculum };
+    setSelectedCourseForCurriculum(updatedCourse);
+    handleSaveCourse(updatedCourse);
+    notify("পোস্টার অনুযায়ী অফিসিয়াল কারিকুলাম সফলভাবে রিলোড ও সেভ হয়েছে!");
   };
 
   const handleDeleteModule = (moduleIndex) => {
@@ -707,24 +749,48 @@ export default function AdminCoursesClient({ initialBatches }) {
               </div>
 
               {curriculumTab === "curriculum" ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewModule({
-                      moduleNo: (selectedCourseForCurriculum.curriculum?.length || 0) + 1,
-                      title: "",
-                      subtitle: "",
-                      description: "",
-                      duration: "১ সপ্তাহ (৩টি লাইভ সেশন)",
-                      liveDate: `${(selectedCourseForCurriculum.curriculum?.length || 0) + 1}ম সপ্তাহ`,
-                      topics: "",
-                    });
-                    setShowAddModuleModal(true);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" /> নতুন মডিউল
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleReloadOfficialCurriculum}
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      isLight
+                        ? "bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 shadow-xs"
+                        : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
+                    }`}
+                    title="পোস্টার অনুযায়ী অফিসিয়াল কারিকুলাম রিলোড করুন"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="hidden sm:inline">পোস্টার কারিকুলাম রিলোড</span>
+                    <span className="sm:hidden">রিলোড</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewModule({
+                        moduleNo: (selectedCourseForCurriculum.curriculum?.length || 0) + 1,
+                        sessionBadge: `SESSION 0${(selectedCourseForCurriculum.curriculum?.length || 0) + 1}`,
+                        title: "",
+                        subtitle: "",
+                        description: "",
+                        themeQuote: "",
+                        trainerName: "",
+                        trainerRole: "",
+                        trainerQualifications: "",
+                        sessionDate: "",
+                        sessionTime: "",
+                        duration: "১ ঘণ্টা",
+                        liveDate: "",
+                        topics: "",
+                      });
+                      setShowAddModuleModal(true);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> নতুন সেশন
+                  </button>
+                </div>
               ) : (
                 <button
                   type="button"
@@ -747,32 +813,97 @@ export default function AdminCoursesClient({ initialBatches }) {
                   selectedCourseForCurriculum.curriculum.map((mod, modIdx) => (
                     <div
                       key={mod._id || modIdx}
-                      className={`p-5 rounded-2xl border space-y-3 transition-all ${
-                        isLight ? "bg-slate-50 border-slate-200" : "bg-slate-950 border-slate-800"
+                      className={`p-5 rounded-3xl border space-y-3.5 transition-all ${
+                        isLight ? "bg-white border-slate-200 shadow-sm" : "bg-slate-950 border-slate-800 shadow-md"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded font-mono text-[10px] font-black bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30">
-                              MODULE {mod.moduleNo || modIdx + 1}
-                            </span>
-                            <span className={`text-xs font-bold ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                              {mod.duration || "১ সপ্তাহ"}
-                            </span>
+                        <div className="space-y-2 flex-1 min-w-0">
+                          {/* Badges Row */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {mod.sessionBadge ? (
+                              <span className="px-3 py-1 rounded-full font-mono text-[11px] font-black bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-xs tracking-wider">
+                                {mod.sessionBadge}
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full font-mono text-[10px] font-black bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                                MODULE {mod.moduleNo || modIdx + 1}
+                              </span>
+                            )}
+
+                            {(mod.sessionDate || mod.liveDate) && (
+                              <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                                isLight ? "bg-slate-100 text-slate-700 border-slate-200" : "bg-slate-900 text-slate-300 border-slate-800"
+                              }`}>
+                                <Calendar className="w-3 h-3 text-amber-500" />
+                                {mod.sessionDate || mod.liveDate}
+                              </span>
+                            )}
+
+                            {(mod.sessionTime || mod.duration) && (
+                              <span className={`inline-flex items-center gap-1 text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
+                                isLight ? "bg-slate-100 text-slate-700 border-slate-200" : "bg-slate-900 text-slate-300 border-slate-800"
+                              }`}>
+                                <Clock className="w-3 h-3 text-amber-500" />
+                                {mod.sessionTime || mod.duration}
+                              </span>
+                            )}
                           </div>
-                          <h4 className={`text-sm sm:text-base font-black mt-1 ${isLight ? "text-slate-900" : "text-white"}`}>
+
+                          {/* Session Title */}
+                          <h4 className={`text-sm sm:text-base font-black leading-snug tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
                             {mod.title}
                           </h4>
-                          {mod.subtitle && (
-                            <p className={`text-xs font-semibold mt-0.5 ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-                              {mod.subtitle}
-                            </p>
+
+                          {/* Theme Quote Box (from poster) */}
+                          {mod.themeQuote && (
+                            <div className={`p-3 rounded-2xl border text-xs leading-relaxed italic ${
+                              isLight
+                                ? "bg-amber-50/70 border-amber-200/80 text-slate-800"
+                                : "bg-amber-950/20 border-amber-500/20 text-amber-200/90"
+                            }`}>
+                              <span className="font-bold not-italic text-amber-600 dark:text-amber-400 block mb-1 text-[10px] uppercase tracking-wider">
+                                📖 SESSION THEME:
+                              </span>
+                              {mod.themeQuote}
+                            </div>
                           )}
-                          {mod.description && (
-                            <p className={`text-[11px] mt-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+
+                          {mod.description && !mod.themeQuote && (
+                            <p className={`text-[11px] leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
                               {mod.description}
                             </p>
+                          )}
+
+                          {/* Session Trainer Box (from poster) */}
+                          {mod.trainerName && (
+                            <div className={`flex items-start gap-3 p-3 rounded-2xl border ${
+                              isLight ? "bg-slate-50 border-slate-200" : "bg-slate-900/60 border-slate-800"
+                            }`}>
+                              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-slate-950 font-black flex items-center justify-center text-sm shadow shrink-0 mt-0.5">
+                                {mod.trainerName[0]}
+                              </div>
+                              <div className="text-xs min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                                    SESSION TRAINER
+                                  </span>
+                                  <span className={`font-black ${isLight ? "text-slate-900" : "text-white"}`}>
+                                    {mod.trainerName}
+                                  </span>
+                                </div>
+                                {mod.trainerRole && (
+                                  <p className={`text-[11px] font-medium mt-0.5 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                                    {mod.trainerRole}
+                                  </p>
+                                )}
+                                {mod.trainerQualifications && (
+                                  <p className={`text-[10px] font-mono mt-0.5 ${isLight ? "text-amber-800" : "text-amber-300/90"}`}>
+                                    🎓 {mod.trainerQualifications}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
                           )}
                         </div>
 
@@ -949,57 +1080,105 @@ export default function AdminCoursesClient({ initialBatches }) {
             <form onSubmit={handleAddModule} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold mb-1">মডিউল নম্বর</label>
+                  <label className="block font-bold mb-1">সেশন ব্যাজ / নম্বর</label>
                   <input
-                    type="number"
-                    value={newModule.moduleNo}
-                    onChange={(e) => setNewModule({ ...newModule, moduleNo: e.target.value })}
-                    className="w-full font-mono px-3 py-2 rounded-xl border"
+                    type="text"
+                    value={newModule.sessionBadge}
+                    onChange={(e) => setNewModule({ ...newModule, sessionBadge: e.target.value })}
+                    placeholder="যেমন: SESSION 01 / ORIENTATION"
+                    className="w-full font-mono font-bold px-3 py-2 rounded-xl border text-amber-600"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block font-bold mb-1">সময়কাল / সপ্তাহ</label>
+                  <label className="block font-bold mb-1">সময়কাল</label>
                   <input
                     type="text"
                     value={newModule.duration}
                     onChange={(e) => setNewModule({ ...newModule, duration: e.target.value })}
+                    placeholder="যেমন: ১ ঘণ্টা / ৪৫ মিনিট"
                     className="w-full px-3 py-2 rounded-xl border"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold mb-1">মডিউল শিরোনাম *</label>
+                <label className="block font-bold mb-1">সেশন শিরোনাম (Topic Title) *</label>
                 <input
                   type="text"
                   value={newModule.title}
                   onChange={(e) => setNewModule({ ...newModule, title: e.target.value })}
-                  placeholder="যেমন: মডিউল ৫: অ্যাডভান্সড তাজবীদ ও লাইভ মেন্টরিং"
+                  placeholder="যেমন: THE QUR'ANIC TEACHER : Purpose, Mindset & the Art of Inspiring"
                   className="w-full font-bold px-3 py-2 rounded-xl border"
                   required
                 />
               </div>
 
-              <div>
-                <label className="block font-bold mb-1">সাবটাইটেল</label>
-                <input
-                  type="text"
-                  value={newModule.subtitle}
-                  onChange={(e) => setNewModule({ ...newModule, subtitle: e.target.value })}
-                  placeholder="ফোকাস ও বিশেষ মেথডোলজি"
-                  className="w-full px-3 py-2 rounded-xl border"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold mb-1">সেশন তারিখ (Date)</label>
+                  <input
+                    type="text"
+                    value={newModule.sessionDate}
+                    onChange={(e) => setNewModule({ ...newModule, sessionDate: e.target.value })}
+                    placeholder="যেমন: 23 August 2026, Sunday"
+                    className="w-full px-3 py-2 rounded-xl border"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">সেশন সময় (Time)</label>
+                  <input
+                    type="text"
+                    value={newModule.sessionTime}
+                    onChange={(e) => setNewModule({ ...newModule, sessionTime: e.target.value })}
+                    placeholder="যেমন: 8:00 PM - 9:00 PM"
+                    className="w-full font-mono px-3 py-2 rounded-xl border"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block font-bold mb-1">সংক্ষিপ্ত বিবরণ</label>
+                <label className="block font-bold mb-1">সেশন থিম কোট (Session Theme / Quote)</label>
                 <textarea
-                  value={newModule.description}
-                  onChange={(e) => setNewModule({ ...newModule, description: e.target.value })}
+                  value={newModule.themeQuote}
+                  onChange={(e) => setNewModule({ ...newModule, themeQuote: e.target.value })}
                   rows={2}
-                  className="w-full px-3 py-2 rounded-xl border"
-                  placeholder="শিক্ষার্থীরা এই মডিউল থেকে কী কী শিখবেন..."
+                  className="w-full px-3 py-2 rounded-xl border italic"
+                  placeholder="পোস্টারের থিম উদ্ধৃতি..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold mb-1">ট্রেইনার নাম (Trainer Name)</label>
+                  <input
+                    type="text"
+                    value={newModule.trainerName}
+                    onChange={(e) => setNewModule({ ...newModule, trainerName: e.target.value })}
+                    placeholder="যেমন: Kazi Shakhawat Hossain"
+                    className="w-full font-bold px-3 py-2 rounded-xl border"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">ট্রেইনার পদবী (Trainer Role)</label>
+                  <input
+                    type="text"
+                    value={newModule.trainerRole}
+                    onChange={(e) => setNewModule({ ...newModule, trainerRole: e.target.value })}
+                    placeholder="যেমন: Senior Operation Executive"
+                    className="w-full px-3 py-2 rounded-xl border"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold mb-1">ট্রেইনার শিক্ষাগত যোগ্যতা (Qualifications)</label>
+                <input
+                  type="text"
+                  value={newModule.trainerQualifications}
+                  onChange={(e) => setNewModule({ ...newModule, trainerQualifications: e.target.value })}
+                  placeholder="যেমন: BA (Hons) in Qur'anic Sciences (IIUC), MA (BIU)"
+                  className="w-full font-mono text-[11px] px-3 py-2 rounded-xl border"
                 />
               </div>
 
@@ -1009,7 +1188,7 @@ export default function AdminCoursesClient({ initialBatches }) {
                   type="text"
                   value={newModule.topics}
                   onChange={(e) => setNewModule({ ...newModule, topics: e.target.value })}
-                  placeholder="তাজবীদ, পেডাগজি, লাইভ প্র্যাকটিস"
+                  placeholder="Mindset, Pedagogy, Live Practice"
                   className="w-full px-3 py-2 rounded-xl border"
                 />
               </div>

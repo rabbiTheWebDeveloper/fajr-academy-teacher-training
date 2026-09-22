@@ -3,6 +3,8 @@ import { dbConnect } from "@/service/mongo";
 import {
   CourseModel,
   DEFAULT_TOT_CURRICULUM,
+  WOMEN_TOT_CURRICULUM,
+  MEN_TOT_CURRICULUM,
   DEFAULT_TOT_RESOURCES,
 } from "@/model/course-model";
 
@@ -24,17 +26,17 @@ export async function GET() {
           fee: 1000,
           regularFee: 2500,
           orientationDate: "২০ সেপ্টেম্বর ২০২৬",
-          orientationTime: "রাত ৮:০০ টা – ৯:৩০ টা",
+          orientationTime: "রাত ৮:৩০ টা – ৯:৪৫ টা",
           routine: "রবিবার, মঙ্গলবার ও বৃহস্পতিবার (রাত ৮:০০)",
           duration: "১ মাস (৪টি প্রফেশনাল সেশন)",
           meetLink: "https://meet.google.com/tot-fajr-men-2026",
           whatsappLink: "https://chat.whatsapp.com/tot-fajr-men-batch",
-          instructor: "উস্তাদ আব্দুল্লাহ আল-মাহমুদ",
+          instructor: "হাফেজ মাওলানা মুহাম্মদ ফারাবী চৌধুরী",
           enrolledCount: 42,
           maxSeats: 60,
           status: "Active & Enrolling",
           isPublished: true,
-          curriculum: DEFAULT_TOT_CURRICULUM,
+          curriculum: MEN_TOT_CURRICULUM,
           resources: DEFAULT_TOT_RESOURCES,
         },
         {
@@ -45,33 +47,40 @@ export async function GET() {
           summary: "দ্বীনে ফেরা বোনদের জন্য ঘরে বসেই আন্তর্জাতিক মানের অনলাইন কুরআন টিচার হওয়ার সুবর্ণ সুযোগ।",
           fee: 1000,
           regularFee: 2500,
-          orientationDate: "২১ সেপ্টেম্বর ২০২৬",
-          orientationTime: "রাত ৮:০০ টা – ৯:৩০ টা",
-          routine: "শনিবার, সোমবার ও বুধবার (রাত ৮:০০)",
+          orientationDate: "২৩ আগস্ট ২০২৬",
+          orientationTime: "রাত ৮:০০ টা – ৯:০০ টা",
+          routine: "রবিবার (রাত ৮:০০)",
           duration: "১ মাস (৪টি প্রফেশনাল সেশন)",
           meetLink: "https://meet.google.com/tot-fajr-women-014",
           whatsappLink: "https://chat.whatsapp.com/tot-fajr-women-batch014",
-          instructor: "উস্তাজা ফারহানা চৌধুরী",
+          instructor: "ফজর একাডেমি স্পেশাল ফ্যাকাল্টি টিম",
           enrolledCount: 58,
           maxSeats: 60,
           status: "Active & Enrolling",
           isPublished: true,
-          curriculum: DEFAULT_TOT_CURRICULUM,
+          curriculum: WOMEN_TOT_CURRICULUM,
           resources: DEFAULT_TOT_RESOURCES,
         },
       ];
       await CourseModel.insertMany(defaultCourses);
       courses = await CourseModel.find().sort({ createdAt: 1 }).lean();
     } else {
-      // Ensure existing courses have curriculum and resources if previously empty
+      // Ensure existing courses have official poster curriculum and resources
       let needsUpdate = false;
       for (const c of courses) {
-        if (!c.curriculum || c.curriculum.length === 0 || !c.resources || c.resources.length === 0) {
+        const isMen = c.track === "men" || c.courseId === "TOT-MEN";
+        const officialCurriculum = isMen ? MEN_TOT_CURRICULUM : WOMEN_TOT_CURRICULUM;
+        const hasOutdatedCurriculum =
+          !c.curriculum ||
+          c.curriculum.length === 0 ||
+          !c.curriculum[0]?.sessionBadge;
+
+        if (hasOutdatedCurriculum || !c.resources || c.resources.length === 0) {
           await CourseModel.updateOne(
             { _id: c._id },
             {
               $set: {
-                curriculum: (!c.curriculum || c.curriculum.length === 0) ? DEFAULT_TOT_CURRICULUM : c.curriculum,
+                curriculum: hasOutdatedCurriculum ? officialCurriculum : c.curriculum,
                 resources: (!c.resources || c.resources.length === 0) ? DEFAULT_TOT_RESOURCES : c.resources,
               },
             }

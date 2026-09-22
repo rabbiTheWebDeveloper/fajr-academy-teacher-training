@@ -36,6 +36,11 @@ const moduleSchema = new Schema(
       required: true,
       default: 1,
     },
+    sessionBadge: {
+      type: String,
+      default: "", // "SESSION ORIENTATION", "SESSION 01", "SESSION 02", "SESSION 03", "SESSION FINAL"
+      trim: true,
+    },
     title: {
       type: String,
       required: true,
@@ -49,9 +54,38 @@ const moduleSchema = new Schema(
       type: String,
       default: "",
     },
+    themeQuote: {
+      type: String,
+      default: "",
+    },
+    trainerName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    trainerRole: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    trainerQualifications: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    sessionDate: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    sessionTime: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     duration: {
       type: String,
-      default: "১ সপ্তাহ",
+      default: "১ ঘণ্টা",
     },
     liveDate: {
       type: String,
@@ -220,7 +254,12 @@ const courseSchema = new Schema(
   }
 );
 
-export { DEFAULT_TOT_CURRICULUM, DEFAULT_TOT_RESOURCES } from "@/constant/course-defaults";
+export {
+  DEFAULT_TOT_CURRICULUM,
+  WOMEN_TOT_CURRICULUM,
+  MEN_TOT_CURRICULUM,
+  DEFAULT_TOT_RESOURCES,
+} from "@/constant/course-defaults";
 
 export const CourseModel =
   mongoose.models.Course || mongoose.model("Course", courseSchema);
