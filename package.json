@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:admin": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/scripts/create-admin.mjs"
   },
   "dependencies": {
     "cloudinary": "^2.11.0",
