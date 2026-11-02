@@ -3,3 +3,18 @@ allowBuilds:
   unrs-resolver: true
 ignoredBuiltDependencies:
   - core-js
+minimumReleaseAgeExclude:
+  - form-data@2.5.6
+  - next@16.3.3 || 16.3.6 || 16.3.8 || 16.4.1
+  - brace-expansion@1.1.19 || 1.1.20 || 1.1.21 || 5.0.10 || 5.0.11 || 5.0.12
+  - dompurify@3.4.16 || 3.4.17
+  - source-map-js@1.2.2
+  - sharp@0.35.5
+  - nodemailer@10.0.10 || 10.0.13 || 10.1.4
+  - zod@4.6.6
+  - multer@2.5.0
+  - qs@6.16.1
+  - minimatch@11.0.1
+overrides:
+  form-data@<2.5.6: ^2.5.6
+  minimatch@<11.0.1: ^11.0.1

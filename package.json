@@ -21,9 +21,9 @@
     "lucide-react": "^1.45.0",
     "mongodb": "^7.6.0",
     "mongoose": "^9.10.0",
-    "multer": "^2.4.0",
-    "next": "16.3.0",
-    "nodemailer": "^10.0.9",
+    "multer": "^2.5.0",
+    "next": "16.4.3",
+    "nodemailer": "^10.3.1",
     "pusher": "^5.3.4",
     "pusher-js": "^8.6.0",
     "react": "19.2.8",
@@ -35,7 +35,7 @@
     "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "19.2.18",
     "eslint": "^9.39.5",
-    "eslint-config-next": "16.3.0",
+    "eslint-config-next": "16.4.3",
     "tailwindcss": "^4.3.3"
   },
   "packageManager": "pnpm@11.9.0"
