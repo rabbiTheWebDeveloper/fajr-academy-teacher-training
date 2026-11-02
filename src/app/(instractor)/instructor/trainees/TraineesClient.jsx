@@ -253,6 +253,8 @@ export default function TraineesClient({ initialData = null, pageSize = 25, load
   };
 
   const fetchPage = async (next) => {
+    // Any explicit fetch supersedes a pending debounced search (its value is already in `search`).
+    if (searchTimer.current) clearTimeout(searchTimer.current);
     const params = { track: trackFilter, payment: paymentFilter, q: search, page: data.page, ...next };
     ctrlRef.current?.abort();
     const ctrl = new AbortController();

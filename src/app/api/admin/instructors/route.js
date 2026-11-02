@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
+import { SessionModel } from "@/model/session-model";
 import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
 import { generatePassword, MIN_PASSWORD_LENGTH } from "@/lib/password";
 import { isObjectId, pick, searchFilter } from "@/lib/query-helpers";
@@ -140,7 +141,7 @@ export async function PATCH(request) {
   }
 }
 
-/** Removes the instructor role (account becomes an inactive trainee) — grades they gave stay intact. */
+/** Deletes the instructor account and its login sessions. Grades they gave stay intact (evaluator name/email are stored on each evaluation). */
 export async function DELETE(request) {
   const auth = await requireAuth(request, ADMIN_ROLES);
   if (auth.error) return auth.error;
@@ -152,6 +153,7 @@ export async function DELETE(request) {
 
     const res = await UserModel.deleteOne({ _id: id, role: "instructor" });
     if (res.deletedCount === 0) return bad("ইনস্ট্রাক্টর পাওয়া যায়নি (অ্যাডমিন অ্যাকাউন্ট এখান থেকে মোছা যায় না)।", 404);
+    await SessionModel.deleteMany({ userId: id });
     return NextResponse.json({ success: true, message: "ইনস্ট্রাক্টর সফলভাবে মুছে ফেলা হয়েছে।" });
   } catch (error) {
     return serverError(error, "Admin instructors DELETE");

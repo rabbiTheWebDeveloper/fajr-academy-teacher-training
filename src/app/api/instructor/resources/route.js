@@ -12,7 +12,7 @@ export async function GET(request) {
 
   try {
     await dbConnect();
-    const courses = await CourseModel.find({}).select("courseId name track resources").sort({ createdAt: 1 }).lean();
+    const courses = await CourseModel.find({}).select("courseId name track isPublished status resources").sort({ createdAt: 1 }).lean();
     return NextResponse.json({ success: true, courses: JSON.parse(JSON.stringify(courses)) });
   } catch (error) {
     return serverError(error, "Instructor resources GET");

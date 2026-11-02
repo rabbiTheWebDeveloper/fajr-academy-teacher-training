@@ -18,7 +18,7 @@ export default async function ClassesPage() {
       notices={data.notices}
       paid={data.paid}
       primaryCourseId={primaryCourseIdFor(data.user)}
-      lastAttempt={latestUnpaidAttempt(data.payments)}
+      lastAttempt={latestUnpaidAttempt(data.payments, primaryCourseIdFor(data.user))}
     />
   );
 }

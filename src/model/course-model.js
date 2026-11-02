@@ -108,7 +108,7 @@ const resourceSchema = new Schema(
   {
     resourceId: {
       type: String,
-      default: () => `RES-${Date.now().toString().slice(-4)}`,
+      default: () => `RES-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
     },
     title: {
       type: String,
@@ -133,7 +133,7 @@ const resourceSchema = new Schema(
     },
     fileUrl: {
       type: String,
-      default: "https://drive.google.com/drive/folders/tot-fajr-resources",
+      default: "",
     },
     isDownloadable: {
       type: Boolean,
@@ -201,11 +201,11 @@ const courseSchema = new Schema(
     },
     meetLink: {
       type: String,
-      default: "https://meet.google.com/tot-fajr-room",
+      default: "" // set by admins/instructors; empty = not announced yet,
     },
     whatsappLink: {
       type: String,
-      default: "https://chat.whatsapp.com/tot-fajr-community",
+      default: "",
     },
     instructor: {
       type: String,

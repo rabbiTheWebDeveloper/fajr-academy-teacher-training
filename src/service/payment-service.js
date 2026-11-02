@@ -9,6 +9,7 @@ import { validationProblem } from "@/lib/payment-validation";
 import { enrollUserInCourse } from "@/service/participant-service";
 import { courseIdForUserTrack } from "@/service/course-service";
 import { sendCustomEmail } from "@/utlis/mail";
+import { generatePassword } from "@/lib/password";
 
 /**
  * Payment lifecycle — the only code allowed to mark a payment VALID from the gateway.
@@ -117,15 +118,23 @@ export async function provisionForPayment(payment) {
 
   let user = payment.user ? await UserModel.findById(payment.user) : null;
   if (!user && email) user = await UserModel.findOne({ email });
+  let generatedPassword = null;
 
   if (!user) {
-    // New applicant: create the account now that the money is confirmed.
+    // New applicant: create the account now that the money is confirmed. If the stored
+    // hash is gone (e.g. re-verifying after the account was deleted), issue a fresh
+    // password and hand it back to the admin who triggered this.
+    let password = reg.passwordHash; // already a scrypt hash → the model hook keeps it as-is
+    if (!password) {
+      generatedPassword = generatePassword();
+      password = generatedPassword;
+    }
     try {
       user = await UserModel.create({
         fullName: reg.fullName || payment.userName || "TOT Trainee",
         email,
         phone: reg.phone || payment.userPhone || "",
-        password: reg.passwordHash, // already a scrypt hash → the model hook keeps it as-is
+        password,
         role: "teacher",
         track: reg.track || payment.track || "TOT-MEN",
         gender: reg.gender === "female" ? "female" : "male",
@@ -180,7 +189,9 @@ export async function provisionForPayment(payment) {
     console.warn(`[payment ${payment.tranId}] confirmation email skipped:`, err.message)
   );
 
-  return user.toObject ? user.toObject() : user;
+  const out = user.toObject ? user.toObject() : user;
+  if (generatedPassword) out.generatedPassword = generatedPassword;
+  return out;
 }
 
 /**

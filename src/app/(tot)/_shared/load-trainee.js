@@ -31,6 +31,8 @@ export async function loadTraineeDashboard() {
     if (!data) return { session, data: null, error: "not_found" };
     return { session, data, error: null };
   } catch (error) {
+    // A malformed user id in an old token can never match an account.
+    if (error?.name === "CastError") return { session, data: null, error: "not_found" };
     console.error("[TOT] trainee data load failed:", error?.message || error);
     return { session, data: null, error: "load_failed" };
   }

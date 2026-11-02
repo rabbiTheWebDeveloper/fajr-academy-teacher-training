@@ -132,7 +132,7 @@ export default function PaymentsClient({
         </div>
       )}
 
-      {!paid && <PaymentRequiredCard courseId={primaryCourseId} lastAttempt={latestUnpaidAttempt(payments)} compact />}
+      {!paid && <PaymentRequiredCard courseId={primaryCourseId} lastAttempt={latestUnpaidAttempt(payments, primaryCourseId)} compact />}
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

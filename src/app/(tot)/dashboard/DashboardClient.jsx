@@ -78,7 +78,7 @@ export default function DashboardClient({
   const course = courses[courseIndex] || courses[0] || null;
   const participant = course ? participants.find((p) => p.courseId === course.courseId) || null : null;
   const traineeId = traineeIdOf(user);
-  const lastAttempt = latestUnpaidAttempt(payments);
+  const lastAttempt = latestUnpaidAttempt(payments, primaryCourseId);
   const latestValid = payments.find((p) => p.status === "VALID") || null;
   const evalInfo = evaluation ? evalStatusInfo(evaluation.qualificationStatus) : null;
   const avatar = usableLink(user.avatar);

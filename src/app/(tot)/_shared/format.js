@@ -3,8 +3,6 @@
  * so they are safe in both server and client components.
  */
 
-export const TZ = "Asia/Dhaka";
-
 const BN_DIGITS = "০১২৩৪৫৬৭৮৯";
 
 /** "2026" → "২০২৬" */
@@ -17,18 +15,46 @@ export const fromBnDigits = (value) => String(value ?? "").replace(/[০-৯]/g,
 export function formatAmount(amount, currency = "BDT") {
   const n = Number(amount);
   if (!Number.isFinite(n)) return "—";
-  const num = n.toLocaleString("bn-BD", { maximumFractionDigits: 2 });
+  // en-IN grouping (১,০০,০০০) + Bengali digits: identical on the server and in every browser.
+  const num = toBn(n.toLocaleString("en-IN", { maximumFractionDigits: 2 }));
   return !currency || currency === "BDT" ? `৳ ${num}` : `${num} ${currency}`;
 }
 
-/** Bengali date (optionally with time), always in Bangladesh time so server and browser agree. */
-export function formatDate(value, { time = false } = {}) {
-  if (!value) return "";
+const BN_MONTH_NAMES = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
+const EN_MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const DHAKA_OFFSET_MS = 6 * 60 * 60 * 1000; // Asia/Dhaka is UTC+6 all year (no DST)
+
+function dhakaParts(value) {
+  if (!value) return null;
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  const opts = { timeZone: TZ, year: "numeric", month: "long", day: "numeric" };
-  if (time) Object.assign(opts, { hour: "numeric", minute: "2-digit" });
-  return d.toLocaleString("bn-BD", opts);
+  if (Number.isNaN(d.getTime())) return null;
+  const local = new Date(d.getTime() + DHAKA_OFFSET_MS);
+  return {
+    day: local.getUTCDate(),
+    month: local.getUTCMonth(),
+    year: local.getUTCFullYear(),
+    hours: local.getUTCHours(),
+    minutes: local.getUTCMinutes(),
+  };
+}
+
+/**
+ * Bengali date (optionally with time) in Bangladesh time. Built by hand instead of
+ * toLocaleString so the server render and the browser hydrate to the same text.
+ */
+export function formatDate(value, { time = false } = {}) {
+  const p = dhakaParts(value);
+  if (!p) return value ? String(value) : "";
+  const date = `${toBn(p.day)} ${BN_MONTH_NAMES[p.month]} ${toBn(p.year)}`;
+  if (!time) return date;
+  const h = p.hours % 12 || 12;
+  return `${date}, ${toBn(h)}:${toBn(String(p.minutes).padStart(2, "0"))} ${p.hours < 12 ? "AM" : "PM"}`;
+}
+
+/** "20 October 2026" (Bangladesh time) for English text such as certificates. */
+export function formatDateEn(value) {
+  const p = dhakaParts(value);
+  return p ? `${p.day} ${EN_MONTH_NAMES[p.month]} ${p.year}` : "";
 }
 
 /* ------------------------------------------------------------------ */
@@ -42,15 +68,6 @@ export const TONE_BADGE = {
   rose: "bg-rose-500/20 text-rose-300 border-rose-500/40",
   sky: "bg-sky-500/20 text-sky-300 border-sky-500/40",
   slate: "bg-slate-700/40 text-slate-300 border-slate-600/50",
-};
-
-export const TONE_DOT = {
-  emerald: "bg-emerald-400",
-  gold: "bg-[#D4AF37]",
-  amber: "bg-amber-400",
-  rose: "bg-rose-400",
-  sky: "bg-sky-400",
-  slate: "bg-slate-400",
 };
 
 /* ------------------------------ Payments ------------------------------ */

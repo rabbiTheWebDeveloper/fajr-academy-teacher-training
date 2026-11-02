@@ -145,6 +145,8 @@ export default function InstructorDashboardClient({
 
   const switchBatch = (key) => {
     if (key === selectedBatch) return;
+    // A pending debounced search would otherwise reload the previous batch.
+    if (searchTimer.current) clearTimeout(searchTimer.current);
     setSelectedBatch(key);
     setCopiedLink(false);
     loadRoster(key, searchQuery);

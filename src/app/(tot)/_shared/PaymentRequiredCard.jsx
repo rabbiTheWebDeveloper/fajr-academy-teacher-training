@@ -59,7 +59,10 @@ export default function PaymentRequiredCard({ courseId, lastAttempt = null, comp
   );
 }
 
-/** Latest payment that is not VALID, used for the card above. */
-export function latestUnpaidAttempt(payments = []) {
-  return payments.find((p) => p.status !== "VALID") || null;
+/**
+ * Latest non-VALID payment for the course the card asks the trainee to pay for
+ * (payments without a course code — older registrations — count as that course).
+ */
+export function latestUnpaidAttempt(payments = [], courseId = "") {
+  return payments.find((p) => p.status !== "VALID" && (!courseId || !p.courseId || p.courseId === courseId)) || null;
 }

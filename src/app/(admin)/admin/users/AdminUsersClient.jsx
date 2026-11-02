@@ -370,7 +370,8 @@ export default function AdminUsersClient({ initialUsers, loadError: initialLoadE
                         <div className="flex flex-col items-start gap-1">
                           <select
                             value={u.paymentStatus || "pending"}
-                            disabled={busy}
+                            disabled={busy || STAFF_ROLES.includes(u.role)}
+                            title={STAFF_ROLES.includes(u.role) ? "স্টাফ / ইনস্ট্রাক্টর / অ্যাডমিন অ্যাকাউন্টের পেমেন্ট স্ট্যাটাস প্রযোজ্য নয়" : undefined}
                             onChange={(e) => handleChangePayment(u, e.target.value)}
                             className={`border rounded-full px-2.5 py-1 text-[10px] font-extrabold cursor-pointer outline-hidden disabled:opacity-50 disabled:cursor-not-allowed ${
                               u.paymentStatus === "paid" || u.paymentStatus === "free"

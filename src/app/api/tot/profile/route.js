@@ -20,6 +20,8 @@ export async function GET(request) {
   }
 }
 
+const QURAN_SKILLS = ["fluent", "tajweed", "hafez", "basic"];
+const ENGLISH_SKILLS = ["basic", "good", "fluent"];
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", ""];
 
 export async function PATCH(request) {
@@ -46,6 +48,13 @@ export async function PATCH(request) {
         return NextResponse.json({ success: false, message: "রক্তের গ্রুপ সঠিক নয়।" }, { status: 400 });
       }
       update.bloodGroup = body.bloodGroup;
+    }
+    // Same option values as the registration form.
+    if (body.quranSkill !== undefined && !QURAN_SKILLS.includes(body.quranSkill)) {
+      return NextResponse.json({ success: false, message: "কুরআন দক্ষতার মান সঠিক নয়।" }, { status: 400 });
+    }
+    if (body.englishSkill !== undefined && !ENGLISH_SKILLS.includes(body.englishSkill)) {
+      return NextResponse.json({ success: false, message: "ইংরেজি দক্ষতার মান সঠিক নয়।" }, { status: 400 });
     }
     for (const key of ["quranSkill", "englishSkill", "education", "bio"]) {
       if (body[key] !== undefined) update[key] = String(body[key]).trim().slice(0, key === "bio" ? 1000 : 120);

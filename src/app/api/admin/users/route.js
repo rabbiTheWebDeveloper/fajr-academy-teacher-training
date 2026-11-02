@@ -8,8 +8,9 @@ import { SessionModel } from "@/model/session-model";
 import { CourseModel } from "@/model/course-model";
 import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
 import { generatePassword, MIN_PASSWORD_LENGTH } from "@/lib/password";
-import { isObjectId, searchFilter, trackFilter } from "@/lib/query-helpers";
-import { getPriceForTrack } from "@/service/course-service";
+import { TRAINEE_ROLE_LIST, isObjectId, searchFilter, trackFilter } from "@/lib/query-helpers";
+import { courseIdForUserTrack, getPriceForTrack } from "@/service/course-service";
+import { enrollUserInCourse } from "@/service/participant-service";
 import { newTranId, provisionForPayment, revokeForPayment } from "@/service/payment-service";
 import { phoneVariants } from "@/queries/auth-queries";
 
@@ -78,7 +79,7 @@ export async function PATCH(request) {
 
   try {
     await dbConnect();
-    const { userId, paymentStatus, role, track, isActive } = await request.json();
+    const { userId, paymentStatus, role, track, isActive, resetPassword } = await request.json();
     if (!isObjectId(userId)) return bad("সঠিক User ID আবশ্যক।");
 
     const user = await UserModel.findById(userId);
@@ -101,6 +102,16 @@ export async function PATCH(request) {
       if (isSelf && !isActive) return bad("নিজের অ্যাকাউন্ট নিষ্ক্রিয় করা যায় না।", 403);
       user.isActive = Boolean(isActive);
     }
+    // Admin password reset: a new random password is set and returned ONCE.
+    let generatedPassword = null;
+    if (resetPassword) {
+      if (["super-admin"].includes(user.role) && auth.session.role !== "super-admin") {
+        return bad("সুপার-অ্যাডমিনের পাসওয়ার্ড শুধু সুপার-অ্যাডমিন রিসেট করতে পারবেন।", 403);
+      }
+      generatedPassword = generatePassword();
+      user.password = generatedPassword; // hashed by the model hook
+      await SessionModel.updateMany({ userId: user._id }, { $set: { isValid: false } });
+    }
     await user.save();
 
     if (paymentStatus !== undefined) {
@@ -108,17 +119,42 @@ export async function PATCH(request) {
       if (paymentStatus === "paid") {
         await markPaid(user, auth.session.email);
       } else if (paymentStatus === "free") {
+        // Complimentary seat: active account + a free enrolment in their track's course.
         await UserModel.updateOne({ _id: user._id }, { $set: { paymentStatus: "free", isActive: true } });
+        if (TRAINEE_ROLE_LIST.includes(user.role)) {
+          await enrollUserInCourse({
+            userId: user._id,
+            courseId: courseIdForUserTrack(user.track),
+            paymentStatus: "free",
+            status: "active",
+            notes: `Complimentary access granted by ${auth.session.email}`,
+          });
+        }
       } else {
-        // Revert: un-enrol the courses paid by this user's verified payments, then set the status.
+        // Revert: un-enrol the courses paid by this user's verified payments. Admin-recorded
+        // payments are reverted to PENDING so revenue matches; gateway payments stay VALID
+        // (the money really arrived — refund them from the Payments screen).
         const valid = await PaymentModel.find({ status: "VALID", $or: [{ user: user._id }, { userEmail: user.email }] }).lean();
-        for (const p of valid) await revokeForPayment(p);
+        for (const p of valid) {
+          await revokeForPayment(p);
+          if (p.purpose === "manual" || p.paymentGateway !== "sslcommerz") {
+            await PaymentModel.updateOne(
+              { _id: p._id },
+              { $set: { status: "PENDING", notes: `Reverted to pending by ${auth.session.email}` }, $unset: { finalizedAt: "" } }
+            );
+          }
+        }
         await UserModel.updateOne({ _id: user._id }, { $set: { paymentStatus } });
       }
     }
 
     const updated = await UserModel.findById(user._id).select(SAFE).lean();
-    return NextResponse.json({ success: true, message: "ইউজার সফলভাবে আপডেট হয়েছে।", user: JSON.parse(JSON.stringify(updated)) });
+    return NextResponse.json({
+      success: true,
+      message: generatedPassword ? "নতুন পাসওয়ার্ড তৈরি হয়েছে — এখনই ব্যবহারকারীকে নিরাপদে জানান।" : "ইউজার সফলভাবে আপডেট হয়েছে।",
+      user: JSON.parse(JSON.stringify(updated)),
+      ...(generatedPassword ? { generatedPassword } : {}),
+    });
   } catch (error) {
     return serverError(error, "Admin users PATCH");
   }

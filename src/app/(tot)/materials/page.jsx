@@ -18,7 +18,7 @@ export default async function MaterialsPage() {
       courses={data.courses.map((c) => ({ courseId: c.courseId, name: c.name }))}
       paid={data.paid}
       primaryCourseId={primaryCourseIdFor(data.user)}
-      lastAttempt={latestUnpaidAttempt(data.payments)}
+      lastAttempt={latestUnpaidAttempt(data.payments, primaryCourseIdFor(data.user))}
     />
   );
 }

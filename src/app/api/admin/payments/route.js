@@ -79,6 +79,7 @@ export async function PATCH(request) {
       message: status === "VALID" ? "পেমেন্ট যাচাই হয়েছে এবং ট্রেইনির অ্যাকাউন্ট ও এনরোলমেন্ট সক্রিয় করা হয়েছে।" : "পেমেন্ট স্ট্যাটাস আপডেট হয়েছে।",
       payment: plain(updated),
       user: user ? { _id: String(user._id), email: user.email, paymentStatus: user.paymentStatus } : null,
+      ...(user?.generatedPassword ? { generatedPassword: user.generatedPassword } : {}),
     });
   } catch (error) {
     return serverError(error, "Admin payments PATCH");
@@ -164,7 +165,8 @@ export async function POST(request) {
           : "পেন্ডিং পেমেন্ট রেকর্ড হয়েছে। যাচাই করলে অ্যাকাউন্ট সক্রিয় হবে।",
       payment: plain(saved),
       user: user ? { _id: String(user._id), email: user.email || email, paymentStatus: user.paymentStatus || "pending" } : null,
-      ...(generatedPassword && status === "VALID" ? { generatedPassword } : {}),
+      // Returned for PENDING too: the account is created with this password when an admin verifies.
+      ...(generatedPassword ? { generatedPassword } : {}),
     });
   } catch (error) {
     return serverError(error, "Admin payments POST");

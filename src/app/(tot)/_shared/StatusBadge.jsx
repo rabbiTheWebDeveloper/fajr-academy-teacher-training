@@ -23,16 +23,3 @@ export function PaymentStatusBadge({ status, className = "" }) {
     </span>
   );
 }
-
-/** Generic coloured pill. */
-export function ToneBadge({ tone = "slate", children, className = "" }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border whitespace-nowrap ${
-        TONE_BADGE[tone] || TONE_BADGE.slate
-      } ${className}`}
-    >
-      {children}
-    </span>
-  );
-}

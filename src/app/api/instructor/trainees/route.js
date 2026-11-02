@@ -13,7 +13,7 @@ import {
 } from "@/lib/query-helpers";
 
 const LIST_FIELDS =
-  "fullName email phone track gender designation bloodGroup paymentStatus paidAmount tranId hasLaptop quranSkill englishSkill education bio avatar createdAt";
+  "fullName email phone emergencyContactNumber track gender designation bloodGroup paymentStatus paidAmount tranId hasLaptop quranSkill englishSkill education bio avatar createdAt";
 
 // Instructors may correct a trainee's profile/academic details — never role, email,
 // payment or account status (those belong to admins).
@@ -47,6 +47,12 @@ export async function GET(request) {
     if (paymentStatus !== "all") filters.push({ paymentStatus });
     const bySearch = searchFilter(searchParams.get("search"), ["fullName", "email", "phone", "tranId"]);
     if (bySearch) filters.push(bySearch);
+    // ?evaluated=yes|no — filter on whether the trainee has any evaluation.
+    const evaluated = searchParams.get("evaluated");
+    if (evaluated === "yes" || evaluated === "no") {
+      const evaluatedIds = await EvaluationModel.distinct("traineeId");
+      filters.push({ _id: evaluated === "yes" ? { $in: evaluatedIds } : { $nin: evaluatedIds } });
+    }
     const query = { $and: filters };
 
     const [total, trainees] = await Promise.all([
@@ -56,7 +62,7 @@ export async function GET(request) {
 
     const evaluations = await EvaluationModel.find({ traineeId: { $in: trainees.map((t) => t._id) } })
       .sort({ evaluatedAt: -1 })
-      .select("traineeId totalScore grade qualificationStatus evaluatedAt scores")
+      .select("traineeId totalScore grade qualificationStatus evaluatedAt scores remarks instructorName")
       .lean();
     const evalMap = new Map();
     for (const e of evaluations) {
@@ -76,6 +82,8 @@ export async function GET(request) {
               grade: e.grade,
               qualificationStatus: e.qualificationStatus,
               scores: e.scores,
+              remarks: e.remarks || "",
+              instructorName: e.instructorName || "",
               evaluatedAt: e.evaluatedAt ? new Date(e.evaluatedAt).toISOString() : "",
             }
           : null,
