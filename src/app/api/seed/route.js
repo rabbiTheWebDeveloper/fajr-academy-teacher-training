@@ -3,13 +3,30 @@ import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
 import { PaymentModel } from "@/model/payment-model";
 import { enrollUserInCourse } from "@/service/participant-service";
+import { requireAuth, ADMIN_ROLES } from "@/lib/api-auth";
 
-export async function GET() {
-  return handleSeed();
+/**
+ * Demo-account seeder.
+ * - Development: open (handy for a fresh local DB).
+ * - Production: admin-only, POST only — it used to be a public GET that reset the
+ *   admin password to a value published in the source code.
+ * Existing accounts are never overwritten, so it can't reset anyone's password.
+ */
+const isProd = process.env.NODE_ENV === "production";
+
+export async function GET(request) {
+  if (isProd) {
+    return NextResponse.json({ success: false, message: "Not available." }, { status: 404 });
+  }
+  return handleSeed(request);
 }
 
-export async function POST() {
-  return handleSeed();
+export async function POST(request) {
+  if (isProd) {
+    const auth = await requireAuth(request, ADMIN_ROLES);
+    if (auth.error) return auth.error;
+  }
+  return handleSeed(request);
 }
 
 async function handleSeed() {
@@ -92,11 +109,10 @@ async function handleSeed() {
     const results = [];
 
     for (const u of seedUsers) {
-      const user = await UserModel.findOneAndUpdate(
-        { email: u.email },
-        { ...u, updatedAt: new Date() },
-        { upsert: true, new: true }
-      );
+      // Create only if missing — never overwrite a real account's password or data.
+      const existing = await UserModel.findOne({ email: u.email });
+      const user = existing || (await UserModel.create(u));
+      const created = !existing;
 
       // Create verified payment records for teachers
       await PaymentModel.findOneAndUpdate(
@@ -135,7 +151,9 @@ async function handleSeed() {
       results.push({
         name: user.fullName,
         email: user.email,
-        password: u.password,
+        // Plain-text demo password is only echoed for accounts this call just created, outside production.
+        password: created && !isProd ? u.password : undefined,
+        status: created ? "created" : "already-exists",
         role: user.role,
         track: user.track,
         loginPortal:

@@ -1,122 +1,34 @@
 import { NextResponse } from "next/server";
+import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
 import { validateSSLCommerzPayment } from "@/lib/sslcommerz";
-import { dbConnect } from "@/service/mongo";
-import { PaymentModel } from "@/model/payment-model";
-import { UserModel } from "@/model/user-model";
-import { enrollUserInCourse } from "@/service/participant-service";
+import { finalizeGatewayPayment } from "@/service/payment-service";
 
-export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const val_id = searchParams.get("val_id");
-  return processValidation(val_id);
-}
-
+/**
+ * Admin tool: re-check a gateway payment by val_id (e.g. when the IPN never arrived)
+ * and finalise it through the same verified path as the gateway callbacks.
+ * POST { val_id }  (admin only)
+ */
 export async function POST(request) {
-  try {
-    const body = await request.json();
-    const val_id = body.val_id;
-    return processValidation(val_id);
-  } catch (error) {
-    return NextResponse.json({ success: false, message: error.message }, { status: 400 });
-  }
-}
-
-async function processValidation(val_id) {
-  if (!val_id) {
-    return NextResponse.json(
-      { success: false, message: "val_id is required for validation" },
-      { status: 400 }
-    );
-  }
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
 
   try {
-    await dbConnect();
-    const result = await validateSSLCommerzPayment({ val_id });
+    const { val_id } = await request.json();
+    if (!val_id) return NextResponse.json({ success: false, message: "val_id is required" }, { status: 400 });
 
-    if (result && (result.status === "VALID" || result.status === "VALIDATED")) {
-      const tranId = result.tran_id;
-      if (tranId) {
-        const payment = await PaymentModel.findOneAndUpdate(
-          { tranId },
-          {
-            status: "VALID",
-            valId: val_id,
-            cardType: result.card_type || "",
-            bankTranId: result.bank_tran_id || "",
-            rawResponse: result,
-          },
-          { new: true }
-        );
-
-        let user = await UserModel.findOne({ tranId });
-        if (!user && payment?.userEmail) {
-          user = await UserModel.findOne({ email: payment.userEmail });
-        }
-
-        const reg = payment?.registrationData || {};
-
-        if (!user && payment) {
-          const userPassword = reg.password || "Fajr@Teacher2026";
-          const cleanEmail = (reg.email || payment.userEmail || "").toLowerCase().trim();
-
-          await UserModel.create({
-            fullName: reg.fullName || payment.userName || "Teacher Candidate",
-            email: cleanEmail,
-            phone: reg.phone || payment.userPhone || "",
-            password: userPassword,
-            role: "teacher",
-            track: reg.track || payment.track || "TOT-MEN",
-            gender: reg.gender === "female" ? "female" : "male",
-            hasLaptop: reg.hasLaptop || "yes",
-            quranSkill: reg.quranSkill || "fluent",
-            englishSkill: reg.englishSkill || "basic",
-            education: reg.education || "",
-            paymentStatus: "paid",
-            paidAmount: Number(result.amount) || payment.amount || 1000,
-            tranId: tranId,
-            paymentGateway: "sslcommerz",
-            enrolledAt: new Date(),
-            isActive: true,
-          });
-        } else if (user) {
-          user.paymentStatus = "paid";
-          user.paidAmount = Number(result.amount) || payment?.amount || 1000;
-          user.enrolledAt = user.enrolledAt || new Date();
-          user.isActive = true;
-          user.role = "teacher";
-          if (tranId) user.tranId = tranId;
-          await user.save();
-        }
-
-        // Enroll user as course Participant in ParticipantModel
-        try {
-          const userEmail = reg.email || payment?.userEmail || user?.email;
-          const courseTrack = reg.track || payment?.track || user?.track || "TOT-MEN";
-          if (userEmail) {
-            await enrollUserInCourse({
-              userEmail,
-              courseId: courseTrack,
-              tranId: tranId,
-              amount: Number(result.amount) || payment?.amount || 1000,
-              paymentStatus: "paid",
-              status: "active",
-            });
-          }
-        } catch (enrollErr) {
-          console.error("Auto participant enrollment in validate error:", enrollErr);
-        }
-      }
+    const validation = await validateSSLCommerzPayment({ val_id });
+    if (!validation?.tran_id) {
+      return NextResponse.json({ success: false, message: "Gateway did not recognise this val_id.", validation }, { status: 404 });
     }
 
+    const result = await finalizeGatewayPayment({ tranId: validation.tran_id, valId: val_id, source: `admin:${auth.session.email}` });
     return NextResponse.json({
-      success: true,
-      data: result,
+      success: result.ok,
+      code: result.code,
+      message: result.ok ? "পেমেন্ট যাচাই ও অ্যাকাউন্ট সক্রিয় করা হয়েছে।" : `যাচাই ব্যর্থ: ${result.code}`,
+      tranId: validation.tran_id,
     });
   } catch (error) {
-    console.error("SSLCommerz Validation API Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to validate transaction" },
-      { status: 500 }
-    );
+    return serverError(error, "Payment validate");
   }
 }

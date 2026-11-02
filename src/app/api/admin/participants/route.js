@@ -3,9 +3,14 @@ import { dbConnect } from "@/service/mongo";
 import { ParticipantModel } from "@/model/participant-model";
 import { CourseModel } from "@/model/course-model";
 import { enrollUserInCourse } from "@/service/participant-service";
+import { requireAuth, ADMIN_ROLES } from "@/lib/api-auth";
+import { escapeRegex } from "@/lib/query-helpers";
 
 // GET: Retrieve all participants with filter & search
 export async function GET(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
     const { searchParams } = new URL(request.url);
@@ -31,18 +36,18 @@ export async function GET(request) {
 
     if (search) {
       query.$or = [
-        { userName: { $regex: search, $options: "i" } },
-        { userEmail: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } },
-        { tranId: { $regex: search, $options: "i" } },
-        { courseName: { $regex: search, $options: "i" } },
+        { userName: { $regex: escapeRegex(search), $options: "i" } },
+        { userEmail: { $regex: escapeRegex(search), $options: "i" } },
+        { phone: { $regex: escapeRegex(search), $options: "i" } },
+        { tranId: { $regex: escapeRegex(search), $options: "i" } },
+        { courseName: { $regex: escapeRegex(search), $options: "i" } },
       ];
     }
 
     const participants = await ParticipantModel.find(query)
       .sort({ enrolledAt: -1 })
       .populate("user", "fullName email phone avatar track gender designation")
-      .populate("course", "name courseId fee schedule orientationDate")
+      .populate("course", "name courseId fee routine orientationDate")
       .lean();
 
     const sanitized = participants.map((p) => ({
@@ -68,6 +73,9 @@ export async function GET(request) {
 
 // POST: Admin manually enrolls a user into a course
 export async function POST(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
     const body = await request.json();
@@ -126,6 +134,9 @@ export async function POST(request) {
 
 // PATCH: Update participant progress, status, evaluation, or notes
 export async function PATCH(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
     const body = await request.json();
@@ -180,6 +191,9 @@ export async function PATCH(request) {
 
 // DELETE: Remove or unenroll participant
 export async function DELETE(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
     const { searchParams } = new URL(request.url);

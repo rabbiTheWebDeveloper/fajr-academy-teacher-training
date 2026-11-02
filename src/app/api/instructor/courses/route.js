@@ -1,138 +1,94 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
-import {
-  CourseModel,
-  DEFAULT_TOT_CURRICULUM,
-  DEFAULT_TOT_RESOURCES,
-} from "@/model/course-model";
+import { CourseModel } from "@/model/course-model";
+import { ensureDefaultCourses } from "@/service/course-service";
+import { requireAuth, INSTRUCTOR_ROLES, serverError } from "@/lib/api-auth";
+import { isObjectId, pick } from "@/lib/query-helpers";
+
+// Instructors run classes: links, routine and the session schedule.
+// Pricing, publishing and identifiers stay with admins (/api/admin/courses).
+const EDITABLE_FIELDS = ["meetLink", "whatsappLink", "routine", "orientationDate", "orientationTime", "curriculum"];
+const MODULE_EDITABLE = ["liveDate", "sessionDate", "sessionTime", "trainerName", "trainerRole", "topics"];
+
+const isHttpUrl = (v) => v === "" || /^https:\/\/[^\s]+$/i.test(v);
 
 export async function GET(request) {
+  const auth = await requireAuth(request, INSTRUCTOR_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
-    const { searchParams } = new URL(request.url);
-    const track = searchParams.get("track");
-
-    const query = { isPublished: true };
-    if (track && track !== "all") {
-      if (track === "men") query.track = "men";
-      else if (track === "women") query.track = "women";
-      else query.courseId = track;
-    }
+    const track = new URL(request.url).searchParams.get("track");
+    const query = {};
+    if (track === "men" || track === "women") query.track = track;
+    else if (track && track !== "all") query.courseId = track;
 
     let courses = await CourseModel.find(query).sort({ createdAt: 1 }).lean();
-
-    // Auto-seed default courses if empty
-    if (!courses || courses.length === 0) {
-      const defaultCourses = [
-        {
-          courseId: "TOT-MEN",
-          name: "Training of Trainers (TOT) – MEN BATCH",
-          tag: "পুরুষ ব্যাচ",
-          track: "men",
-          summary: "ছেলেদের জন্য ঘরে বসে হালাল ক্যারিয়ার গড়ার বিশেষ সুযোগ। আন্তর্জাতিক টিওটি পেডাগোজি প্রশিক্ষণ।",
-          fee: 1000,
-          regularFee: 2500,
-          orientationDate: "২০ সেপ্টেম্বর ২০২৬",
-          orientationTime: "রাত ৮:০০ টা – ৯:৩০ টা",
-          routine: "রবিবার, মঙ্গলবার ও বৃহস্পতিবার (রাত ৮:০০)",
-          duration: "১ মাস (৪টি প্রফেশনাল সেশন)",
-          meetLink: "https://meet.google.com/tot-fajr-men-2026",
-          whatsappLink: "https://chat.whatsapp.com/tot-fajr-men-batch",
-          instructor: "উস্তাদ আব্দুল্লাহ আল-মাহমুদ",
-          enrolledCount: 42,
-          maxSeats: 60,
-          status: "Active & Enrolling",
-          isPublished: true,
-          curriculum: DEFAULT_TOT_CURRICULUM,
-          resources: DEFAULT_TOT_RESOURCES,
-        },
-        {
-          courseId: "TOT-WOMEN-014",
-          name: "Training of Trainers (TOT) – WOMEN (BATCH 014)",
-          tag: "মহিলা এক্সক্লুসিভ ব্যাচ",
-          track: "women",
-          summary: "দ্বীনে ফেরা বোনদের জন্য ঘরে বসেই আন্তর্জাতিক মানের অনলাইন কুরআন টিচার হওয়ার সুবর্ণ সুযোগ।",
-          fee: 1000,
-          regularFee: 2500,
-          orientationDate: "২১ সেপ্টেম্বর ২০২৬",
-          orientationTime: "রাত ৮:০০ টা – ৯:৩০ টা",
-          routine: "শনিবার, সোমবার ও বুধবার (রাত ৮:০০)",
-          duration: "১ মাস (৪টি প্রফেশনাল সেশন)",
-          meetLink: "https://meet.google.com/tot-fajr-women-014",
-          whatsappLink: "https://chat.whatsapp.com/tot-fajr-women-batch014",
-          instructor: "উস্তাজা ফারহানা চৌধুরী",
-          enrolledCount: 58,
-          maxSeats: 60,
-          status: "Active & Enrolling",
-          isPublished: true,
-          curriculum: DEFAULT_TOT_CURRICULUM,
-          resources: DEFAULT_TOT_RESOURCES,
-        },
-      ];
-      await CourseModel.insertMany(defaultCourses);
+    if (courses.length === 0 && !track) {
+      await ensureDefaultCourses();
       courses = await CourseModel.find(query).sort({ createdAt: 1 }).lean();
     }
-
-    const sanitized = courses.map((c) => ({
-      ...c,
-      _id: c._id.toString(),
-    }));
-
-    return NextResponse.json({
-      success: true,
-      courses: sanitized,
-    });
+    return NextResponse.json({ success: true, courses: JSON.parse(JSON.stringify(courses)) });
   } catch (error) {
-    console.error("Instructor Courses GET Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "Instructor courses GET");
   }
 }
 
 export async function PATCH(request) {
+  const auth = await requireAuth(request, INSTRUCTOR_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
     const body = await request.json();
-    const { courseId, _id, ...updateFields } = body;
-
-    let query = {};
-    if (_id) query._id = _id;
-    else if (courseId) query.courseId = courseId;
-    else {
-      return NextResponse.json(
-        { success: false, message: "Course ID or _id is required." },
-        { status: 400 }
-      );
+    const query = isObjectId(body._id) ? { _id: body._id } : body.courseId ? { courseId: String(body.courseId) } : null;
+    if (!query) {
+      return NextResponse.json({ success: false, message: "কোর্স ID আবশ্যক।" }, { status: 400 });
     }
 
-    const updated = await CourseModel.findOneAndUpdate(
-      query,
-      { $set: updateFields },
-      { new: true, runValidators: true }
-    ).lean();
+    const updates = pick(body, EDITABLE_FIELDS);
+    for (const key of ["meetLink", "whatsappLink"]) {
+      if (updates[key] !== undefined) {
+        updates[key] = String(updates[key]).trim();
+        if (!isHttpUrl(updates[key])) {
+          return NextResponse.json({ success: false, message: "লিংকটি অবশ্যই https:// দিয়ে শুরু হতে হবে।" }, { status: 400 });
+        }
+      }
+    }
 
+    // Curriculum edits: only schedule fields of existing modules, matched by moduleNo —
+    // instructors can't add/remove modules or rewrite content.
+    if (updates.curriculum !== undefined) {
+      if (!Array.isArray(updates.curriculum)) {
+        return NextResponse.json({ success: false, message: "কারিকুলাম ফরম্যাট সঠিক নয়।" }, { status: 400 });
+      }
+      const course = await CourseModel.findOne(query).select("curriculum").lean();
+      if (!course) {
+        return NextResponse.json({ success: false, message: "কোর্স পাওয়া যায়নি।" }, { status: 404 });
+      }
+      const incoming = new Map(updates.curriculum.map((m) => [Number(m.moduleNo), m]));
+      updates.curriculum = (course.curriculum || []).map((m) => {
+        const patch = pick(incoming.get(Number(m.moduleNo)) || {}, MODULE_EDITABLE);
+        if (patch.topics && !Array.isArray(patch.topics)) delete patch.topics;
+        return { ...m, ...patch };
+      });
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ success: false, message: "পরিবর্তনের মতো কোনো তথ্য পাওয়া যায়নি।" }, { status: 400 });
+    }
+
+    const updated = await CourseModel.findOneAndUpdate(query, { $set: updates }, { returnDocument: "after", runValidators: true }).lean();
     if (!updated) {
-      return NextResponse.json(
-        { success: false, message: "কোর্স পাওয়া যায়নি।" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, message: "কোর্স পাওয়া যায়নি।" }, { status: 404 });
     }
 
     return NextResponse.json({
       success: true,
       message: "কোর্স ও শিডিউল সফলভাবে আপডেট করা হয়েছে!",
-      course: {
-        ...updated,
-        _id: updated._id.toString(),
-      },
+      course: JSON.parse(JSON.stringify(updated)),
     });
   } catch (error) {
-    console.error("Instructor Courses PATCH Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "Instructor courses PATCH");
   }
 }

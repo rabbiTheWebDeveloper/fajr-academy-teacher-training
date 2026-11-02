@@ -72,12 +72,14 @@ const settingSchema = new Schema(
       default: "live",
     },
     sslStoreId: {
+      // Deprecated: gateway credentials live in env vars (SSLCOMMERZ_*), never in the DB.
       type: String,
-      default: "fajra6aa249a39ddb2",
+      default: "",
     },
     sslStorePassword: {
       type: String,
-      default: "fajra6aa249a39ddb2@ssl",
+      default: "",
+      select: false,
     },
     autoApprovePayment: {
       type: Boolean,
@@ -107,7 +109,7 @@ const settingSchema = new Schema(
     },
     whatsappCommunityGroup: {
       type: String,
-      default: "https://chat.whatsapp.com/tot-fajr-community",
+      default: "",
     },
 
     // System & Security

@@ -8,229 +8,242 @@ import {
   Video,
   MessageCircle,
   Users,
-  CheckCircle2,
   Save,
   Sparkles,
-  ExternalLink,
   Edit,
   Plus,
   Trash2,
   X,
-  DollarSign,
-  AlertCircle,
-  Link as LinkIcon,
   Layers,
-  FileText,
   Download,
   FolderDown,
-  Check,
-  ChevronRight,
-  Eye,
-  FileCode,
-  Tag,
-  User,
-  RotateCcw
+  RotateCcw,
+  RefreshCw,
+  EyeOff,
 } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
-import {
-  DEFAULT_TOT_CURRICULUM,
-  WOMEN_TOT_CURRICULUM,
-  MEN_TOT_CURRICULUM,
-  DEFAULT_TOT_RESOURCES,
-} from "@/constant/course-defaults";
+import { WOMEN_TOT_CURRICULUM, MEN_TOT_CURRICULUM } from "@/constant/course-defaults";
+import { AdminToast, DbErrorBanner, callApi, formatMoney, useToast } from "../../_shared/admin-ui";
 
-export default function AdminCoursesClient({ initialBatches }) {
+/** Fields edited on the course card. Curriculum/resources are saved separately so a stale card can never overwrite them. */
+const CARD_FIELDS = [
+  "name",
+  "tag",
+  "track",
+  "summary",
+  "fee",
+  "regularFee",
+  "orientationDate",
+  "orientationTime",
+  "routine",
+  "duration",
+  "meetLink",
+  "whatsappLink",
+  "instructor",
+  "maxSeats",
+  "status",
+  "isPublished",
+  "videoUrl",
+];
+const NUMERIC_FIELDS = ["fee", "regularFee", "maxSeats"];
+const STATUSES = ["Active & Enrolling", "Upcoming", "Closed"];
+const STATUS_LABEL = {
+  "Active & Enrolling": "Active & Enrolling (ভর্তি চলছে)",
+  Upcoming: "Upcoming (আসন্ন)",
+  Closed: "Closed (বন্ধ)",
+};
+
+const keyOf = (c) => c?._id || c?.courseId;
+
+const emptyModule = (n) => ({
+  moduleNo: n,
+  sessionBadge: `SESSION ${String(n).padStart(2, "0")}`,
+  title: "",
+  subtitle: "",
+  description: "",
+  themeQuote: "",
+  trainerName: "",
+  trainerRole: "",
+  trainerQualifications: "",
+  sessionDate: "",
+  sessionTime: "",
+  duration: "১ ঘণ্টা",
+  liveDate: "",
+  topics: "",
+});
+
+const EMPTY_RESOURCE = {
+  title: "",
+  category: "কুরআন শিক্ষা ও তাজবীদ",
+  format: "PDF",
+  size: "",
+  desc: "",
+  fileUrl: "",
+  isDownloadable: true,
+};
+
+const EMPTY_COURSE = {
+  courseId: "",
+  name: "",
+  tag: "",
+  track: "men",
+  fee: 1000,
+  regularFee: 2500,
+  orientationDate: "",
+  orientationTime: "",
+  routine: "",
+  duration: "১ মাস (৪টি প্রফেশনাল সেশন)",
+  meetLink: "",
+  whatsappLink: "",
+  instructor: "",
+  maxSeats: 60,
+  status: "Active & Enrolling",
+  isPublished: true,
+};
+
+function statusCls(status, isLight) {
+  if (status === "Closed") return isLight ? "bg-rose-50 text-rose-800 border-rose-300" : "bg-rose-500/20 text-rose-300 border-rose-500/30";
+  if (status === "Upcoming") return isLight ? "bg-amber-50 text-amber-900 border-amber-300" : "bg-amber-500/20 text-amber-300 border-amber-500/30";
+  return isLight ? "bg-emerald-50 text-emerald-800 border-emerald-300" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
+}
+
+export default function AdminCoursesClient({ initialBatches, loadError: initialLoadError }) {
   const [batches, setBatches] = useState(initialBatches || []);
+  const [loadError, setLoadError] = useState(initialLoadError);
+  const [reloading, setReloading] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [notification, setNotification] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const { isLight } = useAdminTheme();
+  const { toast, showToast, hideToast } = useToast();
 
   // Curriculum & Resource Modal state
   const [selectedCourseForCurriculum, setSelectedCourseForCurriculum] = useState(null);
   const [curriculumTab, setCurriculumTab] = useState("curriculum"); // "curriculum" | "resources"
   const [showAddModuleModal, setShowAddModuleModal] = useState(false);
   const [showAddResourceModal, setShowAddResourceModal] = useState(false);
+  const [newModule, setNewModule] = useState(emptyModule(1));
+  const [newResource, setNewResource] = useState(EMPTY_RESOURCE);
+  const [newCourse, setNewCourse] = useState(EMPTY_COURSE);
 
-  // New Module Form State
-  const [newModule, setNewModule] = useState({
-    moduleNo: 1,
-    sessionBadge: "SESSION 01",
-    title: "",
-    subtitle: "",
-    description: "",
-    themeQuote: "",
-    trainerName: "",
-    trainerRole: "",
-    trainerQualifications: "",
-    sessionDate: "",
-    sessionTime: "",
-    duration: "১ ঘণ্টা",
-    liveDate: "",
-    topics: "",
-  });
-
-  // New Resource Form State
-  const [newResource, setNewResource] = useState({
-    title: "",
-    category: "কুরআন শিক্ষা ও তাজবীদ",
-    format: "PDF",
-    size: "2.5 MB",
-    desc: "",
-    fileUrl: "https://drive.google.com/drive/folders/tot-fajr-resources",
-    isDownloadable: true,
-  });
-
-  // New Course Form State
-  const [newCourse, setNewCourse] = useState({
-    courseId: "",
-    name: "",
-    tag: "পুরুষ ব্যাচ",
-    track: "men",
-    fee: 1000,
-    regularFee: 2500,
-    orientationDate: "২০ সেপ্টেম্বর ২০২৬",
-    orientationTime: "রাত ৮:০০ টা – ৯:৩০ টা",
-    routine: "রবিবার, মঙ্গলবার ও বৃহস্পতিবার (রাত ৮:০০)",
-    duration: "১ মাস (৪টি প্রফেশনাল সেশন)",
-    meetLink: "https://meet.google.com/tot-fajr-room",
-    whatsappLink: "https://chat.whatsapp.com/tot-fajr-community",
-    instructor: "উস্তাদ আব্দুল্লাহ আল-মাহমুদ",
-    maxSeats: 60,
-    status: "Active & Enrolling",
-  });
-
-  const notify = (msg, type = "success") => {
-    setNotification({ msg, type });
-    setTimeout(() => setNotification(null), 3500);
-  };
-
-  const handleUpdateField = (id, field, value) => {
-    setBatches((prev) =>
-      prev.map((b) => {
-        const matchId = b._id || b.courseId || b.id;
-        return matchId === id ? { ...b, [field]: value } : b;
-      })
-    );
-  };
-
-  // Save updated course to database
-  const handleSaveCourse = async (batch) => {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/admin/courses", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(batch),
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        notify("কোর্স তথ্য সফলভাবে ডাটাবেজে আপডেট হয়েছে!", "success");
-        setEditingId(null);
-        if (selectedCourseForCurriculum && (selectedCourseForCurriculum._id === batch._id || selectedCourseForCurriculum.courseId === batch.courseId)) {
-          setSelectedCourseForCurriculum(data.course);
-        }
-      } else {
-        notify(data.message || "আপডেট ব্যর্থ হয়েছে", "error");
-      }
-    } catch (err) {
-      notify("সার্ভার ত্রুটি। আবার চেষ্টা করুন।", "error");
-    } finally {
-      setSaving(false);
+  const reload = async () => {
+    setReloading(true);
+    const { ok, data, message } = await callApi("/api/admin/courses");
+    setReloading(false);
+    if (!ok) {
+      showToast(message, "error");
+      return;
     }
+    setBatches(data.courses || []);
+    setLoadError(null);
+    setSelectedCourseForCurriculum((prev) => (prev ? (data.courses || []).find((c) => keyOf(c) === keyOf(prev)) || null : prev));
+    showToast("কোর্সের সর্বশেষ তথ্য লোড হয়েছে।");
   };
 
-  // Create new course in database
+  /**
+   * PUT only the given fields; on success the server's copy replaces local state
+   * (so later saves never resend stale curriculum/resources).
+   */
+  const saveCourse = async (course, fields, successText) => {
+    const body = { _id: course._id, courseId: course.courseId };
+    for (const f of fields) if (course[f] !== undefined) body[f] = course[f];
+    for (const f of NUMERIC_FIELDS) {
+      if (body[f] !== undefined && (body[f] === "" || !Number.isFinite(Number(body[f])) || Number(body[f]) < 0)) {
+        showToast("ফি ও আসন সংখ্যা অবশ্যই ০ বা তার বেশি একটি সংখ্যা হতে হবে।", "error");
+        return null;
+      }
+    }
+
+    setSaving(true);
+    const { ok, data, message } = await callApi("/api/admin/courses", { method: "PUT", body });
+    setSaving(false);
+    if (!ok) {
+      showToast(message, "error");
+      return null;
+    }
+    const saved = data.course;
+    setBatches((prev) => prev.map((b) => (keyOf(b) === keyOf(course) ? saved : b)));
+    setSelectedCourseForCurriculum((prev) => (prev && keyOf(prev) === keyOf(course) ? saved : prev));
+    showToast(successText || message || "কোর্স তথ্য সফলভাবে ডাটাবেজে আপডেট হয়েছে!");
+    return saved;
+  };
+
+  const startEdit = (batch) => {
+    setEditingId(keyOf(batch));
+    setDraft({ ...batch });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDraft(null);
+  };
+
+  const setDraftField = (field, value) => setDraft((d) => ({ ...d, [field]: value }));
+
+  const handleSaveCard = async () => {
+    if (!draft) return;
+    if (!String(draft.name || "").trim()) {
+      showToast("কোর্সের নাম আবশ্যক।", "error");
+      return;
+    }
+    const saved = await saveCourse(draft, CARD_FIELDS);
+    if (saved) cancelEdit();
+  };
+
+  // Create new course in database (the server seeds the official curriculum for men/women tracks)
   const handleCreateCourse = async (e) => {
     e.preventDefault();
     setSaving(true);
-
-    try {
-      const res = await fetch("/api/admin/courses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...newCourse,
-          curriculum: DEFAULT_TOT_CURRICULUM,
-          resources: DEFAULT_TOT_RESOURCES,
-        }),
-      });
-      const data = await res.json();
-
-      if (data.success && data.course) {
-        setBatches((prev) => [...prev, data.course]);
-        notify("নতুন কোর্স ও কারিকুলাম সফলভাবে তৈরি হয়েছে!", "success");
-        setShowAddModal(false);
-        setNewCourse({
-          courseId: "",
-          name: "",
-          tag: "পুরুষ ব্যাচ",
-          track: "men",
-          fee: 1000,
-          regularFee: 2500,
-          orientationDate: "২০ সেপ্টেম্বর ২০২৬",
-          orientationTime: "রাত ৮:০০ টা – ৯:৩০ টা",
-          routine: "রবিবার, মঙ্গলবার ও বৃহস্পতিবার (রাত ৮:০০)",
-          duration: "১ মাস (৪টি প্রফেশনাল সেশন)",
-          meetLink: "https://meet.google.com/tot-fajr-room",
-          whatsappLink: "https://chat.whatsapp.com/tot-fajr-community",
-          instructor: "উস্তাদ আব্দুল্লাহ আল-মাহমুদ",
-          maxSeats: 60,
-          status: "Active & Enrolling",
-        });
-      } else {
-        notify(data.message || "তৈরি ব্যর্থ হয়েছে", "error");
-      }
-    } catch (err) {
-      notify("সার্ভার ত্রুটি", "error");
-    } finally {
-      setSaving(false);
+    const { ok, data, message } = await callApi("/api/admin/courses", { method: "POST", body: newCourse });
+    setSaving(false);
+    if (!ok) {
+      showToast(message, "error");
+      return;
     }
+    if (data.course) setBatches((prev) => [...prev, data.course]);
+    showToast(message || "নতুন কোর্স সফলভাবে তৈরি হয়েছে!");
+    setShowAddModal(false);
+    setNewCourse(EMPTY_COURSE);
   };
 
-  // Delete course
   const handleDeleteCourse = async (batch) => {
-    const confirmDelete = window.confirm(
-      `আপনি কি নিশ্চিত যে "${batch.name}" কোর্সটি মুছে ফেলতে চান?`
-    );
-    if (!confirmDelete) return;
+    if (!window.confirm(`আপনি কি নিশ্চিত যে "${batch.name}" কোর্সটি স্থায়ীভাবে মুছে ফেলতে চান?`)) return;
 
-    try {
-      const queryId = batch._id ? `id=${batch._id}` : `courseId=${batch.courseId}`;
-      const res = await fetch(`/api/admin/courses?${queryId}`, { method: "DELETE" });
-      const data = await res.json();
-
-      if (data.success) {
-        setBatches((prev) =>
-          prev.filter((b) => (b._id || b.courseId) !== (batch._id || batch.courseId))
-        );
-        notify("কোর্স সফলভাবে মুছে ফেলা হয়েছে।", "success");
-        if (selectedCourseForCurriculum && (selectedCourseForCurriculum._id === batch._id || selectedCourseForCurriculum.courseId === batch.courseId)) {
-          setSelectedCourseForCurriculum(null);
-        }
-      } else {
-        notify(data.message || "মুছে ফেলা যায়নি", "error");
-      }
-    } catch (err) {
-      notify("সার্ভার ত্রুটি", "error");
+    const query = batch._id ? `id=${encodeURIComponent(batch._id)}` : `courseId=${encodeURIComponent(batch.courseId)}`;
+    const { ok, message, status } = await callApi(`/api/admin/courses?${query}`, { method: "DELETE" });
+    if (!ok) {
+      showToast(status === 409 ? `${message} (কার্ডের "এডিট" থেকে স্ট্যাটাস Closed বা আনপাবলিশ করতে পারেন।)` : message, "error");
+      return;
     }
+    setBatches((prev) => prev.filter((b) => keyOf(b) !== keyOf(batch)));
+    setSelectedCourseForCurriculum((prev) => (prev && keyOf(prev) === keyOf(batch) ? null : prev));
+    if (editingId === keyOf(batch)) cancelEdit();
+    showToast(message || "কোর্স সফলভাবে মুছে ফেলা হয়েছে।");
   };
 
-  // Curriculum Management Handlers
-  const handleAddModule = (e) => {
+  // ---------------- Curriculum management (saved as { curriculum } only) ----------------
+  const saveCurriculum = (curriculum, successText) =>
+    saveCourse({ ...selectedCourseForCurriculum, curriculum }, ["curriculum"], successText);
+
+  const saveResources = (resources, successText) =>
+    saveCourse({ ...selectedCourseForCurriculum, resources }, ["resources"], successText);
+
+  const openAddModule = () => {
+    setNewModule(emptyModule((selectedCourseForCurriculum?.curriculum?.length || 0) + 1));
+    setShowAddModuleModal(true);
+  };
+
+  const handleAddModule = async (e) => {
     e.preventDefault();
     if (!selectedCourseForCurriculum) return;
-
-    const topicsArray = newModule.topics
-      ? newModule.topics.split(",").map((t) => t.trim()).filter(Boolean)
-      : [];
+    const current = selectedCourseForCurriculum.curriculum || [];
+    const topicsArray = newModule.topics ? newModule.topics.split(",").map((t) => t.trim()).filter(Boolean) : [];
 
     const moduleObj = {
-      moduleNo: Number(newModule.moduleNo) || (selectedCourseForCurriculum.curriculum?.length || 0) + 1,
-      sessionBadge: newModule.sessionBadge || `SESSION 0${(selectedCourseForCurriculum.curriculum?.length || 0) + 1}`,
-      title: newModule.title,
+      moduleNo: Number(newModule.moduleNo) || current.length + 1,
+      sessionBadge: newModule.sessionBadge || `SESSION ${String(current.length + 1).padStart(2, "0")}`,
+      title: newModule.title.trim(),
       subtitle: newModule.subtitle,
       description: newModule.description,
       themeQuote: newModule.themeQuote,
@@ -242,150 +255,101 @@ export default function AdminCoursesClient({ initialBatches }) {
       duration: newModule.duration || "১ ঘণ্টা",
       liveDate: newModule.liveDate || newModule.sessionDate,
       topics: topicsArray,
-      lessons: [
-        { lessonNo: 1, title: `${newModule.title} - লেসন ০১`, duration: "৪৫ মিনিট", isFreePreview: false },
-        { lessonNo: 2, title: `${newModule.title} - লেসন ০২`, duration: "৪৫ মিনিট", isFreePreview: false },
-      ],
+      lessons: [],
     };
 
-    const updatedCurriculum = [...(selectedCourseForCurriculum.curriculum || []), moduleObj];
-    const updatedCourse = { ...selectedCourseForCurriculum, curriculum: updatedCurriculum };
-
-    setSelectedCourseForCurriculum(updatedCourse);
-    handleSaveCourse(updatedCourse);
-    setShowAddModuleModal(false);
-    setNewModule({
-      moduleNo: updatedCurriculum.length + 1,
-      sessionBadge: `SESSION 0${updatedCurriculum.length + 1}`,
-      title: "",
-      subtitle: "",
-      description: "",
-      themeQuote: "",
-      trainerName: "",
-      trainerRole: "",
-      trainerQualifications: "",
-      sessionDate: "",
-      sessionTime: "",
-      duration: "১ ঘণ্টা",
-      liveDate: "",
-      topics: "",
-    });
+    const saved = await saveCurriculum([...current, moduleObj], "নতুন সেশন / মডিউল সংরক্ষিত হয়েছে!");
+    if (saved) setShowAddModuleModal(false);
   };
 
-  const handleReloadOfficialCurriculum = () => {
+  const handleReloadOfficialCurriculum = async () => {
     if (!selectedCourseForCurriculum) return;
     const isMen = selectedCourseForCurriculum.track === "men" || selectedCourseForCurriculum.courseId === "TOT-MEN";
     const officialCurriculum = isMen ? MEN_TOT_CURRICULUM : WOMEN_TOT_CURRICULUM;
 
-    if (!window.confirm(`আপনি কি "${selectedCourseForCurriculum.name}" কোর্সের কারিকুলাম অফিশিয়াল পোস্টার সেশন তথ্য অনুযায়ী রিলোড ও আপডেট করতে চান?`)) return;
+    if (
+      !window.confirm(
+        `"${selectedCourseForCurriculum.name}" কোর্সের বর্তমান কারিকুলাম মুছে অফিশিয়াল পোস্টার সেশন তথ্য (${isMen ? "পুরুষ" : "মহিলা"} ব্যাচ) দিয়ে প্রতিস্থাপন করবেন?`
+      )
+    )
+      return;
 
-    const updatedCourse = { ...selectedCourseForCurriculum, curriculum: officialCurriculum };
-    setSelectedCourseForCurriculum(updatedCourse);
-    handleSaveCourse(updatedCourse);
-    notify("পোস্টার অনুযায়ী অফিসিয়াল কারিকুলাম সফলভাবে রিলোড ও সেভ হয়েছে!");
+    await saveCurriculum(officialCurriculum, "পোস্টার অনুযায়ী অফিসিয়াল কারিকুলাম সফলভাবে রিলোড ও সেভ হয়েছে!");
   };
 
-  const handleDeleteModule = (moduleIndex) => {
+  const handleDeleteModule = async (moduleIndex) => {
     if (!selectedCourseForCurriculum) return;
     if (!window.confirm("আপনি কি এই মডিউলটি মুছে ফেলতে চান?")) return;
-
-    const updatedCurriculum = selectedCourseForCurriculum.curriculum.filter((_, idx) => idx !== moduleIndex);
-    const updatedCourse = { ...selectedCourseForCurriculum, curriculum: updatedCurriculum };
-
-    setSelectedCourseForCurriculum(updatedCourse);
-    handleSaveCourse(updatedCourse);
+    const updated = (selectedCourseForCurriculum.curriculum || []).filter((_, idx) => idx !== moduleIndex);
+    await saveCurriculum(updated, "মডিউলটি মুছে ফেলা হয়েছে।");
   };
 
-  const handleAddLessonToModule = (moduleIndex) => {
+  const handleAddLessonToModule = async (moduleIndex) => {
+    if (!selectedCourseForCurriculum) return;
     const lessonTitle = window.prompt("নতুন লেসন বা ক্লাসের নাম লিখুন:");
-    if (!lessonTitle) return;
+    if (!lessonTitle || !lessonTitle.trim()) return;
 
-    const updatedCurriculum = [...selectedCourseForCurriculum.curriculum];
-    const targetModule = updatedCurriculum[moduleIndex];
-    const newLessonNo = (targetModule.lessons?.length || 0) + 1;
-
-    targetModule.lessons = [
-      ...(targetModule.lessons || []),
-      { lessonNo: newLessonNo, title: lessonTitle, duration: "৪৫ মিনিট", isFreePreview: false },
-    ];
-
-    const updatedCourse = { ...selectedCourseForCurriculum, curriculum: updatedCurriculum };
-    setSelectedCourseForCurriculum(updatedCourse);
-    handleSaveCourse(updatedCourse);
+    const updated = (selectedCourseForCurriculum.curriculum || []).map((mod, idx) => {
+      if (idx !== moduleIndex) return mod;
+      const lessons = mod.lessons || [];
+      return {
+        ...mod,
+        lessons: [...lessons, { lessonNo: lessons.length + 1, title: lessonTitle.trim(), duration: "৪৫ মিনিট", isFreePreview: false }],
+      };
+    });
+    await saveCurriculum(updated, "নতুন লেসন যুক্ত হয়েছে।");
   };
 
-  // Resource Management Handlers
-  const handleAddResource = (e) => {
+  // ---------------- Resource management (saved as { resources } only) ----------------
+  const handleAddResource = async (e) => {
     e.preventDefault();
     if (!selectedCourseForCurriculum) return;
+    if (!/^https?:\/\//i.test(newResource.fileUrl.trim())) {
+      showToast("ফাইলের লিংক অবশ্যই http:// বা https:// দিয়ে শুরু হতে হবে।", "error");
+      return;
+    }
 
     const resourceObj = {
-      resourceId: `RES-${Date.now().toString().slice(-4)}`,
-      title: newResource.title,
+      resourceId: `RES-${Date.now().toString(36).toUpperCase()}`,
+      title: newResource.title.trim(),
       category: newResource.category,
       format: newResource.format,
       size: newResource.size,
       desc: newResource.desc,
-      fileUrl: newResource.fileUrl,
+      fileUrl: newResource.fileUrl.trim(),
       isDownloadable: newResource.isDownloadable,
     };
 
-    const updatedResources = [...(selectedCourseForCurriculum.resources || []), resourceObj];
-    const updatedCourse = { ...selectedCourseForCurriculum, resources: updatedResources };
-
-    setSelectedCourseForCurriculum(updatedCourse);
-    handleSaveCourse(updatedCourse);
-    setShowAddResourceModal(false);
-    setNewResource({
-      title: "",
-      category: "কুরআন শিক্ষা ও তাজবীদ",
-      format: "PDF",
-      size: "2.5 MB",
-      desc: "",
-      fileUrl: "https://drive.google.com/drive/folders/tot-fajr-resources",
-      isDownloadable: true,
-    });
+    const saved = await saveResources([...(selectedCourseForCurriculum.resources || []), resourceObj], "নতুন স্টাডি ফাইল যুক্ত হয়েছে!");
+    if (saved) {
+      setShowAddResourceModal(false);
+      setNewResource(EMPTY_RESOURCE);
+    }
   };
 
-  const handleDeleteResource = (resourceIndex) => {
+  const handleDeleteResource = async (resourceIndex) => {
     if (!selectedCourseForCurriculum) return;
-    if (!window.confirm("আপনি কি এই স্টাডি ম্যাটেরিয়ালটি মুছে ফেলতে চান?")) return;
-
-    const updatedResources = selectedCourseForCurriculum.resources.filter((_, idx) => idx !== resourceIndex);
-    const updatedCourse = { ...selectedCourseForCurriculum, resources: updatedResources };
-
-    setSelectedCourseForCurriculum(updatedCourse);
-    handleSaveCourse(updatedCourse);
+    if (!window.confirm("আপনি কি এই স্টাডি ম্যাটেরিয়ালটি মুছে ফেলতে চান?")) return;
+    const updated = (selectedCourseForCurriculum.resources || []).filter((_, idx) => idx !== resourceIndex);
+    await saveResources(updated, "স্টাডি ফাইলটি মুছে ফেলা হয়েছে।");
   };
+
+  const editInput = `w-full px-3 py-1.5 rounded-xl border text-xs font-medium outline-hidden ${
+    isLight ? "bg-white border-slate-300 text-slate-900" : "bg-slate-950 border-slate-700 text-white focus:border-amber-500"
+  }`;
+  const labelCls = `text-[11px] font-bold block mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`;
 
   return (
     <div className="space-y-8">
-      {/* Toast Notification */}
-      {notification && (
-        <div
-          className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl border shadow-2xl flex items-center gap-2 text-xs font-bold animate-fadeIn ${
-            notification.type === "success"
-              ? "bg-emerald-500/90 text-white border-emerald-400"
-              : "bg-rose-500/90 text-white border-rose-400"
-          }`}
-        >
-          {notification.type === "success" ? (
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-          ) : (
-            <AlertCircle className="w-4 h-4 shrink-0" />
-          )}
-          <span>{notification.msg}</span>
-        </div>
-      )}
+      <AdminToast toast={toast} onClose={hideToast} />
+      <DbErrorBanner message={loadError} isLight={isLight} onRetry={reload} retrying={reloading} />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-2 border ${
-              isLight
-                ? "bg-amber-100 text-amber-900 border-amber-300"
-                : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+              isLight ? "bg-amber-100 text-amber-900 border-amber-300" : "bg-amber-500/10 border-amber-500/30 text-amber-300"
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
@@ -395,61 +359,88 @@ export default function AdminCoursesClient({ initialBatches }) {
             কোর্স, কারিকুলাম ও রিসোর্স কনফিগারেশন
           </h1>
           <p className={`text-xs sm:text-sm mt-1 font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-            TOT ব্যাচ সিডিউল, লাইভ ক্লাসরুম লিংক, ৪টি মডিউলের কারিকুলাম এবং স্টাডি বুকস ও হ্যান্ডবুক নিয়ন্ত্রণ
+            TOT ব্যাচ সিডিউল, লাইভ ক্লাসরুম লিংক, কারিকুলাম মডিউল এবং স্টাডি বুকস ও হ্যান্ডবুক নিয়ন্ত্রণ
           </p>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-2 shadow-md shadow-amber-500/20 transition-all cursor-pointer shrink-0"
-        >
-          <Plus className="w-4 h-4" /> নতুন কোর্স তৈরি
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={reload}
+            disabled={reloading}
+            title="ডাটাবেজ থেকে আবার লোড করুন"
+            className={`px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-60 ${
+              isLight ? "bg-white border-slate-300 text-slate-800 hover:bg-slate-50" : "bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800"
+            }`}
+          >
+            <RefreshCw className={`w-4 h-4 ${reloading ? "animate-spin" : ""}`} /> রিফ্রেশ
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-2 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" /> নতুন কোর্স তৈরি
+          </button>
+        </div>
       </div>
+
+      {batches.length === 0 && !loadError && (
+        <div className={`text-center py-10 text-xs rounded-3xl border ${isLight ? "bg-white border-slate-200 text-slate-500" : "bg-slate-900 border-slate-800 text-slate-400"}`}>
+          কোনো কোর্স নেই। &apos;নতুন কোর্স তৈরি&apos; বাটনে ক্লিক করে যোগ করুন।
+        </div>
+      )}
 
       {/* Course Batches Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {batches.map((batch) => {
-          const batchKey = batch._id || batch.courseId || batch.id;
-          const isEditing = editingId === batchKey;
+          const batchKey = keyOf(batch);
+          const isEditing = editingId === batchKey && draft;
+          const view = isEditing ? draft : batch;
           const isMen = batch.track === "men";
-          const curriculumCount = batch.curriculum?.length || 4;
-          const resourcesCount = batch.resources?.length || 6;
+          const curriculumCount = batch.curriculum?.length || 0;
+          const resourcesCount = batch.resources?.length || 0;
 
           return (
             <div
               key={batchKey}
               className={`rounded-3xl p-6 border space-y-5 relative overflow-hidden flex flex-col justify-between transition-all ${
-                isLight
-                  ? "bg-white border-slate-200 shadow-sm hover:shadow-md"
-                  : "bg-slate-900 border-slate-800 shadow-2xl"
+                isLight ? "bg-white border-slate-200 shadow-sm hover:shadow-md" : "bg-slate-900 border-slate-800 shadow-2xl"
               }`}
             >
               <div>
                 {/* Card Top Pill & Actions */}
                 <div className={`flex items-center justify-between border-b pb-4 mb-4 ${isLight ? "border-slate-100" : "border-slate-800"}`}>
-                  <span
-                    className={`text-xs font-bold px-3 py-1 rounded-full border ${
-                      isMen
-                        ? isLight
-                          ? "bg-blue-100 text-blue-800 border-blue-300"
-                          : "bg-blue-500/20 text-blue-300 border-blue-500/30"
-                        : isLight
-                        ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                        : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                    }`}
-                  >
-                    {batch.tag || "কোর্স ব্যাচ"}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                        isMen
+                          ? isLight
+                            ? "bg-blue-100 text-blue-800 border-blue-300"
+                            : "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                          : isLight
+                          ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                          : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                      }`}
+                    >
+                      {batch.tag || "কোর্স ব্যাচ"}
+                    </span>
+                    {batch.isPublished === false && (
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                          isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-300 border-slate-700"
+                        }`}
+                      >
+                        <EyeOff className="w-3 h-3" /> অপ্রকাশিত
+                      </span>
+                    )}
+                  </div>
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => (isEditing ? handleSaveCourse(batch) : setEditingId(batchKey))}
-                      disabled={saving}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
-                        isLight
-                          ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800"
-                          : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200"
+                      onClick={() => (isEditing ? handleSaveCard() : startEdit(batch))}
+                      disabled={saving || (editingId && !isEditing)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border disabled:opacity-50 ${
+                        isLight ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800" : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200"
                       }`}
                     >
                       {isEditing ? <Save className="w-3.5 h-3.5 text-emerald-600" /> : <Edit className="w-3.5 h-3.5" />}
@@ -458,13 +449,12 @@ export default function AdminCoursesClient({ initialBatches }) {
 
                     {isEditing && (
                       <button
-                        onClick={() => setEditingId(null)}
-                        className={`p-1.5 rounded-lg border ${
-                          isLight
-                            ? "bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-300"
-                            : "bg-slate-800 text-slate-400 hover:text-white border-slate-700"
+                        onClick={cancelEdit}
+                        disabled={saving}
+                        className={`p-1.5 rounded-lg border cursor-pointer ${
+                          isLight ? "bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-300" : "bg-slate-800 text-slate-400 hover:text-white border-slate-700"
                         }`}
-                        title="বাতিল"
+                        title="বাতিল (পরিবর্তন সংরক্ষণ হবে না)"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -472,7 +462,8 @@ export default function AdminCoursesClient({ initialBatches }) {
 
                     <button
                       onClick={() => handleDeleteCourse(batch)}
-                      className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition-colors cursor-pointer"
+                      disabled={saving}
+                      className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition-colors cursor-pointer disabled:opacity-50"
                       title="মুছে ফেলুন"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -483,48 +474,78 @@ export default function AdminCoursesClient({ initialBatches }) {
                 <div className="space-y-4 text-xs">
                   {/* Batch Name */}
                   <div>
-                    <label className={`text-[11px] font-bold block mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                      ব্যাচের নাম
-                    </label>
+                    <label className={labelCls}>ব্যাচের নাম</label>
                     {isEditing ? (
-                      <input
-                        type="text"
-                        value={batch.name}
-                        onChange={(e) => handleUpdateField(batchKey, "name", e.target.value)}
-                        className="w-full font-bold px-3 py-2 rounded-xl border text-sm"
-                      />
+                      <input type="text" value={view.name || ""} onChange={(e) => setDraftField("name", e.target.value)} className={`${editInput} font-bold text-sm`} />
                     ) : (
-                      <h3 className={`text-base font-black tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
-                        {batch.name}
-                      </h3>
+                      <h3 className={`text-base font-black tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>{batch.name}</h3>
                     )}
                   </div>
 
-                  {/* Course ID & Fee */}
-                  <div className="grid grid-cols-2 gap-3">
+                  {isEditing && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className={labelCls}>ট্যাগ / লেবেল</label>
+                        <input type="text" value={view.tag || ""} onChange={(e) => setDraftField("tag", e.target.value)} className={editInput} />
+                      </div>
+                      <div>
+                        <label className={labelCls}>ট্র্যাক</label>
+                        <select value={view.track || "general"} onChange={(e) => setDraftField("track", e.target.value)} className={editInput}>
+                          <option value="men">পুরুষ (Men)</option>
+                          <option value="women">মহিলা (Women)</option>
+                          <option value="general">সাধারণ (General)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelCls}>স্ট্যাটাস</label>
+                        <select value={view.status || "Active & Enrolling"} onChange={(e) => setDraftField("status", e.target.value)} className={editInput}>
+                          {STATUSES.map((s) => (
+                            <option key={s} value={s}>
+                              {STATUS_LABEL[s]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Course ID & Fees */}
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className={`text-[11px] font-bold block mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                        কোর্স আইডি (ID)
-                      </label>
-                      <span className="font-mono font-bold px-2.5 py-1 rounded-lg border block text-xs bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-amber-700 dark:text-amber-400">
-                        {batch.courseId || batch.id}
+                      <label className={labelCls}>কোর্স আইডি (ID)</label>
+                      <span className="font-mono font-bold px-2.5 py-1 rounded-lg border block text-xs bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-amber-700 dark:text-amber-400 truncate">
+                        {batch.courseId}
                       </span>
                     </div>
 
                     <div>
-                      <label className={`text-[11px] font-bold block mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                        কোর্স ফি (BDT)
-                      </label>
+                      <label className={labelCls}>কোর্স ফি (BDT)</label>
                       {isEditing ? (
                         <input
                           type="number"
-                          value={batch.fee || 1000}
-                          onChange={(e) => handleUpdateField(batchKey, "fee", Number(e.target.value))}
-                          className="w-full font-mono font-bold px-3 py-1.5 rounded-xl border"
+                          min="0"
+                          value={view.fee ?? ""}
+                          onChange={(e) => setDraftField("fee", e.target.value)}
+                          className={`${editInput} font-mono font-bold`}
                         />
                       ) : (
-                        <span className="font-mono font-black text-sm text-emerald-700 dark:text-emerald-400">
-                          ৳ {batch.fee || 1000}
+                        <span className="font-mono font-black text-sm text-emerald-700 dark:text-emerald-400">{formatMoney(batch.fee, batch.currency)}</span>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className={labelCls}>রেগুলার ফি</label>
+                      {isEditing ? (
+                        <input
+                          type="number"
+                          min="0"
+                          value={view.regularFee ?? ""}
+                          onChange={(e) => setDraftField("regularFee", e.target.value)}
+                          className={`${editInput} font-mono`}
+                        />
+                      ) : (
+                        <span className={`font-mono text-sm line-through ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                          {formatMoney(batch.regularFee, batch.currency)}
                         </span>
                       )}
                     </div>
@@ -534,90 +555,158 @@ export default function AdminCoursesClient({ initialBatches }) {
                   <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-2xl border ${isLight ? "bg-slate-50 border-slate-200" : "bg-slate-950/60 border-slate-800"}`}>
                     <div>
                       <label className={`text-[11px] font-bold flex items-center gap-1 mb-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                        <Calendar className="w-3.5 h-3.5 text-amber-500" /> ওরিয়েন্টেশন তারিখ
+                        <Calendar className="w-3.5 h-3.5 text-amber-500" /> ওরিয়েন্টেশন তারিখ
                       </label>
                       {isEditing ? (
-                        <input
-                          type="text"
-                          value={batch.orientationDate}
-                          onChange={(e) => handleUpdateField(batchKey, "orientationDate", e.target.value)}
-                          className="w-full font-medium px-2 py-1 rounded-lg border text-xs"
-                        />
+                        <input type="text" value={view.orientationDate || ""} onChange={(e) => setDraftField("orientationDate", e.target.value)} className={editInput} />
                       ) : (
-                        <p className={`font-bold ${isLight ? "text-slate-800" : "text-slate-200"}`}>
-                          {batch.orientationDate}
-                        </p>
+                        <p className={`font-bold ${isLight ? "text-slate-800" : "text-slate-200"}`}>{batch.orientationDate || "—"}</p>
                       )}
                     </div>
 
                     <div>
                       <label className={`text-[11px] font-bold flex items-center gap-1 mb-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                        <Clock className="w-3.5 h-3.5 text-amber-500" /> ওরিয়েন্টেশন সময়
+                        <Clock className="w-3.5 h-3.5 text-amber-500" /> ওরিয়েন্টেশন সময়
                       </label>
                       {isEditing ? (
-                        <input
-                          type="text"
-                          value={batch.orientationTime}
-                          onChange={(e) => handleUpdateField(batchKey, "orientationTime", e.target.value)}
-                          className="w-full font-medium px-2 py-1 rounded-lg border text-xs"
-                        />
+                        <input type="text" value={view.orientationTime || ""} onChange={(e) => setDraftField("orientationTime", e.target.value)} className={editInput} />
                       ) : (
-                        <p className={`font-bold ${isLight ? "text-slate-800" : "text-slate-200"}`}>
-                          {batch.orientationTime}
-                        </p>
+                        <p className={`font-bold ${isLight ? "text-slate-800" : "text-slate-200"}`}>{batch.orientationTime || "—"}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className={`text-[11px] font-bold block mb-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>ক্লাস রুটিন</label>
+                      {isEditing ? (
+                        <input type="text" value={view.routine || ""} onChange={(e) => setDraftField("routine", e.target.value)} className={editInput} />
+                      ) : (
+                        <p className={`font-semibold ${isLight ? "text-slate-800" : "text-slate-200"}`}>{batch.routine || "—"}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className={`text-[11px] font-bold block mb-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>মেয়াদ</label>
+                      {isEditing ? (
+                        <input type="text" value={view.duration || ""} onChange={(e) => setDraftField("duration", e.target.value)} className={editInput} />
+                      ) : (
+                        <p className={`font-semibold ${isLight ? "text-slate-800" : "text-slate-200"}`}>{batch.duration || "—"}</p>
                       )}
                     </div>
                   </div>
 
                   {/* Instructor */}
                   <div>
-                    <label className={`text-[11px] font-bold block mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                      প্রধান ট্রেইনার / ইন্সট্রাক্টর
-                    </label>
+                    <label className={labelCls}>প্রধান ট্রেইনার / ইন্সট্রাক্টর</label>
                     {isEditing ? (
-                      <input
-                        type="text"
-                        value={batch.instructor}
-                        onChange={(e) => handleUpdateField(batchKey, "instructor", e.target.value)}
-                        className="w-full font-medium px-3 py-2 rounded-xl border text-xs"
-                      />
+                      <input type="text" value={view.instructor || ""} onChange={(e) => setDraftField("instructor", e.target.value)} className={editInput} />
                     ) : (
-                      <p className={`font-bold ${isLight ? "text-amber-800" : "text-amber-300"}`}>
-                        {batch.instructor}
-                      </p>
+                      <p className={`font-bold ${isLight ? "text-amber-800" : "text-amber-300"}`}>{batch.instructor || "—"}</p>
                     )}
                   </div>
 
-                  {/* Links Row */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                  {isEditing && (
                     <div>
-                      <span className={`block font-bold mb-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                        Google Meet
-                      </span>
-                      <a
-                        href={batch.meetLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-mono truncate"
-                      >
-                        <Video className="w-3 h-3 shrink-0" /> {batch.meetLink || "লিংক যুক্ত নেই"}
-                      </a>
+                      <label className={labelCls}>সংক্ষিপ্ত বিবরণ (Summary)</label>
+                      <textarea rows={2} value={view.summary || ""} onChange={(e) => setDraftField("summary", e.target.value)} className={`${editInput} resize-none`} />
                     </div>
+                  )}
 
-                    <div>
-                      <span className={`block font-bold mb-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                        WhatsApp গ্রুপ
-                      </span>
-                      <a
-                        href={batch.whatsappLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 font-mono truncate"
-                      >
-                        <MessageCircle className="w-3 h-3 shrink-0" /> {batch.whatsappLink || "লিংক যুক্ত নেই"}
-                      </a>
+                  {/* Links Row */}
+                  {isEditing ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className={labelCls}>Google Meet লিংক (https://)</label>
+                        <input
+                          type="url"
+                          value={view.meetLink || ""}
+                          onChange={(e) => setDraftField("meetLink", e.target.value)}
+                          placeholder="https://meet.google.com/..."
+                          className={`${editInput} font-mono`}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelCls}>WhatsApp গ্রুপ লিংক (https://)</label>
+                        <input
+                          type="url"
+                          value={view.whatsappLink || ""}
+                          onChange={(e) => setDraftField("whatsappLink", e.target.value)}
+                          placeholder="https://chat.whatsapp.com/..."
+                          className={`${editInput} font-mono`}
+                        />
+                      </div>
+                      <div>
+                        <label className={labelCls}>প্রোমো ভিডিও লিংক (https://)</label>
+                        <input
+                          type="url"
+                          value={view.videoUrl || ""}
+                          onChange={(e) => setDraftField("videoUrl", e.target.value)}
+                          placeholder="https://youtube.com/..."
+                          className={`${editInput} font-mono`}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={labelCls}>সর্বোচ্চ আসন</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={view.maxSeats ?? ""}
+                            onChange={(e) => setDraftField("maxSeats", e.target.value)}
+                            className={`${editInput} font-mono`}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>প্রকাশ</label>
+                          <select
+                            value={view.isPublished === false ? "no" : "yes"}
+                            onChange={(e) => setDraftField("isPublished", e.target.value === "yes")}
+                            className={editInput}
+                          >
+                            <option value="yes">প্রকাশিত</option>
+                            <option value="no">অপ্রকাশিত</option>
+                          </select>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                      <div className="min-w-0">
+                        <span className={`block font-bold mb-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>Google Meet</span>
+                        {batch.meetLink ? (
+                          <a
+                            href={batch.meetLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-mono truncate"
+                          >
+                            <Video className="w-3 h-3 shrink-0" /> {batch.meetLink}
+                          </a>
+                        ) : (
+                          <span className={`flex items-center gap-1 ${isLight ? "text-slate-500" : "text-slate-500"}`}>
+                            <Video className="w-3 h-3 shrink-0" /> লিংক যুক্ত নেই
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="min-w-0">
+                        <span className={`block font-bold mb-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>WhatsApp গ্রুপ</span>
+                        {batch.whatsappLink ? (
+                          <a
+                            href={batch.whatsappLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 font-mono truncate"
+                          >
+                            <MessageCircle className="w-3 h-3 shrink-0" /> {batch.whatsappLink}
+                          </a>
+                        ) : (
+                          <span className={`flex items-center gap-1 ${isLight ? "text-slate-500" : "text-slate-500"}`}>
+                            <MessageCircle className="w-3 h-3 shrink-0" /> লিংক যুক্ত নেই
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* CURRICULUM & RESOURCE MANAGER BUTTON */}
                   <div className="pt-2">
@@ -628,9 +717,7 @@ export default function AdminCoursesClient({ initialBatches }) {
                         setCurriculumTab("curriculum");
                       }}
                       className={`w-full py-2.5 px-3.5 rounded-2xl border flex items-center justify-between font-bold text-xs transition-all cursor-pointer ${
-                        isLight
-                          ? "bg-slate-100 hover:bg-slate-200/80 border-slate-300 text-slate-900 shadow-xs"
-                          : "bg-slate-800/90 hover:bg-slate-800 border-slate-700 text-amber-300"
+                        isLight ? "bg-slate-100 hover:bg-slate-200/80 border-slate-300 text-slate-900 shadow-xs" : "bg-slate-800/90 hover:bg-slate-800 border-slate-700 text-amber-300"
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -650,22 +737,12 @@ export default function AdminCoursesClient({ initialBatches }) {
                 <div className="flex items-center gap-1.5">
                   <Users className="w-4 h-4 text-amber-500" />
                   <span>
-                    নিবন্ধিত ট্রেইনি:{" "}
-                    <strong className={isLight ? "text-slate-900" : "text-white"}>
-                      {batch.enrolledCount || 0}
-                    </strong>{" "}
-                    / {batch.maxSeats || 60}
+                    নিবন্ধিত ট্রেইনি: <strong className={isLight ? "text-slate-900" : "text-white"}>{batch.enrolledCount || 0}</strong> / {batch.maxSeats ?? 0}
                   </span>
                 </div>
 
-                <span
-                  className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
-                    isLight
-                      ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                      : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                  }`}
-                >
-                  {batch.status || "Active"}
+                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${statusCls(batch.status, isLight)}`}>
+                  {batch.status || "—"}
                 </span>
               </div>
             </div>
@@ -693,7 +770,8 @@ export default function AdminCoursesClient({ initialBatches }) {
                   </h2>
                 </div>
                 <p className={`text-xs mt-1 font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                  ৪ সপ্তাহের আন্তর্জাতিক TOT কারিকুলাম ও ক্লাসের স্টাডি ম্যাটেরিয়ালস ম্যানেজার
+                  TOT কারিকুলাম ও ক্লাসের স্টাডি ম্যাটেরিয়ালস ম্যানেজার — প্রতিটি পরিবর্তন সাথে সাথে ডাটাবেজে সংরক্ষিত হয়
+                  {saving && <span className="ml-2 text-amber-500 font-bold">• সংরক্ষণ হচ্ছে...</span>}
                 </p>
               </div>
 
@@ -752,7 +830,8 @@ export default function AdminCoursesClient({ initialBatches }) {
                   <button
                     type="button"
                     onClick={handleReloadOfficialCurriculum}
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    disabled={saving}
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 ${
                       isLight
                         ? "bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 shadow-xs"
                         : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
@@ -766,26 +845,9 @@ export default function AdminCoursesClient({ initialBatches }) {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      setNewModule({
-                        moduleNo: (selectedCourseForCurriculum.curriculum?.length || 0) + 1,
-                        sessionBadge: `SESSION 0${(selectedCourseForCurriculum.curriculum?.length || 0) + 1}`,
-                        title: "",
-                        subtitle: "",
-                        description: "",
-                        themeQuote: "",
-                        trainerName: "",
-                        trainerRole: "",
-                        trainerQualifications: "",
-                        sessionDate: "",
-                        sessionTime: "",
-                        duration: "১ ঘণ্টা",
-                        liveDate: "",
-                        topics: "",
-                      });
-                      setShowAddModuleModal(true);
-                    }}
-                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    onClick={openAddModule}
+                    disabled={saving}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
                   >
                     <Plus className="w-4 h-4" /> নতুন সেশন
                   </button>
@@ -910,7 +972,8 @@ export default function AdminCoursesClient({ initialBatches }) {
                           <button
                             type="button"
                             onClick={() => handleAddLessonToModule(modIdx)}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border flex items-center gap-1 cursor-pointer ${
+                            disabled={saving}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
                               isLight
                                 ? "bg-white hover:bg-slate-100 border-slate-300 text-slate-800"
                                 : "bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-200"
@@ -921,7 +984,8 @@ export default function AdminCoursesClient({ initialBatches }) {
                           <button
                             type="button"
                             onClick={() => handleDeleteModule(modIdx)}
-                            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-500/10 border border-rose-500/30 cursor-pointer"
+                            disabled={saving}
+                            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-500/10 border border-rose-500/30 cursor-pointer disabled:opacity-50"
                             title="মডিউল মুছুন"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1006,7 +1070,8 @@ export default function AdminCoursesClient({ initialBatches }) {
                             <button
                               type="button"
                               onClick={() => handleDeleteResource(resIdx)}
-                              className="text-rose-600 hover:text-rose-500 cursor-pointer p-1"
+                              disabled={saving}
+                              className="text-rose-600 hover:text-rose-500 cursor-pointer p-1 disabled:opacity-50"
                               title="ফাইল মুছুন"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1026,17 +1091,21 @@ export default function AdminCoursesClient({ initialBatches }) {
 
                         <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-850 text-xs">
                           <span className={`text-[10px] font-mono font-bold ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                            {res.format || "PDF"} • {res.size || "2.5 MB"}
+                            {res.format || "—"}{res.size ? ` • ${res.size}` : ""}{res.isDownloadable === false ? " • শুধু ভিউ" : ""}
                           </span>
 
-                          <a
-                            href={res.fileUrl || "https://drive.google.com"}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[10px] flex items-center gap-1"
-                          >
-                            <Download className="w-3 h-3" /> ডাউনলোড লিংক
-                          </a>
+                          {res.fileUrl ? (
+                            <a
+                              href={res.fileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[10px] flex items-center gap-1"
+                            >
+                              <Download className="w-3 h-3" /> ডাউনলোড লিংক
+                            </a>
+                          ) : (
+                            <span className="text-[10px] font-bold text-rose-500">লিংক নেই</span>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1202,9 +1271,10 @@ export default function AdminCoursesClient({ initialBatches }) {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs"
+                  disabled={saving}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs cursor-pointer disabled:opacity-50"
                 >
-                  ✓ মডিউল সেভ করুন
+                  {saving ? "সংরক্ষণ হচ্ছে..." : "✓ মডিউল সেভ করুন"}
                 </button>
               </div>
             </form>
@@ -1333,9 +1403,10 @@ export default function AdminCoursesClient({ initialBatches }) {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs"
+                  disabled={saving}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs cursor-pointer disabled:opacity-50"
                 >
-                  ✓ ফাইল যুক্ত করুন
+                  {saving ? "সংরক্ষণ হচ্ছে..." : "✓ ফাইল যুক্ত করুন"}
                 </button>
               </div>
             </form>

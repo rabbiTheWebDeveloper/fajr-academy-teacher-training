@@ -24,7 +24,8 @@ const paymentSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["VALID", "PENDING", "FAILED", "CANCELLED", "UNATTEMPTED"],
+      // VALID = verified with the SSLCommerz validation API (or verified by an admin).
+      enum: ["VALID", "PENDING", "FAILED", "CANCELLED", "UNATTEMPTED", "EXPIRED", "INVALID", "REFUNDED"],
       default: "PENDING",
       index: true,
     },
@@ -63,9 +64,61 @@ const paymentSchema = new Schema(
       type: Schema.Types.Mixed,
       default: {},
     },
+    // New-applicant details captured before payment. The password is stored only as a
+    // scrypt hash (passwordHash) and removed once the account is created.
     registrationData: {
       type: Schema.Types.Mixed,
       default: null,
+    },
+    // "registration" = new applicant; "course-purchase" = signed-in user buying a course;
+    // "manual" = recorded by an admin (bKash/Nagad/cash).
+    purpose: {
+      type: String,
+      enum: ["registration", "course-purchase", "manual"],
+      default: "registration",
+      index: true,
+    },
+    courseId: {
+      type: String,
+      default: "",
+      index: true,
+    },
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    paymentMethod: {
+      type: String,
+      default: "SSLCOMMERZ",
+    },
+    // Set exactly once, atomically, when the payment moves to VALID.
+    finalizedAt: {
+      type: Date,
+      default: null,
+    },
+    // Set once when the post-payment auto-login cookie is issued, so a replayed
+    // success URL can never log anyone in again.
+    loginIssuedAt: {
+      type: Date,
+      default: null,
+    },
+    verifiedBy: {
+      type: String,
+      default: "",
+    },
+    refund: {
+      refId: { type: String, default: "" },
+      amount: { type: Number, default: 0 },
+      status: { type: String, default: "" },
+      remarks: { type: String, default: "" },
+      requestedAt: { type: Date, default: null },
+      requestedBy: { type: String, default: "" },
+    },
+    notes: {
+      type: String,
+      default: "",
     },
   },
   {

@@ -12,65 +12,32 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
+const ADMIN_ROLES = ["admin", "super-admin"];
+
 export default async function AdminLayout({ children }) {
   const session = await getSessionUser();
 
-  let adminUser = null;
-
-  if (session) {
-    // Role Security Check: Strictly limit /admin to "admin" or "super-admin"
-    const allowedRoles = ["admin", "super-admin"];
-    if (!allowedRoles.includes(session.role)) {
-      if (session.role === "instructor") {
-        redirect("/instructor?error=admin_only");
-      }
-      redirect("/dashboard?error=admin_only");
-    }
-
-    adminUser = {
-      id: session.id || session._id || "",
-      fullName: session.fullName || "Administrator",
-      email: session.email || "admin@fajracademy.io",
-      role: session.role || "admin",
-      track: session.track || "TOT-MEN",
-    };
-  } else {
-    // Development / direct-access fallback: lookup active admin from UserModel
-    try {
-      const { dbConnect } = await import("@/service/mongo");
-      const { UserModel } = await import("@/model/user-model");
-      await dbConnect();
-      const dbAdmin = await UserModel.findOne({ role: { $in: ["admin", "super-admin"] } }).lean();
-      if (dbAdmin) {
-        adminUser = {
-          id: dbAdmin._id.toString(),
-          fullName: dbAdmin.fullName || "System Administrator",
-          email: dbAdmin.email || "admin@fajracademy.io",
-          role: dbAdmin.role || "admin",
-          track: dbAdmin.track || "TOT-MEN",
-        };
-      }
-    } catch (e) {
-      console.error("Admin layout fallback lookup error:", e);
-    }
-
-    if (!adminUser) {
-      adminUser = {
-        id: "admin-master-001",
-        fullName: "Executive Admin",
-        email: "admin@fajracademy.io",
-        role: "admin",
-        track: "TOT-MEN",
-      };
-    }
+  // No (valid) session → login. Never render the panel as some other admin.
+  if (!session?.id) {
+    redirect("/login?redirect=/admin");
   }
+
+  // Role check: /admin is strictly for admin / super-admin.
+  if (!ADMIN_ROLES.includes(session.role)) {
+    redirect(session.role === "instructor" ? "/instructor?error=admin_only" : "/dashboard?error=admin_only");
+  }
+
+  const adminUser = {
+    id: String(session.id),
+    fullName: session.fullName || session.email || "Administrator",
+    email: session.email || "",
+    role: session.role,
+    track: session.track || "",
+  };
 
   return (
     <AdminThemeProvider>
-      <AdminLayoutClient
-        adminUser={adminUser}
-        sidebar={<AdminSidebar adminUser={adminUser} />}
-      >
+      <AdminLayoutClient adminUser={adminUser} sidebar={<AdminSidebar adminUser={adminUser} />}>
         {children}
       </AdminLayoutClient>
     </AdminThemeProvider>

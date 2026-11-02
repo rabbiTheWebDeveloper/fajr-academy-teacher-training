@@ -2,83 +2,81 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
 import { EvaluationModel } from "@/model/evaluation-model";
+import { requireAuth, INSTRUCTOR_ROLES, serverError } from "@/lib/api-auth";
+import {
+  TRAINEE_ROLE_LIST,
+  isObjectId,
+  pagination,
+  pick,
+  searchFilter,
+  trackFilter,
+} from "@/lib/query-helpers";
+
+const LIST_FIELDS =
+  "fullName email phone track gender designation bloodGroup paymentStatus paidAmount tranId hasLaptop quranSkill englishSkill education bio avatar createdAt";
+
+// Instructors may correct a trainee's profile/academic details — never role, email,
+// payment or account status (those belong to admins).
+const EDITABLE_FIELDS = [
+  "fullName",
+  "phone",
+  "emergencyContactNumber",
+  "designation",
+  "bloodGroup",
+  "gender",
+  "hasLaptop",
+  "quranSkill",
+  "englishSkill",
+  "education",
+  "bio",
+];
 
 export async function GET(request) {
+  const auth = await requireAuth(request, INSTRUCTOR_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search") || "";
-    const track = searchParams.get("track") || "all";
+    const { limit, page, skip } = pagination(searchParams, { defaultLimit: 50 });
     const paymentStatus = searchParams.get("paymentStatus") || "all";
-    const limit = Math.min(Number(searchParams.get("limit")) || 50, 100);
-    const page = Math.max(Number(searchParams.get("page")) || 1, 1);
 
-    const query = { role: { $in: ["teacher", "student"] } };
+    const filters = [{ role: { $in: TRAINEE_ROLE_LIST } }];
+    const byTrack = trackFilter(searchParams.get("track"));
+    if (byTrack) filters.push(byTrack);
+    if (paymentStatus !== "all") filters.push({ paymentStatus });
+    const bySearch = searchFilter(searchParams.get("search"), ["fullName", "email", "phone", "tranId"]);
+    if (bySearch) filters.push(bySearch);
+    const query = { $and: filters };
 
-    if (track === "men") {
-      query.$or = [{ track: "TOT-MEN" }, { gender: "male" }];
-    } else if (track === "women") {
-      query.$or = [{ track: { $regex: /WOMEN/i } }, { gender: "female" }];
-    } else if (track !== "all" && track) {
-      query.track = track;
-    }
+    const [total, trainees] = await Promise.all([
+      UserModel.countDocuments(query),
+      UserModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).select(LIST_FIELDS).lean(),
+    ]);
 
-    if (paymentStatus !== "all" && paymentStatus) {
-      query.paymentStatus = paymentStatus;
-    }
-
-    if (search.trim()) {
-      const searchRegex = new RegExp(search.trim(), "i");
-      query.$and = [
-        {
-          $or: [
-            { fullName: searchRegex },
-            { email: searchRegex },
-            { phone: searchRegex },
-            { tranId: searchRegex },
-          ],
-        },
-      ];
-    }
-
-    const total = await UserModel.countDocuments(query);
-    const trainees = await UserModel.find(query)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .select(
-        "fullName email phone track gender designation bloodGroup paymentStatus paidAmount tranId hasLaptop quranSkill englishSkill education bio createdAt"
-      )
+    const evaluations = await EvaluationModel.find({ traineeId: { $in: trainees.map((t) => t._id) } })
+      .sort({ evaluatedAt: -1 })
+      .select("traineeId totalScore grade qualificationStatus evaluatedAt scores")
       .lean();
+    const evalMap = new Map();
+    for (const e of evaluations) {
+      const key = e.traineeId.toString();
+      if (!evalMap.has(key)) evalMap.set(key, e);
+    }
 
-    // Attach latest evaluation status for each trainee
-    const traineeIds = trainees.map((t) => t._id);
-    const evaluations = await EvaluationModel.find({
-      traineeId: { $in: traineeIds },
-    })
-      .select("traineeId totalScore grade qualificationStatus evaluatedAt")
-      .lean();
-
-    const evalMap = {};
-    evaluations.forEach((e) => {
-      evalMap[e.traineeId.toString()] = e;
-    });
-
-    const sanitized = trainees.map((t) => {
-      const idStr = t._id.toString();
-      const evaluation = evalMap[idStr] || null;
+    const result = trainees.map((t) => {
+      const e = evalMap.get(t._id.toString());
       return {
         ...t,
-        _id: idStr,
+        _id: t._id.toString(),
         createdAt: t.createdAt ? new Date(t.createdAt).toISOString() : "",
-        evaluation: evaluation
+        evaluation: e
           ? {
-              totalScore: evaluation.totalScore,
-              grade: evaluation.grade,
-              qualificationStatus: evaluation.qualificationStatus,
-              evaluatedAt: evaluation.evaluatedAt
-                ? new Date(evaluation.evaluatedAt).toISOString()
-                : "",
+              totalScore: e.totalScore,
+              grade: e.grade,
+              qualificationStatus: e.qualificationStatus,
+              scores: e.scores,
+              evaluatedAt: e.evaluatedAt ? new Date(e.evaluatedAt).toISOString() : "",
             }
           : null,
       };
@@ -86,67 +84,54 @@ export async function GET(request) {
 
     return NextResponse.json({
       success: true,
-      count: sanitized.length,
+      count: result.length,
       total,
       page,
       totalPages: Math.ceil(total / limit) || 1,
-      trainees: sanitized,
+      trainees: result,
     });
   } catch (error) {
-    console.error("Instructor Trainees GET Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "Instructor trainees GET");
   }
 }
 
 export async function PATCH(request) {
+  const auth = await requireAuth(request, INSTRUCTOR_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
     const body = await request.json();
-    const { traineeId, ...updateFields } = body;
+    const { traineeId } = body;
 
-    if (!traineeId) {
-      return NextResponse.json(
-        { success: false, message: "Trainee ID is required." },
-        { status: 400 }
-      );
+    if (!isObjectId(traineeId)) {
+      return NextResponse.json({ success: false, message: "সঠিক ট্রেইনি ID আবশ্যক।" }, { status: 400 });
     }
 
-    // Safety checks: do not overwrite password or permissions via this route
-    delete updateFields._id;
-    delete updateFields.password;
-    delete updateFields.permissions;
+    const updateFields = pick(body, EDITABLE_FIELDS);
+    if (Object.keys(updateFields).length === 0) {
+      return NextResponse.json({ success: false, message: "পরিবর্তনের মতো কোনো তথ্য পাওয়া যায়নি।" }, { status: 400 });
+    }
 
-    const updated = await UserModel.findByIdAndUpdate(
-      traineeId,
+    // Only trainee accounts can be edited here — never instructors or admins.
+    const updated = await UserModel.findOneAndUpdate(
+      { _id: traineeId, role: { $in: TRAINEE_ROLE_LIST } },
       { $set: updateFields },
-      { new: true }
+      { returnDocument: "after", runValidators: true }
     )
-      .select("-password -resetPasswordToken -resetPasswordExpires")
+      .select(LIST_FIELDS)
       .lean();
 
     if (!updated) {
-      return NextResponse.json(
-        { success: false, message: "ট্রেইনি পাওয়া যায়নি।" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, message: "ট্রেইনি পাওয়া যায়নি।" }, { status: 404 });
     }
 
     return NextResponse.json({
       success: true,
       message: "ট্রেইনি তথ্য সফলভাবে আপডেট করা হয়েছে!",
-      trainee: {
-        ...updated,
-        _id: updated._id.toString(),
-      },
+      trainee: { ...updated, _id: updated._id.toString() },
     });
   } catch (error) {
-    console.error("Instructor Trainee PATCH Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "Instructor trainees PATCH");
   }
 }

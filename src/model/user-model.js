@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { hashPassword, isHashedPassword } from "@/lib/password";
 
 const userSchema = new Schema(
   {
@@ -159,6 +160,39 @@ const userSchema = new Schema(
 userSchema.index({ createdAt: -1 });
 userSchema.index({ email: 1, role: 1 });
 userSchema.index({ track: 1, paymentStatus: 1 });
+
+// Hash passwords on every write path (create/save and findOneAndUpdate/updateOne),
+// so no route can accidentally persist a plain-text password.
+userSchema.pre("save", async function () {
+  if (this.isModified("password") && this.password && !isHashedPassword(this.password)) {
+    this.password = await hashPassword(this.password);
+  }
+});
+
+async function hashPasswordInUpdate() {
+  const update = this.getUpdate();
+  if (!update) return;
+  for (const target of [update, update.$set, update.$setOnInsert]) {
+    if (target && typeof target.password === "string" && target.password && !isHashedPassword(target.password)) {
+      target.password = await hashPassword(target.password);
+    }
+  }
+  this.setUpdate(update);
+}
+
+userSchema.pre("findOneAndUpdate", hashPasswordInUpdate);
+userSchema.pre("updateOne", hashPasswordInUpdate);
+userSchema.pre("updateMany", hashPasswordInUpdate);
+
+// Never serialise the hash or reset tokens to API responses.
+userSchema.set("toJSON", {
+  transform(_doc, ret) {
+    delete ret.password;
+    delete ret.resetPasswordToken;
+    delete ret.resetPasswordExpires;
+    return ret;
+  },
+});
 
 export const UserModel =
   mongoose.models.User ?? mongoose.model("User", userSchema);

@@ -1,5 +1,8 @@
 import Link from "next/link";
 import InstructorNavClient from "./InstructorNavClient";
+import LogoutButton from "./_shared/LogoutButton";
+import { getInstructorProfile } from "./_shared/server";
+import { roleLabel } from "./_shared/utils";
 import {
   Sparkles,
   ShieldCheck,
@@ -9,10 +12,14 @@ import {
 
 export const metadata = {
   title: "TOT ইনস্ট্রাক্টর পোর্টাল | ফজর একাডেমি",
-  description: "ফজর একাডেমি ট্রেনিং অব ট্রেইনার্স (TOT) সিনিয়র ইনস্ট্রাক্টর ও মাস্টার ট্রেইনার সেন্ট্রাল কনসোল।",
+  description: "ফজর একাডেমি ট্রেনিং অব ট্রেইনার্স (TOT) সিনিয়র ইনস্ট্রাক্টর ও মাস্টার ট্রেইনার সেন্ট্রাল কনসোল।",
 };
 
-export default function InstructorLayout({ children }) {
+export default async function InstructorLayout({ children }) {
+  // Real designation of the signed-in staff member (falls back to their role, never a made-up title).
+  const { profile } = await getInstructorProfile();
+  const badgeText = profile ? profile.designation || roleLabel(profile.role) : "";
+
   return (
     <div className="min-h-screen flex flex-col bg-[#070A12] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white antialiased">
       {/* Background ambient lighting effects */}
@@ -51,7 +58,10 @@ export default function InstructorLayout({ children }) {
           </div>
 
           {/* Interactive Navigation links (Client Component with Path Detection) */}
-          <InstructorNavClient />
+          <InstructorNavClient
+            userName={profile?.fullName || ""}
+            badgeText={badgeText}
+          />
 
           {/* Right Action Bar */}
           <div className="hidden sm:flex items-center gap-2.5">
@@ -63,9 +73,15 @@ export default function InstructorLayout({ children }) {
               <span>লাইভ রুম</span>
             </Link>
 
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-sm">
-              <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" /> MASTER TRAINER
-            </span>
+            {badgeText && (
+              <span
+                title={profile?.fullName || ""}
+                className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-sm max-w-[220px]"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <span className="truncate">{badgeText}</span>
+              </span>
+            )}
 
             <Link
               href="/dashboard"
@@ -95,9 +111,7 @@ export default function InstructorLayout({ children }) {
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> Empowering Next-Gen Teachers
             </span>
             <span>•</span>
-            <Link href="/api/auth/logout" className="hover:text-rose-400 font-semibold transition-colors">
-              লগআউট
-            </Link>
+            <LogoutButton className="hover:text-rose-400 font-semibold transition-colors" />
           </div>
         </div>
       </footer>

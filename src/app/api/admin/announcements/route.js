@@ -1,116 +1,89 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { NoticeModel } from "@/model/notice-model";
+import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { isObjectId } from "@/lib/query-helpers";
 
-// GET: Retrieve all announcements
+const TRACKS = ["all", "TOT-MEN", "TOT-WOMEN-014", "TOT-WOMEN"];
+const PRIORITIES = ["normal", "important", "urgent"];
+const plain = (v) => JSON.parse(JSON.stringify(v));
+
 export async function GET(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
-    const { searchParams } = new URL(request.url);
-    const track = searchParams.get("track");
-
-    const query = {};
-    if (track && track !== "all") {
-      query.$or = [{ track: "all" }, { track }];
-    }
-
-    const notices = await NoticeModel.find(query)
-      .sort({ isPinned: -1, createdAt: -1 })
-      .lean();
-
-    const sanitized = notices.map((n) => ({
-      ...n,
-      _id: n._id.toString(),
-      createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : "",
-    }));
-
-    return NextResponse.json({
-      success: true,
-      count: sanitized.length,
-      announcements: sanitized,
-    });
+    const track = new URL(request.url).searchParams.get("track");
+    const query = track && track !== "all" ? { track: { $in: ["all", track] } } : {};
+    const notices = await NoticeModel.find(query).sort({ isPinned: -1, createdAt: -1 }).lean();
+    return NextResponse.json({ success: true, count: notices.length, announcements: plain(notices) });
   } catch (error) {
-    console.error("Admin Announcements GET Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "Admin announcements GET");
   }
 }
 
-// POST: Broadcast new announcement
 export async function POST(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
-    const body = await request.json();
-    const {
-      title,
-      content,
-      track = "all",
-      priority = "normal",
-      isPinned = false,
-      instructorName = "ফজর একাডেমি অ্যাডমিন বোর্ড",
-    } = body;
-
-    if (!title || !content) {
-      return NextResponse.json(
-        { success: false, message: "শিরোনাম এবং নোটিশের বিবরণ আবশ্যক।" },
-        { status: 400 }
-      );
+    const { title, content, track = "all", priority = "normal", isPinned = false, instructorName } = await request.json();
+    if (!title?.trim() || !content?.trim()) {
+      return NextResponse.json({ success: false, message: "শিরোনাম এবং নোটিশের বিবরণ আবশ্যক।" }, { status: 400 });
+    }
+    if (!TRACKS.includes(track) || !PRIORITIES.includes(priority)) {
+      return NextResponse.json({ success: false, message: "ব্যাচ বা গুরুত্বের মান সঠিক নয়।" }, { status: 400 });
     }
 
     const notice = await NoticeModel.create({
-      title: title.trim(),
-      content: content.trim(),
+      title: title.trim().slice(0, 200),
+      content: content.trim().slice(0, 5000),
       track,
       priority,
       isPinned: Boolean(isPinned),
-      instructorName: instructorName.trim(),
-      instructorEmail: "admin@fajracademy.io",
+      instructorName: String(instructorName || auth.session.fullName || "ফজর একাডেমি অ্যাডমিন বোর্ড").trim().slice(0, 100),
+      instructorEmail: auth.session.email || "",
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "ঘোষণা সফলভাবে ব্রডকাস্ট করা হয়েছে!",
-      announcement: {
-        ...notice.toObject(),
-        _id: notice._id.toString(),
-        createdAt: notice.createdAt.toISOString(),
-      },
-    });
+    return NextResponse.json({ success: true, message: "ঘোষণা সফলভাবে ব্রডকাস্ট করা হয়েছে!", announcement: plain(notice.toObject()) });
   } catch (error) {
-    console.error("Admin Announcements POST Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "Admin announcements POST");
   }
 }
 
-// DELETE: Remove announcement
-export async function DELETE(request) {
+export async function PATCH(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, message: "নোটিশ ID প্রদান করুন।" },
-        { status: 400 }
-      );
-    }
-
-    await NoticeModel.findByIdAndDelete(id);
-
-    return NextResponse.json({
-      success: true,
-      message: "নোটিশ সফলভাবে মুছে ফেলা হয়েছে।",
-    });
+    const { id, isPinned, priority } = await request.json();
+    if (!isObjectId(id)) return NextResponse.json({ success: false, message: "নোটিশ ID আবশ্যক।" }, { status: 400 });
+    const set = {};
+    if (isPinned !== undefined) set.isPinned = Boolean(isPinned);
+    if (priority !== undefined && PRIORITIES.includes(priority)) set.priority = priority;
+    const updated = await NoticeModel.findByIdAndUpdate(id, { $set: set }, { returnDocument: "after" }).lean();
+    if (!updated) return NextResponse.json({ success: false, message: "নোটিশটি পাওয়া যায়নি।" }, { status: 404 });
+    return NextResponse.json({ success: true, message: "নোটিশ আপডেট হয়েছে।", announcement: plain(updated) });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "Admin announcements PATCH");
+  }
+}
+
+export async function DELETE(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
+  try {
+    await dbConnect();
+    const id = new URL(request.url).searchParams.get("id");
+    if (!isObjectId(id)) return NextResponse.json({ success: false, message: "নোটিশ ID প্রদান করুন।" }, { status: 400 });
+    const res = await NoticeModel.deleteOne({ _id: id });
+    if (res.deletedCount === 0) return NextResponse.json({ success: false, message: "নোটিশটি পাওয়া যায়নি।" }, { status: 404 });
+    return NextResponse.json({ success: true, message: "নোটিশ সফলভাবে মুছে ফেলা হয়েছে।" });
+  } catch (error) {
+    return serverError(error, "Admin announcements DELETE");
   }
 }

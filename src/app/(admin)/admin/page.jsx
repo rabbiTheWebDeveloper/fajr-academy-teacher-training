@@ -2,7 +2,8 @@ import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
 import { PaymentModel } from "@/model/payment-model";
 import { EvaluationModel } from "@/model/evaluation-model";
-import { DEFAULT_INSTRUCTORS } from "@/constant/instructor-defaults";
+import { NoticeModel } from "@/model/notice-model";
+import { trackFilter, toPlain, TRAINEE_ROLE_LIST } from "@/lib/query-helpers";
 import AdminDashboardClient from "./AdminDashboardClient";
 
 export const metadata = {
@@ -12,123 +13,115 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
+const SAFE_USER = "-password -resetPasswordToken -resetPasswordExpires";
+const SAFE_PAYMENT = "-registrationData -rawResponse -loginIssuedAt";
+
+const EMPTY_STATS = {
+  totalTrainees: 0,
+  paidTrainees: 0,
+  pendingTrainees: 0,
+  pendingPayments: 0,
+  totalRevenue: 0,
+  validPayments: 0,
+  menTrainees: 0,
+  womenTrainees: 0,
+  totalInstructors: 0,
+  totalEvaluated: 0,
+  hiredCount: 0,
+  certifiedCount: 0,
+  inReviewCount: 0,
+  retakeCount: 0,
+  recentPayments: [],
+  recentUsers: [],
+  recentInstructors: [],
+  notices: [],
+};
+
+/** Read-only: every number comes from the database, nothing is seeded or estimated. */
+async function loadDashboard() {
+  await dbConnect();
+  const trainee = { role: { $in: TRAINEE_ROLE_LIST } };
+
+  const [
+    totalTrainees,
+    paidTrainees,
+    pendingTrainees,
+    menTrainees,
+    womenTrainees,
+    totalInstructors,
+    pendingPayments,
+    revenue,
+    totalEvaluated,
+    hiredCount,
+    certifiedCount,
+    inReviewCount,
+    retakeCount,
+    recentPayments,
+    recentUsers,
+    recentInstructors,
+    notices,
+  ] = await Promise.all([
+    UserModel.countDocuments(trainee),
+    UserModel.countDocuments({ ...trainee, paymentStatus: "paid" }),
+    UserModel.countDocuments({ ...trainee, paymentStatus: "pending" }),
+    UserModel.countDocuments({ $and: [trainee, trackFilter("men")] }),
+    UserModel.countDocuments({ $and: [trainee, trackFilter("women")] }),
+    UserModel.countDocuments({ role: "instructor" }),
+    PaymentModel.countDocuments({ status: "PENDING" }),
+    // Net verified revenue: VALID payments minus any partial refund already sent.
+    PaymentModel.aggregate([
+      { $match: { status: "VALID" } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$refund.amount", 0] }] } },
+          count: { $sum: 1 },
+        },
+      },
+    ]),
+    EvaluationModel.countDocuments(),
+    EvaluationModel.countDocuments({ qualificationStatus: "hired" }),
+    EvaluationModel.countDocuments({ qualificationStatus: "certified" }),
+    EvaluationModel.countDocuments({ qualificationStatus: "in-review" }),
+    EvaluationModel.countDocuments({ qualificationStatus: "retake-needed" }),
+    PaymentModel.find().sort({ createdAt: -1 }).limit(6).select(SAFE_PAYMENT).lean(),
+    UserModel.find(trainee).sort({ createdAt: -1 }).limit(6).select(SAFE_USER).lean(),
+    UserModel.find({ role: "instructor" }).sort({ createdAt: -1 }).limit(6).select(SAFE_USER).lean(),
+    NoticeModel.find().sort({ isPinned: -1, createdAt: -1 }).limit(20).lean(),
+  ]);
+
+  return toPlain({
+    totalTrainees,
+    paidTrainees,
+    pendingTrainees,
+    pendingPayments,
+    totalRevenue: revenue[0]?.total || 0,
+    validPayments: revenue[0]?.count || 0,
+    menTrainees,
+    womenTrainees,
+    totalInstructors,
+    totalEvaluated,
+    hiredCount,
+    certifiedCount,
+    inReviewCount,
+    retakeCount,
+    recentPayments,
+    recentUsers,
+    recentInstructors,
+    notices,
+  });
+}
+
 export default async function AdminDashboardPage() {
-  let stats = {
-    totalTrainees: 0,
-    paidTrainees: 0,
-    pendingTrainees: 0,
-    totalRevenue: 0,
-    menTrainees: 0,
-    womenTrainees: 0,
-    totalInstructors: 0,
-    totalEvaluated: 0,
-    certifiedHiredCount: 0,
-    certifiedCount: 0,
-    recentPayments: [],
-    recentUsers: [],
-    recentInstructors: [],
-  };
+  let stats = EMPTY_STATS;
+  let loadError = null;
 
   try {
-    await dbConnect();
-
-    // Check if instructors need initial seeding
-    const instCountCheck = await UserModel.countDocuments({ role: { $in: ["instructor", "admin"] } });
-    if (instCountCheck === 0) {
-      for (const inst of DEFAULT_INSTRUCTORS) {
-        const exists = await UserModel.findOne({ email: inst.email });
-        if (!exists) {
-          await UserModel.create(inst);
-        }
-      }
-    }
-
-    const [
-      totalUsers,
-      paidUsers,
-      pendingUsers,
-      menCount,
-      womenCount,
-      instructorCount,
-      recentPayData,
-      recentUserData,
-      recentInstructorData,
-      evalCount,
-      hiredCount,
-      certCount,
-    ] = await Promise.all([
-      UserModel.countDocuments({ role: "teacher" }),
-      UserModel.countDocuments({ role: "teacher", paymentStatus: "paid" }),
-      UserModel.countDocuments({ role: "teacher", paymentStatus: "pending" }),
-      UserModel.countDocuments({
-        role: "teacher",
-        $or: [{ track: "TOT-MEN" }, { gender: "male" }],
-      }),
-      UserModel.countDocuments({
-        role: "teacher",
-        $or: [{ track: { $regex: /WOMEN/i } }, { gender: "female" }],
-      }),
-      UserModel.countDocuments({ role: { $in: ["instructor", "admin"] } }),
-      PaymentModel.find()
-        .sort({ createdAt: -1 })
-        .limit(6)
-        .lean(),
-      UserModel.find({ role: "teacher" })
-        .sort({ createdAt: -1 })
-        .limit(6)
-        .select("-password")
-        .lean(),
-      UserModel.find({ role: { $in: ["instructor", "admin"] } })
-        .sort({ createdAt: -1 })
-        .limit(6)
-        .select("-password")
-        .lean(),
-      EvaluationModel.countDocuments(),
-      EvaluationModel.countDocuments({ qualificationStatus: "certified_and_hired" }),
-      EvaluationModel.countDocuments({ qualificationStatus: "certified" }),
-    ]);
-
-    function formatIsoDate(val) {
-      if (!val) return "";
-      if (typeof val === "string") return val;
-      try {
-        const d = new Date(val);
-        return isNaN(d.getTime()) ? "" : d.toISOString();
-      } catch {
-        return "";
-      }
-    }
-
-    stats = {
-      totalTrainees: totalUsers,
-      paidTrainees: paidUsers,
-      pendingTrainees: pendingUsers,
-      totalRevenue: paidUsers * 1000,
-      menTrainees: menCount,
-      womenTrainees: womenCount,
-      totalInstructors: instructorCount,
-      totalEvaluated: evalCount,
-      certifiedHiredCount: hiredCount,
-      certifiedCount: certCount,
-      recentPayments: recentPayData.map((p) => ({
-        ...p,
-        _id: p._id ? p._id.toString() : "",
-        createdAt: formatIsoDate(p.createdAt),
-      })),
-      recentUsers: recentUserData.map((u) => ({
-        ...u,
-        _id: u._id ? u._id.toString() : "",
-        createdAt: formatIsoDate(u.createdAt),
-      })),
-      recentInstructors: recentInstructorData.map((i) => ({
-        ...i,
-        _id: i._id ? i._id.toString() : "",
-        createdAt: formatIsoDate(i.createdAt),
-      })),
-    };
+    stats = await loadDashboard();
   } catch (error) {
     console.error("Admin dashboard data fetch error:", error);
+    loadError = "ডাটাবেজের সাথে সংযোগ করা যায়নি — ড্যাশবোর্ডের সংখ্যাগুলো লোড হয়নি। কিছুক্ষণ পর পেজটি রিফ্রেশ করুন।";
   }
 
-  return <AdminDashboardClient initialStats={stats} />;
+  return <AdminDashboardClient stats={stats} loadError={loadError} />;
 }

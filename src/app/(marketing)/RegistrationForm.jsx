@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 import {
   User,
@@ -23,6 +23,14 @@ import {
   Loader2,
 } from 'lucide-react'
 import { toBengaliNumber } from '@/lib/utils'
+
+const GATEWAY_ERRORS = {
+  cancelled: 'আপনার পেমেন্ট বাতিল করা হয়েছে। কোনো টাকা কাটা হয়নি এবং কোনো অ্যাকাউন্ট তৈরি হয়নি — চাইলে আবার চেষ্টা করুন।',
+  failed: 'পেমেন্ট সম্পন্ন হয়নি। কোনো অ্যাকাউন্ট তৈরি হয়নি। অনুগ্রহ করে সঠিক তথ্য দিয়ে আবার চেষ্টা করুন।',
+  error: 'পেমেন্টে সাময়িক সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
+}
+const GATEWAY_VERIFYING =
+  'আপনার পেমেন্ট গেটওয়ে থেকে যাচাই করা হচ্ছে। টাকা কেটে থাকলে কয়েক মিনিটের মধ্যে অ্যাকাউন্ট সক্রিয় হবে — তারপর ইমেইল ও পাসওয়ার্ড দিয়ে লগইন করুন। প্রয়োজনে WhatsApp হেল্পলাইনে ট্রানজেকশন আইডি জানান।'
 
 export default function RegistrationForm({
   initialTrack = 'men',
@@ -50,6 +58,7 @@ export default function RegistrationForm({
   }, [initialCourses, initialSettings])
 
   const defaultPrice = settings?.coursePrice || 1000
+  const registrationClosed = settings?.registrationOpen === false || settings?.admissionStatus === 'closed'
 
   const menCourse = coursesList.find((c) => c.track === 'men' || c.courseId === 'TOT-MEN') || {
     name: 'Training of Trainers (TOT) – MEN',
@@ -78,20 +87,14 @@ export default function RegistrationForm({
   })
   const [loading,   setLoading]   = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [errorMsg,  setErrorMsg]  = useState(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const paymentParam = urlParams.get('payment');
-      if (paymentParam === 'cancelled') {
-        return 'আপনার পেমেন্ট সম্পন্ন হয়নি (বাতিল করা হয়েছে)। কোনো অ্যাকাউন্ট তৈরি করা হয়নি। কোর্স ফি ১,০০০৳ পরিশোধ করলেই অ্যাকাউন্ট তৈরি হবে।';
-      } else if (paymentParam === 'failed') {
-        return 'পেমেন্ট ব্যর্থ হয়েছে! আপনার কোনো টাকা কাটা হয়নি এবং কোনো অ্যাকাউন্ট তৈরি হয়নি। অনুগ্রহ করে সঠিক পেমেন্ট তথ্য দিয়ে পুনরায় চেষ্টা করুন।';
-      } else if (paymentParam === 'error') {
-        return 'পেমেন্টে সাময়িক সমস্যা হয়েছে। কোনো অ্যাকাউন্ট তৈরি হয়নি। অনুগ্রহ করে আবার চেষ্টা করুন।';
-      }
-    }
-    return '';
-  });
+  // Outcome of a gateway round-trip (?payment=failed|cancelled|verifying). Derived from the
+  // URL (no window access during render, so server and browser render the same markup).
+  const searchParams = useSearchParams()
+  const paymentParam = searchParams.get('payment')
+  const [gatewayNoticeOpen, setGatewayNoticeOpen] = useState(true)
+  const [formError, setErrorMsg]  = useState('')
+  const errorMsg = formError || (gatewayNoticeOpen ? GATEWAY_ERRORS[paymentParam] || '' : '')
+  const infoMsg = gatewayNoticeOpen && paymentParam === 'verifying' ? GATEWAY_VERIFYING : ''
   const [alreadyPaid, setAlreadyPaid] = useState(false);
 
   const handleTrackChange = (track) => {
@@ -115,6 +118,11 @@ export default function RegistrationForm({
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErrorMsg('')
+    setGatewayNoticeOpen(false)
+    if (registrationClosed) {
+      setErrorMsg('এই মুহূর্তে ভর্তি বন্ধ রয়েছে। পরবর্তী ব্যাচের আপডেটের জন্য WhatsApp হেল্পলাইনে যোগাযোগ করুন।')
+      return
+    }
     setAlreadyPaid(false)
 
     // Form field validations
@@ -137,10 +145,6 @@ export default function RegistrationForm({
 
     setLoading(true)
     const trackKey = selectedTrack === 'men' ? 'TOT-MEN' : 'TOT-WOMEN-014'
-    const courseFeeToPay =
-      selectedTrack === 'women'
-        ? Number(womenCourse.fee || defaultPrice)
-        : Number(menCourse.fee || defaultPrice)
 
     try {
       const res = await fetch('/api/payment/sslcommerz/init', {
@@ -157,7 +161,6 @@ export default function RegistrationForm({
           quranSkill:   formData.quranSkill,
           englishSkill: formData.englishSkill,
           education:    formData.education.trim(),
-          amount:       courseFeeToPay,
         }),
       })
 
@@ -359,6 +362,14 @@ export default function RegistrationForm({
               </div>
             )}
 
+            {/* Info (payment being verified) */}
+            {infoMsg && (
+              <div className={styles.regErrorAlert} role="status" style={{ borderColor: 'rgba(16,185,129,0.5)', background: 'rgba(6,78,59,0.25)' }}>
+                <div className={styles.regErrorIcon}>⏳</div>
+                <div className={styles.regErrorText}>{infoMsg}</div>
+              </div>
+            )}
+
             {/* Error Alert */}
             {errorMsg && (
               <div className={styles.regErrorAlert}>
@@ -547,13 +558,14 @@ export default function RegistrationForm({
                 <button
                   type="submit"
                   id="reg-submit-btn"
-                  disabled={loading}
+                  disabled={loading || registrationClosed}
+                  title={registrationClosed ? 'এই মুহূর্তে ভর্তি বন্ধ রয়েছে' : undefined}
                   className={styles.regSubmitBtnGold}
                 >
                   {loading ? (
                     <><Loader2 size={18} className={styles.spinnerIcon} /><span>গেটওয়েতে সংযোগ হচ্ছে...</span></>
                   ) : (
-                    <><span>পেমেন্টে এগিয়ে যান</span><ArrowRight size={17} /></>
+                    <><span>{registrationClosed ? 'ভর্তি বন্ধ রয়েছে' : 'পেমেন্টে এগিয়ে যান'}</span><ArrowRight size={17} /></>
                   )}
                 </button>
               </div>

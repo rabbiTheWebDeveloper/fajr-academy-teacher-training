@@ -2,162 +2,149 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { EvaluationModel, calculateGradeAndStatus } from "@/model/evaluation-model";
 import { UserModel } from "@/model/user-model";
+import { ParticipantModel } from "@/model/participant-model";
+import { requireAuth, INSTRUCTOR_ROLES, isAdminRole, serverError } from "@/lib/api-auth";
+import { TRAINEE_ROLE_LIST, courseIdForTrack, isObjectId, trackFilter } from "@/lib/query-helpers";
+
+const SCORE_KEYS = ["makhrajTajweed", "childPsychologyPedagogy", "digitalClassroomTools", "microTeachingDemo"];
+const clampScore = (v) => Math.min(Math.max(Math.round(Number(v) || 0), 0), 25);
+
+const serialize = (e) => ({
+  ...e,
+  _id: e._id.toString(),
+  traineeId: e.traineeId ? e.traineeId.toString() : "",
+  createdAt: e.createdAt ? new Date(e.createdAt).toISOString() : "",
+  updatedAt: e.updatedAt ? new Date(e.updatedAt).toISOString() : "",
+  evaluatedAt: e.evaluatedAt ? new Date(e.evaluatedAt).toISOString() : "",
+});
 
 export async function GET(request) {
+  const auth = await requireAuth(request, INSTRUCTOR_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
     const { searchParams } = new URL(request.url);
-    const track = searchParams.get("track");
+    const query = { ...(trackFilter(searchParams.get("track")) || {}) };
     const traineeId = searchParams.get("traineeId");
     const grade = searchParams.get("grade");
     const status = searchParams.get("status");
-
-    const query = {};
-
-    if (track && track !== "all") {
-      if (track === "men") query.track = "TOT-MEN";
-      else if (track === "women") query.track = { $regex: /WOMEN/i };
-      else query.track = track;
-    }
-
-    if (traineeId) query.traineeId = traineeId;
+    if (isObjectId(traineeId)) query.traineeId = traineeId;
     if (grade && grade !== "all") query.grade = grade;
     if (status && status !== "all") query.qualificationStatus = status;
 
-    const evaluations = await EvaluationModel.find(query)
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const sanitized = evaluations.map((e) => ({
-      ...e,
-      _id: e._id.toString(),
-      traineeId: e.traineeId ? e.traineeId.toString() : "",
-      createdAt: e.createdAt ? new Date(e.createdAt).toISOString() : "",
-      updatedAt: e.updatedAt ? new Date(e.updatedAt).toISOString() : "",
-      evaluatedAt: e.evaluatedAt ? new Date(e.evaluatedAt).toISOString() : "",
-    }));
-
-    return NextResponse.json({
-      success: true,
-      count: sanitized.length,
-      evaluations: sanitized,
-    });
+    const evaluations = await EvaluationModel.find(query).sort({ evaluatedAt: -1 }).lean();
+    return NextResponse.json({ success: true, count: evaluations.length, evaluations: evaluations.map(serialize) });
   } catch (error) {
-    console.error("Evaluations GET Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "Instructor evaluations GET");
   }
 }
 
 export async function POST(request) {
+  const auth = await requireAuth(request, INSTRUCTOR_ROLES);
+  if (auth.error) return auth.error;
+  const { session } = auth;
+
   try {
     await dbConnect();
-    const body = await request.json();
-    const {
-      traineeId,
-      scores = {},
-      remarks = "",
-      instructorName = "ফজর একাডেমি ফ্যাকাল্টি",
-      instructorEmail = "instructor@fajracademy.io",
-      courseId = "TOT-MEN",
-    } = body;
+    const { traineeId, scores = {}, remarks = "" } = await request.json();
 
-    if (!traineeId) {
-      return NextResponse.json(
-        { success: false, message: "ট্রেইনি নির্বাচন আবশ্যক।" },
-        { status: 400 }
-      );
+    if (!isObjectId(traineeId)) {
+      return NextResponse.json({ success: false, message: "ট্রেইনি নির্বাচন আবশ্যক।" }, { status: 400 });
     }
 
-    const trainee = await UserModel.findById(traineeId).lean();
+    const trainee = await UserModel.findOne({ _id: traineeId, role: { $in: TRAINEE_ROLE_LIST } })
+      .select("fullName email phone track")
+      .lean();
     if (!trainee) {
-      return NextResponse.json(
-        { success: false, message: "নির্বাচিত ট্রেইনি খুঁজে পাওয়া যায়নি।" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, message: "নির্বাচিত ট্রেইনি খুঁজে পাওয়া যায়নি।" }, { status: 404 });
     }
 
-    // Clamp score values between 0 and 25
-    const makhraj = Math.min(Math.max(Number(scores.makhrajTajweed) || 0, 0), 25);
-    const pedagogy = Math.min(Math.max(Number(scores.childPsychologyPedagogy) || 0, 0), 25);
-    const digital = Math.min(Math.max(Number(scores.digitalClassroomTools) || 0, 0), 25);
-    const demo = Math.min(Math.max(Number(scores.microTeachingDemo) || 0, 0), 25);
-
-    const totalScore = makhraj + pedagogy + digital + demo;
+    const clean = Object.fromEntries(SCORE_KEYS.map((k) => [k, clampScore(scores[k])]));
+    const totalScore = SCORE_KEYS.reduce((sum, k) => sum + clean[k], 0);
     const { grade, status: qualificationStatus } = calculateGradeAndStatus(totalScore);
+    const track = trainee.track || "TOT-MEN";
+    const courseId = courseIdForTrack(track);
 
-    const evaluationData = {
-      traineeId: trainee._id,
-      traineeName: trainee.fullName,
-      traineeEmail: trainee.email,
-      traineePhone: trainee.phone || "",
-      track: trainee.track || (trainee.gender === "female" ? "TOT-WOMEN-014" : "TOT-MEN"),
-      courseId: courseId || trainee.track || "TOT-MEN",
-      instructorName,
-      instructorEmail,
-      scores: {
-        makhrajTajweed: makhraj,
-        childPsychologyPedagogy: pedagogy,
-        digitalClassroomTools: digital,
-        microTeachingDemo: demo,
-      },
-      totalScore,
-      grade,
-      qualificationStatus,
-      remarks: remarks.trim(),
-      evaluatedAt: new Date(),
-    };
-
+    // Evaluator identity always comes from the signed session, never the request body.
     const evaluation = await EvaluationModel.findOneAndUpdate(
-      { traineeId: trainee._id },
-      { $set: evaluationData },
-      { new: true, upsert: true, runValidators: true }
+      { traineeId: trainee._id, courseId },
+      {
+        $set: {
+          traineeName: trainee.fullName,
+          traineeEmail: trainee.email,
+          traineePhone: trainee.phone || "",
+          track,
+          courseId,
+          instructorId: session.id,
+          instructorName: session.fullName || "ফজর একাডেমি ফ্যাকাল্টি",
+          instructorEmail: session.email || "",
+          scores: clean,
+          totalScore,
+          grade,
+          qualificationStatus,
+          remarks: String(remarks).trim().slice(0, 2000),
+          evaluatedAt: new Date(),
+        },
+      },
+      { returnDocument: "after", upsert: true, runValidators: true }
     ).lean();
+
+    // Keep the enrolment record's score/grade in step (shown on the trainee's results page).
+    await ParticipantModel.updateOne(
+      { user: trainee._id, courseId },
+      {
+        $set: {
+          evaluationScore: totalScore,
+          grade,
+          ...(qualificationStatus === "hired" || qualificationStatus === "certified"
+            ? { status: "completed", completedAt: new Date() }
+            : {}),
+        },
+      }
+    ).catch((err) => console.warn("Participant grade sync warning:", err.message));
 
     return NextResponse.json({
       success: true,
-      message: `মূল্যায়ন সফলভাবে সংরক্ষিত হয়েছে! মোট স্কোর: ${totalScore}/১০০, গ্রেড: ${grade}`,
-      evaluation: {
-        ...evaluation,
-        _id: evaluation._id.toString(),
-        traineeId: evaluation.traineeId.toString(),
-      },
+      message: `মূল্যায়ন সফলভাবে সংরক্ষিত হয়েছে! মোট স্কোর: ${totalScore}/১০০, গ্রেড: ${grade}`,
+      evaluation: serialize(evaluation),
     });
   } catch (error) {
-    console.error("Evaluation POST Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "Instructor evaluations POST");
   }
 }
 
 export async function DELETE(request) {
+  const auth = await requireAuth(request, INSTRUCTOR_ROLES);
+  if (auth.error) return auth.error;
+  const { session } = auth;
+
   try {
     await dbConnect();
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
+    const id = new URL(request.url).searchParams.get("id");
+    if (!isObjectId(id)) {
+      return NextResponse.json({ success: false, message: "মূল্যায়ন ID আবশ্যক।" }, { status: 400 });
+    }
 
-    if (!id) {
+    const evaluation = await EvaluationModel.findById(id).select("instructorId instructorEmail").lean();
+    if (!evaluation) {
+      return NextResponse.json({ success: false, message: "মূল্যায়নটি পাওয়া যায়নি।" }, { status: 404 });
+    }
+
+    // Instructors may delete only their own grades; admins may delete any.
+    const isOwner =
+      (evaluation.instructorId && evaluation.instructorId === session.id) ||
+      (evaluation.instructorEmail && evaluation.instructorEmail === session.email);
+    if (!isOwner && !isAdminRole(session.role)) {
       return NextResponse.json(
-        { success: false, message: "মূল্যায়ন ID আবশ্যক।" },
-        { status: 400 }
+        { success: false, message: "শুধুমাত্র যিনি মূল্যায়ন করেছেন তিনি বা অ্যাডমিন এটি মুছতে পারবেন।" },
+        { status: 403 }
       );
     }
 
-    await EvaluationModel.findByIdAndDelete(id);
-
-    return NextResponse.json({
-      success: true,
-      message: "মূল্যায়ন সফলভাবে মুছে ফেলা হয়েছে।",
-    });
+    await EvaluationModel.deleteOne({ _id: id });
+    return NextResponse.json({ success: true, message: "মূল্যায়ন সফলভাবে মুছে ফেলা হয়েছে।" });
   } catch (error) {
-    console.error("Evaluation DELETE Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "Instructor evaluations DELETE");
   }
 }

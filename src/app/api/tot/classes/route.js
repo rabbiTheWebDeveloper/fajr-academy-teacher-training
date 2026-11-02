@@ -1,52 +1,19 @@
 import { NextResponse } from "next/server";
-import { dbConnect } from "@/service/mongo";
-import { CourseModel } from "@/model/course-model";
-import { NoticeModel } from "@/model/notice-model";
+import { requireAuth, serverError } from "@/lib/api-auth";
+import { classView, getEnrolledCourses, getTraineeNotices, getTraineeUser, isPaidUser } from "@/service/trainee-service";
 
+/** Schedule, class links (paid only) and notices for the signed-in trainee's courses. */
 export async function GET(request) {
+  const auth = await requireAuth(request);
+  if (auth.error) return auth.error;
+
   try {
-    await dbConnect();
-    const { searchParams } = new URL(request.url);
-    const track = searchParams.get("track");
-
-    const courseQuery = { isPublished: true };
-    if (track && track !== "all") {
-      if (track === "men") courseQuery.track = "men";
-      else if (track === "women") courseQuery.track = "women";
-      else courseQuery.courseId = track;
-    }
-
-    const noticeQuery = {};
-    if (track && track !== "all") {
-      noticeQuery.$or = [{ track: "all" }, { track }];
-    }
-
-    const [courses, notices] = await Promise.all([
-      CourseModel.find(courseQuery).sort({ createdAt: 1 }).lean(),
-      NoticeModel.find(noticeQuery).sort({ isPinned: -1, createdAt: -1 }).limit(10).lean(),
-    ]);
-
-    const sanitizedCourses = courses.map((c) => ({
-      ...c,
-      _id: c._id.toString(),
-    }));
-
-    const sanitizedNotices = notices.map((n) => ({
-      ...n,
-      _id: n._id.toString(),
-      createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : "",
-    }));
-
-    return NextResponse.json({
-      success: true,
-      courses: sanitizedCourses,
-      notices: sanitizedNotices,
-    });
+    const user = await getTraineeUser(auth.session.id);
+    if (!user) return NextResponse.json({ success: false, message: "ব্যবহারকারী খুঁজে পাওয়া যায়নি।" }, { status: 404 });
+    const paid = isPaidUser(user);
+    const [{ courses }, notices] = await Promise.all([getEnrolledCourses(user), getTraineeNotices(user)]);
+    return NextResponse.json({ success: true, paid, courses: courses.map((c) => classView(c, paid)), notices });
   } catch (error) {
-    console.error("TOT Classes GET Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "TOT classes GET");
   }
 }

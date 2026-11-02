@@ -1,86 +1,97 @@
 import { NextResponse } from "next/server";
-import {
-  initiateSSLCommerzRefund,
-  querySSLCommerzRefund,
-} from "@/lib/sslcommerz";
+import { initiateSSLCommerzRefund, querySSLCommerzRefund } from "@/lib/sslcommerz";
 import { dbConnect } from "@/service/mongo";
 import { PaymentModel } from "@/model/payment-model";
+import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { revokeForPayment } from "@/service/payment-service";
 
-/**
- * GET /api/payment/sslcommerz/refund?refund_ref_id=SLXXXXX
- * Query status of a refund request
- */
+/** GET ?refund_ref_id=… — refund status from the gateway (admin only). */
 export async function GET(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
-    const { searchParams } = new URL(request.url);
-    const refund_ref_id = searchParams.get("refund_ref_id");
-
+    const refund_ref_id = new URL(request.url).searchParams.get("refund_ref_id");
     if (!refund_ref_id) {
-      return NextResponse.json(
-        { success: false, message: "refund_ref_id query param is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, message: "refund_ref_id is required" }, { status: 400 });
     }
-
     const data = await querySSLCommerzRefund({ refund_ref_id });
+
+    if (data?.status) {
+      await dbConnect();
+      await PaymentModel.updateOne({ "refund.refId": refund_ref_id }, { $set: { "refund.status": String(data.status) } });
+    }
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error("SSLCommerz refund query error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to query refund status" },
-      { status: 500 }
-    );
+    return serverError(error, "Refund query");
   }
 }
 
 /**
- * POST /api/payment/sslcommerz/refund
- * Initiate refund
+ * POST { tranId, amount?, remarks? } — refund a verified gateway payment (admin only).
+ * The bank transaction ID and the maximum amount come from our own record, not the request.
  */
 export async function POST(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
-    const body = await request.json();
-    const { refund_amount, refund_remarks, bank_tran_id, refe_id } = body;
+    const { tranId, amount, remarks = "Course Fee Refund" } = await request.json();
+    const payment = await PaymentModel.findOne({ tranId: String(tranId || "") }).lean();
 
-    if (!refund_amount || !bank_tran_id || !refe_id) {
+    if (!payment) return NextResponse.json({ success: false, message: "পেমেন্ট পাওয়া যায়নি।" }, { status: 404 });
+    if (payment.status !== "VALID" || !payment.bankTranId) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "refund_amount, bank_tran_id, and refe_id are required",
-        },
+        { success: false, message: "শুধুমাত্র গেটওয়েতে যাচাইকৃত (VALID) পেমেন্ট রিফান্ড করা যায়।" },
         { status: 400 }
       );
     }
+    if (payment.refund?.refId) {
+      return NextResponse.json({ success: false, message: "এই পেমেন্টের রিফান্ড ইতোমধ্যে অনুরোধ করা হয়েছে।" }, { status: 409 });
+    }
+
+    const refundAmount = Number(amount) || payment.amount;
+    if (refundAmount <= 0 || refundAmount > payment.amount) {
+      return NextResponse.json({ success: false, message: "রিফান্ডের পরিমাণ সঠিক নয়।" }, { status: 400 });
+    }
 
     const data = await initiateSSLCommerzRefund({
-      refund_amount,
-      refund_remarks,
-      bank_tran_id,
-      refe_id,
+      refund_amount: refundAmount,
+      refund_remarks: String(remarks).slice(0, 200),
+      bank_tran_id: payment.bankTranId,
+      refe_id: payment.tranId,
     });
 
-    // Optionally update local payment record status
-    if (data && data.status === "success") {
-      await PaymentModel.updateOne(
-        { bankTranId: bank_tran_id },
-        {
-          $set: {
-            "rawResponse.refund": data,
-          },
-        }
+    const accepted = data?.APIConnect === "DONE" && ["success", "processing"].includes(String(data?.status).toLowerCase());
+    if (!accepted) {
+      return NextResponse.json(
+        { success: false, message: data?.errorReason || "গেটওয়ে রিফান্ড অনুরোধ গ্রহণ করেনি।", data },
+        { status: 502 }
       );
     }
 
-    return NextResponse.json({ success: true, data });
-  } catch (error) {
-    console.error("SSLCommerz refund initiation error:", error);
-    return NextResponse.json(
+    const fullRefund = refundAmount >= payment.amount;
+    await PaymentModel.updateOne(
+      { _id: payment._id },
       {
-        success: false,
-        message: error.message || "Failed to initiate refund",
-      },
-      { status: 500 }
+        $set: {
+          refund: {
+            refId: data.refund_ref_id || "",
+            amount: refundAmount,
+            status: String(data.status),
+            remarks: String(remarks).slice(0, 200),
+            requestedAt: new Date(),
+            requestedBy: auth.session.email,
+          },
+          ...(fullRefund ? { status: "REFUNDED" } : {}),
+        },
+      }
     );
+    if (fullRefund) await revokeForPayment(payment);
+
+    return NextResponse.json({ success: true, message: "রিফান্ড অনুরোধ সফলভাবে পাঠানো হয়েছে।", data });
+  } catch (error) {
+    return serverError(error, "Refund initiate");
   }
 }

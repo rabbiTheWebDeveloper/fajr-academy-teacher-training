@@ -1,142 +1,73 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
-import { EvaluationModel } from "@/model/evaluation-model";
-import { getSessionUser } from "@/lib/auth";
+import { requireAuth, serverError } from "@/lib/api-auth";
+import { getTraineeEvaluations, getTraineeUser, USER_SAFE_FIELDS } from "@/service/trainee-service";
+import { phoneVariants } from "@/queries/auth-queries";
 
+/** The signed-in user's own profile. Client-supplied email/tran_id are ignored. */
 export async function GET(request) {
+  const auth = await requireAuth(request);
+  if (auth.error) return auth.error;
+
   try {
-    await dbConnect();
-    const session = await getSessionUser();
-    const { searchParams } = new URL(request.url);
-    const emailParam = searchParams.get("email") || session?.email;
-    const tranIdParam = searchParams.get("tran_id");
-
-    let query = {};
-    if (emailParam) {
-      query.email = emailParam.toLowerCase().trim();
-    } else if (tranIdParam) {
-      query.tranId = tranIdParam;
-    } else {
-      // Return first trainee as demo fallback if neither provided
-      const first = await UserModel.findOne({ role: { $in: ["teacher", "student"] } })
-        .select("-password -resetPasswordToken -resetPasswordExpires")
-        .lean();
-      if (first) query._id = first._id;
-    }
-
-    const user = await UserModel.findOne(query)
-      .select("-password -resetPasswordToken -resetPasswordExpires")
-      .lean();
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, message: "ব্যবহারকারী খুঁজে পাওয়া যায়নি।" },
-        { status: 404 }
-      );
-    }
-
-    // Attach latest evaluation if exists
-    const evaluation = await EvaluationModel.findOne({ traineeId: user._id })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const sanitized = {
-      ...user,
-      _id: user._id.toString(),
-      createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : "",
-      evaluation: evaluation
-        ? {
-            _id: evaluation._id.toString(),
-            totalScore: evaluation.totalScore,
-            grade: evaluation.grade,
-            qualificationStatus: evaluation.qualificationStatus,
-            scores: evaluation.scores,
-            remarks: evaluation.remarks,
-            evaluatedAt: evaluation.evaluatedAt
-              ? new Date(evaluation.evaluatedAt).toISOString()
-              : "",
-          }
-        : null,
-    };
-
-    return NextResponse.json({
-      success: true,
-      trainee: sanitized,
-    });
+    const user = await getTraineeUser(auth.session.id);
+    if (!user) return NextResponse.json({ success: false, message: "ব্যবহারকারী খুঁজে পাওয়া যায়নি।" }, { status: 404 });
+    const [evaluation] = await getTraineeEvaluations(user);
+    return NextResponse.json({ success: true, trainee: { ...user, evaluation: evaluation || null } });
   } catch (error) {
-    console.error("TOT Profile GET Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "TOT profile GET");
   }
 }
 
+const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", ""];
+
 export async function PATCH(request) {
+  const auth = await requireAuth(request);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
-    const session = await getSessionUser();
     const body = await request.json();
-    const { email, tranId, phone, bloodGroup, quranSkill, englishSkill, hasLaptop, education, bio } = body;
+    const update = {};
 
-    const targetEmail = email || session?.email;
-    let query = {};
-    if (targetEmail) {
-      query.email = targetEmail.toLowerCase().trim();
-    } else if (tranId) {
-      query.tranId = tranId;
-    } else {
-      const fallback = await UserModel.findOne({ role: { $in: ["teacher", "student"] } })
-        .select("_id")
-        .lean();
-      if (fallback) {
-        query._id = fallback._id;
-      } else {
-        return NextResponse.json(
-          { success: false, message: "Email or Transaction ID is required." },
-          { status: 400 }
-        );
+    if (body.phone !== undefined) {
+      const phone = phoneVariants(body.phone)[0];
+      if (!phone || !/^01[3-9]\d{8}$/.test(phone)) {
+        return NextResponse.json({ success: false, message: "সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন।" }, { status: 400 });
       }
+      const taken = await UserModel.exists({ phone: { $in: phoneVariants(phone) }, _id: { $ne: auth.session.id } });
+      if (taken) return NextResponse.json({ success: false, message: "এই মোবাইল নম্বরটি অন্য অ্যাকাউন্টে ব্যবহৃত হচ্ছে।" }, { status: 409 });
+      update.phone = phone;
+    }
+    if (body.emergencyContactNumber !== undefined) update.emergencyContactNumber = String(body.emergencyContactNumber).trim().slice(0, 20);
+    if (body.bloodGroup !== undefined) {
+      if (!BLOOD_GROUPS.includes(body.bloodGroup)) {
+        return NextResponse.json({ success: false, message: "রক্তের গ্রুপ সঠিক নয়।" }, { status: 400 });
+      }
+      update.bloodGroup = body.bloodGroup;
+    }
+    for (const key of ["quranSkill", "englishSkill", "education", "bio"]) {
+      if (body[key] !== undefined) update[key] = String(body[key]).trim().slice(0, key === "bio" ? 1000 : 120);
+    }
+    if (body.hasLaptop !== undefined) update.hasLaptop = body.hasLaptop === "no" ? "no" : "yes";
+    if (body.avatar !== undefined && (body.avatar === "" || /^https:\/\//.test(body.avatar))) update.avatar = body.avatar;
+
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json({ success: false, message: "পরিবর্তনের মতো কোনো তথ্য পাওয়া যায়নি।" }, { status: 400 });
     }
 
-    const updateFields = {};
-    if (phone !== undefined) updateFields.phone = phone.trim();
-    if (bloodGroup !== undefined) updateFields.bloodGroup = bloodGroup;
-    if (quranSkill !== undefined) updateFields.quranSkill = quranSkill;
-    if (englishSkill !== undefined) updateFields.englishSkill = englishSkill;
-    if (hasLaptop !== undefined) updateFields.hasLaptop = hasLaptop;
-    if (education !== undefined) updateFields.education = education.trim();
-    if (bio !== undefined) updateFields.bio = bio.trim();
-
-    const updated = await UserModel.findOneAndUpdate(
-      query,
-      { $set: updateFields },
-      { new: true }
-    )
-      .select("-password -resetPasswordToken -resetPasswordExpires")
+    const updated = await UserModel.findByIdAndUpdate(auth.session.id, { $set: update }, { returnDocument: "after", runValidators: true })
+      .select(USER_SAFE_FIELDS)
       .lean();
-
-    if (!updated) {
-      return NextResponse.json(
-        { success: false, message: "প্রোফাইল পাওয়া যায়নি।" },
-        { status: 404 }
-      );
-    }
+    if (!updated) return NextResponse.json({ success: false, message: "প্রোফাইল পাওয়া যায়নি।" }, { status: 404 });
 
     return NextResponse.json({
       success: true,
       message: "আপনার প্রোফাইল তথ্য সফলভাবে সংরক্ষিত হয়েছে!",
-      trainee: {
-        ...updated,
-        _id: updated._id.toString(),
-      },
+      trainee: JSON.parse(JSON.stringify(updated)),
     });
   } catch (error) {
-    console.error("TOT Profile PATCH Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "TOT profile PATCH");
   }
 }

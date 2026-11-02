@@ -1,43 +1,22 @@
 import { NextResponse } from "next/server";
-import { dbConnect } from "@/service/mongo";
-import { CourseModel, DEFAULT_TOT_RESOURCES } from "@/model/course-model";
+import { requireAuth, serverError } from "@/lib/api-auth";
+import { getEnrolledCourses, getTraineeUser, isPaidUser, materialsView } from "@/service/trainee-service";
 
+/** Study materials of the signed-in trainee's enrolled courses (paid trainees only). */
 export async function GET(request) {
+  const auth = await requireAuth(request);
+  if (auth.error) return auth.error;
+
   try {
-    await dbConnect();
-    const { searchParams } = new URL(request.url);
-    const category = searchParams.get("category");
-
-    const course = await CourseModel.findOne({ isPublished: true }).lean();
-    let resources = (course?.resources && course.resources.length > 0)
-      ? course.resources
-      : DEFAULT_TOT_RESOURCES;
-
-    if (category && category !== "all") {
-      resources = resources.filter((r) => r.category === category);
-    }
-
-    const sanitized = resources.map((r, index) => ({
-      resourceId: r.resourceId || `RES-${index + 101}`,
-      title: r.title,
-      category: r.category,
-      format: r.format || "PDF",
-      size: r.size || "2.5 MB",
-      desc: r.desc || "",
-      fileUrl: r.fileUrl || "https://drive.google.com",
-      isDownloadable: r.isDownloadable ?? true,
-    }));
-
-    return NextResponse.json({
-      success: true,
-      count: sanitized.length,
-      materials: sanitized,
-    });
+    const user = await getTraineeUser(auth.session.id);
+    if (!user) return NextResponse.json({ success: false, message: "ব্যবহারকারী খুঁজে পাওয়া যায়নি।" }, { status: 404 });
+    const paid = isPaidUser(user);
+    const { courses } = await getEnrolledCourses(user);
+    const category = new URL(request.url).searchParams.get("category");
+    let resources = materialsView(courses, paid);
+    if (category && category !== "all") resources = resources.filter((r) => r.category === category);
+    return NextResponse.json({ success: true, paid, count: resources.length, resources });
   } catch (error) {
-    console.error("TOT Materials GET Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "TOT materials GET");
   }
 }

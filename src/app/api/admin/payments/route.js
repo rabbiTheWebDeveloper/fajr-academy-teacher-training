@@ -2,224 +2,198 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { PaymentModel } from "@/model/payment-model";
 import { UserModel } from "@/model/user-model";
+import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { generatePassword, hashPassword } from "@/lib/password";
+import { isObjectId, searchFilter } from "@/lib/query-helpers";
+import { REGISTRABLE_TRACKS, getPriceForTrack } from "@/service/course-service";
+import { newTranId, provisionForPayment, revokeForPayment } from "@/service/payment-service";
+import { phoneVariants } from "@/queries/auth-queries";
+
+// Never send password hashes, gateway raw dumps or login markers to the browser.
+const SAFE = "-registrationData.passwordHash -registrationData.password -rawResponse -loginIssuedAt";
+const STATUSES = ["VALID", "PENDING", "FAILED", "CANCELLED", "UNATTEMPTED", "EXPIRED", "INVALID"];
+const METHODS = ["BKASH", "NAGAD", "ROCKET", "BANK", "CASH", "CARD", "OTHER"];
+const EMAIL_RX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const bad = (message, status = 400) => NextResponse.json({ success: false, message }, { status });
+const plain = (v) => JSON.parse(JSON.stringify(v));
 
 export async function GET(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
     const { searchParams } = new URL(request.url);
+    const filters = [];
     const status = searchParams.get("status");
-    const search = searchParams.get("search");
+    if (status && status !== "all") filters.push({ status });
+    const bySearch = searchFilter(searchParams.get("search"), ["tranId", "userEmail", "userName", "userPhone", "valId", "bankTranId"]);
+    if (bySearch) filters.push(bySearch);
 
-    const query = {};
-    if (status && status !== "all") query.status = status;
-
-    if (search) {
-      query.$or = [
-        { tranId: { $regex: search, $options: "i" } },
-        { userEmail: { $regex: search, $options: "i" } },
-        { userName: { $regex: search, $options: "i" } },
-        { userPhone: { $regex: search, $options: "i" } },
-        { valId: { $regex: search, $options: "i" } },
-      ];
-    }
-
-    const payments = await PaymentModel.find(query)
-      .sort({ createdAt: -1 })
-      .lean();
-
-    return NextResponse.json({ success: true, count: payments.length, payments });
+    const payments = await PaymentModel.find(filters.length ? { $and: filters } : {}).select(SAFE).sort({ createdAt: -1 }).lean();
+    return NextResponse.json({ success: true, count: payments.length, payments: plain(payments) });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return serverError(error, "Admin payments GET");
   }
 }
 
+/** Change a payment's status. VALID provisions the account + enrolment; leaving VALID revokes it. */
 export async function PATCH(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
-    const body = await request.json();
-    const { paymentId, tranId, status } = body;
+    const { paymentId, tranId, status } = await request.json();
+    if (!STATUSES.includes(status)) return bad("স্ট্যাটাসটি সঠিক নয়। রিফান্ডের জন্য রিফান্ড অপশন ব্যবহার করুন।");
 
-    const payment = paymentId
-      ? await PaymentModel.findById(paymentId)
-      : await PaymentModel.findOne({ tranId });
-
-    if (!payment) {
-      return NextResponse.json({ success: false, message: "Payment record not found" }, { status: 404 });
+    const payment = isObjectId(paymentId)
+      ? await PaymentModel.findById(paymentId).lean()
+      : tranId
+        ? await PaymentModel.findOne({ tranId: String(tranId) }).lean()
+        : null;
+    if (!payment) return bad("পেমেন্ট রেকর্ড পাওয়া যায়নি।", 404);
+    if (payment.status === "REFUNDED") return bad("রিফান্ড হওয়া পেমেন্টের স্ট্যাটাস পরিবর্তন করা যায় না।");
+    if (payment.status === status) {
+      return NextResponse.json({ success: true, message: "স্ট্যাটাস আগেই এটি ছিল।", payment: plain(payment) });
     }
 
-    payment.status = status || "VALID";
-    await payment.save();
-
-    // If marked VALID, activate or create the associated user
-    if (status === "VALID") {
-      let user = await UserModel.findOne({
-        $or: [{ tranId: payment.tranId }, { email: payment.userEmail }],
-      });
-
-      const reg = payment.registrationData || {};
-
-      if (!user && (payment.userEmail || reg.email)) {
-        const userPassword = reg.password || "Fajr@Teacher2026";
-        const cleanEmail = (reg.email || payment.userEmail || "").toLowerCase().trim();
-
-        await UserModel.create({
-          fullName: reg.fullName || payment.userName || "Teacher Candidate",
-          email: cleanEmail,
-          phone: reg.phone || payment.userPhone || "",
-          password: userPassword,
-          role: "teacher",
-          track: reg.track || payment.track || "TOT-MEN",
-          gender: reg.gender === "female" ? "female" : "male",
-          hasLaptop: reg.hasLaptop || "yes",
-          quranSkill: reg.quranSkill || "fluent",
-          englishSkill: reg.englishSkill || "basic",
-          education: reg.education || "",
-          paymentStatus: "paid",
-          paidAmount: payment.amount || 1000,
-          tranId: payment.tranId,
-          paymentGateway: payment.paymentGateway || "sslcommerz",
-          enrolledAt: new Date(),
-          isActive: true,
-        });
-      } else if (user) {
-        user.paymentStatus = "paid";
-        user.paidAmount = payment.amount || 1000;
-        user.isActive = true;
-        if (payment.tranId) user.tranId = payment.tranId;
-        await user.save();
+    const wasValid = payment.status === "VALID";
+    await PaymentModel.updateOne(
+      { _id: payment._id },
+      {
+        $set: {
+          status,
+          ...(status === "VALID" ? { finalizedAt: new Date(), verifiedBy: `admin:${auth.session.email}` } : {}),
+        },
       }
-    }
+    );
 
-    return NextResponse.json({ success: true, message: "Payment status updated", payment });
-  } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
-}
+    let user = null;
+    if (status === "VALID") user = await provisionForPayment({ ...payment, status: "VALID" });
+    else if (wasValid) await revokeForPayment(payment);
 
-// POST: Record offline manual payment and activate trainee
-export async function POST(request) {
-  try {
-    await dbConnect();
-    const body = await request.json();
-    const {
-      userName,
-      userEmail,
-      userPhone = "",
-      amount = 1000,
-      track = "TOT-MEN",
-      tranId: customTranId,
-      cardType = "BKASH",
-      status = "VALID",
-    } = body;
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { success: false, message: "ইউজারের ইমেইল আবশ্যক।" },
-        { status: 400 }
-      );
-    }
-
-    const cleanEmail = userEmail.toLowerCase().trim();
-    const tranId =
-      customTranId && customTranId.trim() !== ""
-        ? customTranId.trim()
-        : `MAN-${cardType.slice(0, 3)}-${Date.now().toString().slice(-6)}`;
-
-    // 1. Create Payment Record
-    const newPayment = await PaymentModel.create({
-      tranId,
-      valId: `VAL-${tranId}`,
-      amount: Number(amount) || 1000,
-      currency: "BDT",
-      status,
-      userEmail: cleanEmail,
-      userName: userName ? userName.trim() : "Trainee Teacher",
-      userPhone: userPhone.trim(),
-      track,
-      cardType,
-      paymentMethod: cardType,
-      paymentGateway: "manual_offline",
-    });
-
-    // 2. Activate or Create User in UserModel
-    let user = await UserModel.findOne({ email: cleanEmail });
-    if (user) {
-      if (status === "VALID") {
-        user.paymentStatus = "paid";
-        user.paidAmount = Number(amount) || 1000;
-        user.isActive = true;
-        user.tranId = tranId;
-        if (track) user.track = track;
-        await user.save();
-      }
-    } else {
-      user = await UserModel.create({
-        fullName: userName ? userName.trim() : "Trainee Teacher",
-        email: cleanEmail,
-        phone: userPhone.trim(),
-        password: "Fajr@Teacher2026",
-        role: "teacher",
-        track,
-        paymentStatus: status === "VALID" ? "paid" : "pending",
-        paidAmount: status === "VALID" ? (Number(amount) || 1000) : 0,
-        tranId,
-        paymentGateway: "manual_offline",
-        isActive: true,
-        enrolledAt: status === "VALID" ? new Date() : null,
-      });
-    }
-
+    const updated = await PaymentModel.findById(payment._id).select(SAFE).lean();
     return NextResponse.json({
       success: true,
-      message: "ম্যানুয়াল পেমেন্ট রেকর্ড ও ট্রেইনি অ্যাকাউন্ট সফলভাবে যুক্ত হয়েছে!",
-      payment: {
-        ...newPayment.toObject(),
-        _id: newPayment._id.toString(),
-      },
-      user: {
-        _id: user._id.toString(),
-        fullName: user.fullName,
-        email: user.email,
-        paymentStatus: user.paymentStatus,
-      },
+      message: status === "VALID" ? "পেমেন্ট যাচাই হয়েছে এবং ট্রেইনির অ্যাকাউন্ট ও এনরোলমেন্ট সক্রিয় করা হয়েছে।" : "পেমেন্ট স্ট্যাটাস আপডেট হয়েছে।",
+      payment: plain(updated),
+      user: user ? { _id: String(user._id), email: user.email, paymentStatus: user.paymentStatus } : null,
     });
   } catch (error) {
-    console.error("Admin Manual Payment Error:", error);
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "Admin payments PATCH");
   }
 }
 
-// DELETE: Remove payment record
+/**
+ * Record an offline payment (bKash / Nagad / cash …). If the trainee has no account yet,
+ * one is created with a generated password that is returned ONCE for the admin to share.
+ */
+export async function POST(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
+  try {
+    await dbConnect();
+    const body = await request.json();
+    const email = String(body.userEmail || "").toLowerCase().trim();
+    const userName = String(body.userName || "").trim();
+    const phone = body.userPhone ? phoneVariants(body.userPhone)[0] || String(body.userPhone).trim() : "";
+    const track = REGISTRABLE_TRACKS.includes(body.track) ? body.track : "TOT-MEN";
+    const method = METHODS.includes(String(body.cardType || "").toUpperCase()) ? String(body.cardType).toUpperCase() : "OTHER";
+    const status = body.status === "PENDING" ? "PENDING" : "VALID";
+
+    if (!EMAIL_RX.test(email)) return bad("ইউজারের সঠিক ইমেইল আবশ্যক।");
+
+    const existingUser = await UserModel.findOne({ email }).select("_id fullName phone").lean();
+    if (!existingUser && userName.length < 2) return bad("নতুন ট্রেইনির জন্য নাম আবশ্যক।");
+
+    const customTranId = String(body.tranId || "").trim();
+    if (customTranId && (await PaymentModel.exists({ tranId: customTranId }))) {
+      return bad("এই ট্রানজেকশন আইডি দিয়ে আগেই একটি পেমেন্ট রেকর্ড আছে।", 409);
+    }
+
+    const price = await getPriceForTrack(track);
+    const amount = body.amount !== undefined && body.amount !== "" ? Number(body.amount) : price.amount;
+    if (!(amount >= 0)) return bad("টাকার পরিমাণ সঠিক নয়।");
+
+    let generatedPassword = null;
+    let registrationData = null;
+    if (!existingUser) {
+      generatedPassword = generatePassword();
+      registrationData = {
+        fullName: userName,
+        email,
+        phone,
+        passwordHash: await hashPassword(generatedPassword),
+        track,
+        gender: /WOMEN/.test(track) ? "female" : "male",
+      };
+    }
+
+    const payment = await PaymentModel.create({
+      tranId: customTranId || newTranId(`MAN-${method.slice(0, 3)}`),
+      amount,
+      currency: price.currency,
+      status,
+      purpose: "manual",
+      courseId: price.course?.courseId || "",
+      user: existingUser?._id || null,
+      userEmail: email,
+      userName: userName || existingUser?.fullName || "",
+      userPhone: phone || existingUser?.phone || "",
+      track,
+      cardType: method,
+      paymentMethod: method,
+      paymentGateway: "manual_offline",
+      registrationData,
+      notes: String(body.notes || "").slice(0, 500),
+      ...(status === "VALID" ? { finalizedAt: new Date(), verifiedBy: `admin:${auth.session.email}` } : {}),
+    });
+
+    // Pending manual payments create the account later, when an admin verifies them.
+    let user = existingUser;
+    if (status === "VALID") user = await provisionForPayment(payment.toObject());
+
+    const saved = await PaymentModel.findById(payment._id).select(SAFE).lean();
+    return NextResponse.json({
+      success: true,
+      message:
+        status === "VALID"
+          ? "ম্যানুয়াল পেমেন্ট রেকর্ড হয়েছে এবং ট্রেইনির অ্যাকাউন্ট ও এনরোলমেন্ট সক্রিয় করা হয়েছে!"
+          : "পেন্ডিং পেমেন্ট রেকর্ড হয়েছে। যাচাই করলে অ্যাকাউন্ট সক্রিয় হবে।",
+      payment: plain(saved),
+      user: user ? { _id: String(user._id), email: user.email || email, paymentStatus: user.paymentStatus || "pending" } : null,
+      ...(generatedPassword && status === "VALID" ? { generatedPassword } : {}),
+    });
+  } catch (error) {
+    return serverError(error, "Admin payments POST");
+  }
+}
+
+/** Delete a payment record; a verified one first has its enrolment revoked. */
 export async function DELETE(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const tranId = searchParams.get("tranId");
+    const query = isObjectId(id) ? { _id: id } : tranId ? { tranId } : null;
+    if (!query) return bad("পেমেন্ট ID বা tranId আবশ্যক।");
 
-    let query = {};
-    if (id) query._id = id;
-    else if (tranId) query.tranId = tranId;
-    else {
-      return NextResponse.json(
-        { success: false, message: "পেমেন্ট ID বা tranId আবশ্যক।" },
-        { status: 400 }
-      );
+    const payment = await PaymentModel.findOne(query).lean();
+    if (!payment) return bad("পেমেন্ট রেকর্ড পাওয়া যায়নি।", 404);
+    if (payment.status === "VALID" && payment.paymentGateway === "sslcommerz" && payment.bankTranId) {
+      return bad("গেটওয়েতে যাচাইকৃত পেমেন্ট মুছে ফেলা যায় না — প্রয়োজনে রিফান্ড করুন।", 409);
     }
+    if (payment.status === "VALID") await revokeForPayment(payment);
+    await PaymentModel.deleteOne({ _id: payment._id });
 
-    await PaymentModel.findOneAndDelete(query);
-
-    return NextResponse.json({
-      success: true,
-      message: "পেমেন্ট রেকর্ড সফলভাবে মুছে ফেলা হয়েছে।",
-    });
+    return NextResponse.json({ success: true, message: "পেমেন্ট রেকর্ড সফলভাবে মুছে ফেলা হয়েছে।" });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 500 }
-    );
+    return serverError(error, "Admin payments DELETE");
   }
 }

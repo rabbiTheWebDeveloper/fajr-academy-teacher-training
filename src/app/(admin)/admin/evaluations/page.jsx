@@ -1,5 +1,6 @@
 import { dbConnect } from "@/service/mongo";
 import { EvaluationModel } from "@/model/evaluation-model";
+import { toPlain } from "@/lib/query-helpers";
 import AdminEvaluationsClient from "./AdminEvaluationsClient";
 
 export const metadata = {
@@ -11,66 +12,17 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminEvaluationsPage() {
   let initialEvaluations = [];
-  let stats = {
-    totalEvaluated: 0,
-    certifiedAndHired: 0,
-    certifiedOnly: 0,
-    needsImprovement: 0,
-    averageScore: 0,
-  };
+  let loadError = null;
 
   try {
     await dbConnect();
-    const data = await EvaluationModel.find()
-      .sort({ createdAt: -1 })
-      .lean();
-
-    initialEvaluations = data.map((e) => ({
-      ...e,
-      _id: e._id.toString(),
-      traineeId: e.traineeId ? e.traineeId.toString() : "",
-      evaluatedAt: e.evaluatedAt
-        ? new Date(e.evaluatedAt).toISOString()
-        : e.createdAt
-        ? new Date(e.createdAt).toISOString()
-        : "",
-    }));
-
-    const total = initialEvaluations.length;
-    const hired = initialEvaluations.filter(
-      (e) => e.qualificationStatus === "certified_and_hired"
-    ).length;
-    const cert = initialEvaluations.filter(
-      (e) => e.qualificationStatus === "certified"
-    ).length;
-    const needsImp = initialEvaluations.filter(
-      (e) => e.qualificationStatus === "needs_improvement"
-    ).length;
-    const avg =
-      total > 0
-        ? Math.round(
-            initialEvaluations.reduce(
-              (acc, curr) => acc + (curr.totalScore || 0),
-              0
-            ) / total
-          )
-        : 0;
-
-    stats = {
-      totalEvaluated: total,
-      certifiedAndHired: hired,
-      certifiedOnly: cert,
-      needsImprovement: needsImp,
-      averageScore: avg,
-    };
+    const data = await EvaluationModel.find().sort({ evaluatedAt: -1, createdAt: -1 }).lean();
+    initialEvaluations = toPlain(data);
   } catch (error) {
     console.error("Admin Evaluations fetch error:", error);
+    loadError = "ডাটাবেজের সাথে সংযোগ করা যায়নি — মূল্যায়ন তালিকা লোড হয়নি। কিছুক্ষণ পর আবার চেষ্টা করুন।";
   }
 
-  return (
-    <AdminEvaluationsClient
-      initialEvaluations={initialEvaluations}
-      initialStats={stats}
-    />
-  );
+  // Stats (hired / certified / in-review / retake-needed, average) are derived from this list on the client.
+  return <AdminEvaluationsClient initialEvaluations={initialEvaluations} loadError={loadError} />;
 }

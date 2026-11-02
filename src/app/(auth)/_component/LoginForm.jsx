@@ -26,10 +26,11 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [defaultPwdNotice, setDefaultPwdNotice] = useState(null);
+  const [defaultPwdNotice] = useState(null);
   const [unpaidInfo, setUnpaidInfo] = useState(null);
   const redirectParam = searchParams.get("redirect");
   const reasonParam = searchParams.get("reason");
+  const paymentParam = searchParams.get("payment");
   const isAdminRedirect = redirectParam?.startsWith("/admin") || reasonParam === "auth_required";
 
 
@@ -53,7 +54,12 @@ export default function LoginForm() {
 
       if (res.ok && data.success) {
         // Redirect to requested protected page if user has permissions, or default role url
-        const targetUrl = redirectParam || data.redirectUrl || "/dashboard";
+        // Only same-site paths: ?redirect=https://evil.example must never be followed.
+        const safeRedirect =
+          redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//") && !redirectParam.startsWith("/\\")
+            ? redirectParam
+            : null;
+        const targetUrl = safeRedirect || data.redirectUrl || "/dashboard";
         router.push(targetUrl);
         router.refresh();
       } else {
@@ -72,19 +78,6 @@ export default function LoginForm() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleUseDefaultPassword = () => {
-    setPassword("Fajr@Teacher2026");
-    setDefaultPwdNotice("টিচার পাসওয়ার্ড Fajr@Teacher2026 বসানো হয়েছে");
-    setTimeout(() => setDefaultPwdNotice(null), 4000);
-  };
-
-  const handleFillAdminCredentials = () => {
-    setIdentifier("admin@fajracademy.io");
-    setPassword("Fajr@Admin2026");
-    setDefaultPwdNotice("অ্যাডমিন ক্রেডেনশিয়াল বসানো হয়েছে (admin@fajracademy.io)!");
-    setTimeout(() => setDefaultPwdNotice(null), 4000);
   };
 
   return (
@@ -124,14 +117,7 @@ export default function LoginForm() {
             <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
             <div className="flex-1 font-medium">
               <strong className="text-amber-200 block mb-0.5">অ্যাডমিন এক্সেস সংরক্ষিত</strong>
-              অ্যাডমিন ড্যাশবোর্ডে প্রবেশ করতে অনুগ্রহ করে অনুমোদিত অ্যাডমিন একাউন্টে লগইন করুন।
-              <button
-                type="button"
-                onClick={handleFillAdminCredentials}
-                className="mt-1.5 text-[11px] font-bold text-amber-400 hover:text-amber-300 underline block cursor-pointer"
-              >
-                অ্যাডমিন লগইন অটো-ফিল করুন (admin@fajracademy.io)
-              </button>
+              এই পেজটি দেখতে অনুগ্রহ করে আপনার অনুমোদিত অ্যাকাউন্টে লগইন করুন।
             </div>
           </div>
         )}
@@ -141,6 +127,14 @@ export default function LoginForm() {
           <div className="p-3 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2 mb-4 animate-fadeIn">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>{defaultPwdNotice}</span>
+          </div>
+        )}
+
+        {/* Returned from the gateway after a verified payment */}
+        {paymentParam === "success" && (
+          <div className="p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs flex items-start gap-2.5 mb-4">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <span>পেমেন্ট সফলভাবে যাচাই হয়েছে! আপনার ইমেইল ও রেজিস্ট্রেশনের পাসওয়ার্ড দিয়ে লগইন করুন।</span>
           </div>
         )}
 
@@ -156,10 +150,10 @@ export default function LoginForm() {
             </div>
 
             <Link
-              href={`/payment/ssl-checkout?tran_id=${unpaidInfo.tranId || "TOT-PENDING"}&amount=1000&email=${unpaidInfo.email || ""}`}
+              href={`/payment/ssl-checkout?email=${encodeURIComponent(unpaidInfo.email || "")}`}
               className="w-full py-2.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all"
             >
-              ৳ ১,০০০ পেমেন্ট সম্পন্ন করুন <ArrowRight className="w-3.5 h-3.5" />
+              কোর্স ফি পরিশোধ করুন <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         )}
@@ -192,13 +186,7 @@ export default function LoginForm() {
               <label className="text-[11px] sm:text-xs font-bold text-slate-200 block">
                 পাসওয়ার্ড
               </label>
-              <button
-                type="button"
-                onClick={handleUseDefaultPassword}
-                className="text-[11px] text-[#F59E0B] hover:text-amber-300 font-semibold transition-colors cursor-pointer"
-              >
-                ডিফল্ট পাসওয়ার্ড জানতে ক্লিক
-              </button>
+              <span className="text-[11px] text-slate-400">রেজিস্ট্রেশনের সময় দেওয়া পাসওয়ার্ড</span>
             </div>
 
             <div className="relative">
@@ -246,7 +234,7 @@ export default function LoginForm() {
         {/* Bottom Links */}
         <div className="flex items-center justify-between text-xs pt-6 mt-4 border-t border-slate-700/40">
           <Link
-            href="/#apply"
+            href="/#register"
             className="text-[#10B981] hover:underline font-bold transition-colors"
           >
             নতুন আবেদন করুন

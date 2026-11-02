@@ -40,7 +40,8 @@ export async function getMainPageData() {
   try {
     await dbConnect()
     ;[courses, settingsDoc, instructorDocs] = await Promise.all([
-      CourseModel.find({ isPublished: true }).sort({ createdAt: 1 }).lean(),
+      // Class links and resources are for enrolled trainees only.
+      CourseModel.find({ isPublished: true }).select("-meetLink -whatsappLink -resources").sort({ createdAt: 1 }).lean(),
       SettingModel.findOne({ key: 'system_settings' }).lean(),
       UserModel.find({ role: { $in: ['instructor', 'admin'] }, isActive: { $ne: false } })
         .sort({ rating: -1, experienceYears: -1 })

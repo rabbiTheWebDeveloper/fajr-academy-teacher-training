@@ -1,40 +1,22 @@
 import { NextResponse } from "next/server";
-import { dbConnect } from "@/service/mongo";
-import { PaymentModel } from "@/model/payment-model";
-import { UserModel } from "@/model/user-model";
+import { getAppUrl } from "@/lib/sslcommerz";
+import { closeOpenPayment } from "@/service/payment-service";
 
-export async function POST(request) {
-  return handleCancel(request);
-}
-
-export async function GET(request) {
-  return handleCancel(request);
-}
-
-async function handleCancel(request) {
-  try {
-    await dbConnect();
-    const { searchParams } = new URL(request.url);
-    let tranId = searchParams.get("tran_id");
-
-    if (request.method === "POST") {
-      try {
-        const formData = await request.formData();
-        tranId = formData.get("tran_id") || tranId;
-      } catch {}
-    }
-
-    if (tranId) {
-      await PaymentModel.updateOne({ tranId }, { status: "CANCELLED" });
-      // Ensure no unpaid user account exists for cancelled payment
-      await UserModel.deleteMany({ tranId, paymentStatus: { $ne: "paid" } });
-    }
-
-    const host = request.headers.get("host") || "localhost:3000";
-    const protocol = request.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
-    return NextResponse.redirect(`${protocol}://${host}/?payment=cancelled#registration-section`);
-  } catch (error) {
-    console.error("SSL Cancel Error:", error);
-    return NextResponse.redirect(new URL("/?payment=cancelled", request.url));
+/** Browser return after the payer cancels. Only an open (PENDING) payment can be cancelled. */
+async function handle(request) {
+  let tranId = new URL(request.url).searchParams.get("tran_id") || "";
+  if (request.method === "POST") {
+    try {
+      tranId = String((await request.formData()).get("tran_id") || tranId);
+    } catch {}
   }
+  try {
+    await closeOpenPayment(tranId, "CANCELLED");
+  } catch (error) {
+    console.error(`[payment ${tranId}] cancel handler error:`, error);
+  }
+  return NextResponse.redirect(`${getAppUrl()}/?payment=cancelled#register`, 303);
 }
+
+export const POST = handle;
+export const GET = handle;

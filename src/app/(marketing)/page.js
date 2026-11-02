@@ -10,6 +10,7 @@ import { SettingModel } from '@/model/setting-model'
 import { UserModel } from '@/model/user-model'
 import { DEFAULT_INSTRUCTORS } from '@/constant/instructor-defaults'
 import { toBengaliNumber } from '@/lib/utils'
+import { publicSettings } from '@/lib/public-settings'
 import {
   BookOpen,
   UserCheck,
@@ -71,7 +72,8 @@ export default async function TeacherRegistrationMarketingPage() {
   try {
     await dbConnect()
     const [coursesResult, settingsResult, instructorsResult] = await Promise.all([
-      CourseModel.find({ isPublished: true }).sort({ createdAt: 1 }).lean(),
+      // Class links and resources are for enrolled trainees only.
+      CourseModel.find({ isPublished: true }).select("-meetLink -whatsappLink -resources").sort({ createdAt: 1 }).lean(),
       SettingModel.findOne({ key: 'system_settings' }).lean(),
       UserModel.find({ role: { $in: ['instructor', 'admin'] }, isActive: { $ne: false } })
         .sort({ rating: -1, experienceYears: -1 })
@@ -107,7 +109,8 @@ export default async function TeacherRegistrationMarketingPage() {
     registrationOpen: true,
   }
 
-  const liveSettings = { ...defaultSettings, ...(settingsDoc || {}) }
+  // Only public keys — the raw settings document holds gateway credentials.
+  const liveSettings = publicSettings({ ...defaultSettings, ...(settingsDoc || {}) })
   const coursePrice = liveSettings.coursePrice || 1000
   const regularPrice = liveSettings.regularCoursePrice || 2500
   const helplinePhone = liveSettings.helplinePhone || '01410764581'

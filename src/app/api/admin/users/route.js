@@ -2,188 +2,226 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
 import { PaymentModel } from "@/model/payment-model";
-import { getSessionUser } from "@/lib/auth";
+import { ParticipantModel } from "@/model/participant-model";
+import { EvaluationModel } from "@/model/evaluation-model";
+import { SessionModel } from "@/model/session-model";
+import { CourseModel } from "@/model/course-model";
+import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { generatePassword, MIN_PASSWORD_LENGTH } from "@/lib/password";
+import { isObjectId, searchFilter, trackFilter } from "@/lib/query-helpers";
+import { getPriceForTrack } from "@/service/course-service";
+import { newTranId, provisionForPayment, revokeForPayment } from "@/service/payment-service";
+import { phoneVariants } from "@/queries/auth-queries";
+
+const SAFE = "-password -resetPasswordToken -resetPasswordExpires";
+const ROLES = ["teacher", "student", "participant", "instructor", "admin", "super-admin", "staff", "organizer"];
+const TRACKS = ["TOT-MEN", "TOT-WOMEN-014", "TOT-WOMEN", ""];
+const PAYMENT_STATUSES = ["paid", "pending", "failed", "free"];
+const EMAIL_RX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const bad = (message, status = 400) => NextResponse.json({ success: false, message }, { status });
 
 export async function GET(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
     const { searchParams } = new URL(request.url);
+    const filters = [];
     const role = searchParams.get("role");
-    const track = searchParams.get("track");
     const paymentStatus = searchParams.get("paymentStatus");
-    const search = searchParams.get("search");
+    if (role && role !== "all") filters.push({ role });
+    if (paymentStatus && paymentStatus !== "all") filters.push({ paymentStatus });
+    const byTrack = trackFilter(searchParams.get("track"));
+    if (byTrack) filters.push(byTrack);
+    const bySearch = searchFilter(searchParams.get("search"), ["fullName", "email", "phone", "tranId"]);
+    if (bySearch) filters.push(bySearch);
 
-    const query = {};
-    if (role && role !== "all") query.role = role;
-    if (track && track !== "all") query.track = track;
-    if (paymentStatus && paymentStatus !== "all") query.paymentStatus = paymentStatus;
-
-    if (search) {
-      query.$or = [
-        { fullName: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } },
-        { tranId: { $regex: search, $options: "i" } },
-      ];
-    }
-
-    const users = await UserModel.find(query)
-      .sort({ createdAt: -1 })
-      .select("-password -resetPasswordToken -resetPasswordExpires")
-      .lean();
-
-    return NextResponse.json({ success: true, count: users.length, users });
+    const users = await UserModel.find(filters.length ? { $and: filters } : {}).sort({ createdAt: -1 }).select(SAFE).lean();
+    return NextResponse.json({ success: true, count: users.length, users: JSON.parse(JSON.stringify(users)) });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return serverError(error, "Admin users GET");
   }
 }
 
+/** Mark a user paid by recording a manual VALID payment, so revenue and enrolment stay in sync. */
+async function markPaid(user, adminEmail) {
+  const existing = await PaymentModel.findOne({ status: "VALID", $or: [{ user: user._id }, { userEmail: user.email }] }).lean();
+  if (existing) {
+    await provisionForPayment(existing);
+    return;
+  }
+  const { amount, currency, course } = await getPriceForTrack(user.track);
+  const payment = await PaymentModel.create({
+    tranId: newTranId("ADM"),
+    amount,
+    currency,
+    status: "VALID",
+    purpose: "manual",
+    courseId: course?.courseId || "",
+    user: user._id,
+    userEmail: user.email,
+    userName: user.fullName,
+    userPhone: user.phone || "",
+    track: user.track,
+    paymentMethod: "ADMIN_MARKED_PAID",
+    paymentGateway: "admin_manual",
+    finalizedAt: new Date(),
+    verifiedBy: `admin:${adminEmail}`,
+  });
+  await provisionForPayment(payment.toObject());
+}
+
 export async function PATCH(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
-    const body = await request.json();
-    const { userId, paymentStatus, role, track, isActive } = body;
+    const { userId, paymentStatus, role, track, isActive } = await request.json();
+    if (!isObjectId(userId)) return bad("সঠিক User ID আবশ্যক।");
 
-    if (!userId) {
-      return NextResponse.json({ success: false, message: "User ID required" }, { status: 400 });
+    const user = await UserModel.findById(userId);
+    if (!user) return bad("ইউজার পাওয়া যায়নি।", 404);
+    const isSelf = String(user._id) === auth.session.id;
+
+    if (role !== undefined) {
+      if (!ROLES.includes(role)) return bad("রোলটি সঠিক নয়।");
+      if (isSelf && role !== user.role) return bad("নিজের রোল নিজে পরিবর্তন করা যায় না।", 403);
+      if ((role === "super-admin" || user.role === "super-admin") && auth.session.role !== "super-admin") {
+        return bad("সুপার-অ্যাডমিন রোল শুধু সুপার-অ্যাডমিন পরিবর্তন করতে পারবেন।", 403);
+      }
+      user.role = role;
     }
+    if (track !== undefined) {
+      if (!TRACKS.includes(track)) return bad("ব্যাচটি সঠিক নয়।");
+      user.track = track;
+    }
+    if (isActive !== undefined) {
+      if (isSelf && !isActive) return bad("নিজের অ্যাকাউন্ট নিষ্ক্রিয় করা যায় না।", 403);
+      user.isActive = Boolean(isActive);
+    }
+    await user.save();
 
-    const updateData = {};
     if (paymentStatus !== undefined) {
-      updateData.paymentStatus = paymentStatus;
+      if (!PAYMENT_STATUSES.includes(paymentStatus)) return bad("পেমেন্ট স্ট্যাটাস সঠিক নয়।");
       if (paymentStatus === "paid") {
-        updateData.paidAmount = 1000;
-        updateData.enrolledAt = new Date();
+        await markPaid(user, auth.session.email);
+      } else if (paymentStatus === "free") {
+        await UserModel.updateOne({ _id: user._id }, { $set: { paymentStatus: "free", isActive: true } });
+      } else {
+        // Revert: un-enrol the courses paid by this user's verified payments, then set the status.
+        const valid = await PaymentModel.find({ status: "VALID", $or: [{ user: user._id }, { userEmail: user.email }] }).lean();
+        for (const p of valid) await revokeForPayment(p);
+        await UserModel.updateOne({ _id: user._id }, { $set: { paymentStatus } });
       }
     }
-    if (role !== undefined) updateData.role = role;
-    if (track !== undefined) updateData.track = track;
-    if (isActive !== undefined) updateData.isActive = isActive;
 
-    const updatedUser = await UserModel.findByIdAndUpdate(userId, updateData, { new: true })
-      .select("-password")
-      .lean();
-
-    // If payment status was updated to paid, also ensure PaymentModel is sync
-    if (paymentStatus === "paid" && updatedUser?.tranId) {
-      await PaymentModel.findOneAndUpdate(
-        { tranId: updatedUser.tranId },
-        { status: "VALID", userEmail: updatedUser.email, amount: 1000 },
-        { upsert: true }
-      );
-    }
-
-    return NextResponse.json({ success: true, message: "User updated successfully", user: updatedUser });
+    const updated = await UserModel.findById(user._id).select(SAFE).lean();
+    return NextResponse.json({ success: true, message: "ইউজার সফলভাবে আপডেট হয়েছে।", user: JSON.parse(JSON.stringify(updated)) });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return serverError(error, "Admin users PATCH");
   }
 }
 
 export async function DELETE(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    const userId = new URL(request.url).searchParams.get("userId");
+    if (!isObjectId(userId)) return bad("সঠিক User ID আবশ্যক।");
+    if (userId === auth.session.id) return bad("নিজের অ্যাকাউন্ট নিজে মুছে ফেলা যায় না।", 403);
 
-    if (!userId) {
-      return NextResponse.json({ success: false, message: "User ID required" }, { status: 400 });
+    const user = await UserModel.findById(userId).lean();
+    if (!user) return bad("ইউজার পাওয়া যায়নি।", 404);
+    if (["admin", "super-admin"].includes(user.role)) {
+      if (user.role === "super-admin" && auth.session.role !== "super-admin") return bad("সুপার-অ্যাডমিন মুছতে পারবেন শুধু সুপার-অ্যাডমিন।", 403);
+      const admins = await UserModel.countDocuments({ role: { $in: ["admin", "super-admin"] }, isActive: { $ne: false } });
+      if (admins <= 1) return bad("শেষ সক্রিয় অ্যাডমিন অ্যাকাউন্ট মুছে ফেলা যায় না।", 403);
     }
 
-    await UserModel.findByIdAndDelete(userId);
-    return NextResponse.json({ success: true, message: "User deleted successfully" });
+    // Cascade: enrolments (and their seat counts), evaluations and sessions. Payments are
+    // financial records — they are kept, only unlinked from the deleted account.
+    const participants = await ParticipantModel.find({ user: user._id }).select("course").lean();
+    for (const p of participants) {
+      if (p.course) await CourseModel.updateOne({ _id: p.course, enrolledCount: { $gt: 0 } }, { $inc: { enrolledCount: -1 } });
+    }
+    await Promise.all([
+      ParticipantModel.deleteMany({ user: user._id }),
+      EvaluationModel.deleteMany({ traineeId: user._id }),
+      SessionModel.deleteMany({ userId: user._id }),
+      PaymentModel.updateMany({ user: user._id }, { $set: { user: null, notes: `Account ${user.email} deleted by ${auth.session.email}` } }),
+    ]);
+    await UserModel.deleteOne({ _id: user._id });
+
+    return NextResponse.json({ success: true, message: "ইউজার ও তার এনরোলমেন্ট সফলভাবে মুছে ফেলা হয়েছে।" });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return serverError(error, "Admin users DELETE");
   }
 }
 
 export async function POST(request) {
+  const auth = await requireAuth(request, ADMIN_ROLES);
+  if (auth.error) return auth.error;
+
   try {
     await dbConnect();
     const body = await request.json();
+    const fullName = String(body.fullName || "").trim();
+    const email = String(body.email || "").toLowerCase().trim();
+    const phone = body.phone ? phoneVariants(body.phone)[0] || String(body.phone).trim() : "";
+    const role = body.role || "teacher";
+    const track = body.track ?? "TOT-MEN";
+    const paymentStatus = body.paymentStatus || "pending";
 
-    const {
+    if (fullName.length < 2 || !EMAIL_RX.test(email)) return bad("পূর্ণ নাম ও সঠিক ইমেইল আবশ্যক।");
+    if (!ROLES.includes(role) || !TRACKS.includes(track) || !PAYMENT_STATUSES.includes(paymentStatus)) return bad("রোল, ব্যাচ বা পেমেন্ট স্ট্যাটাস সঠিক নয়।");
+    if (role === "super-admin" && auth.session.role !== "super-admin") return bad("সুপার-অ্যাডমিন তৈরি করতে পারবেন শুধু সুপার-অ্যাডমিন।", 403);
+
+    // Use the admin-provided password, or generate one and show it once.
+    let password = String(body.password || "").trim();
+    let generatedPassword = null;
+    if (!password) {
+      password = generatePassword();
+      generatedPassword = password;
+    } else if (password.length < MIN_PASSWORD_LENGTH) {
+      return bad(`পাসওয়ার্ড কমপক্ষে ${MIN_PASSWORD_LENGTH} অক্ষরের হতে হবে।`);
+    }
+
+    if (await UserModel.exists({ email })) return bad("এই ইমেইলে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।", 409);
+    if (phone && (await UserModel.exists({ phone: { $in: phoneVariants(phone) } }))) return bad("এই মোবাইল নম্বরে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।", 409);
+
+    const isStaff = ["admin", "super-admin", "instructor", "staff", "organizer"].includes(role);
+    const user = await UserModel.create({
       fullName,
       email,
-      phone = "",
-      password = "Fajr@Admin2026",
-      role = "teacher",
-      track = "TOT-MEN",
-      gender = "male",
-      paymentStatus = "paid",
-      paidAmount = 1000,
-      designation = "",
-    } = body;
-
-    if (!fullName || !email) {
-      return NextResponse.json(
-        { success: false, message: "পূর্ণ নাম ও ইমেইল আবশ্যক।" },
-        { status: 400 }
-      );
-    }
-
-    const cleanEmail = email.toLowerCase().trim();
-
-    // Check existing
-    const existing = await UserModel.findOne({ email: cleanEmail });
-    if (existing) {
-      return NextResponse.json(
-        { success: false, message: "এই ইমেইলে ইতোমধ্যে একটি অ্যাকাউন্ট রয়েছে।" },
-        { status: 409 }
-      );
-    }
-
-    const tranId = `ADM-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const newUser = await UserModel.create({
-      fullName: fullName.trim(),
-      email: cleanEmail,
-      phone: phone.trim(),
+      phone,
       password,
       role,
       track,
-      gender,
-      designation: designation || (role === "admin" ? "System Administrator" : role === "instructor" ? "Master Trainer" : "TOT Trainee Teacher"),
-      paymentStatus,
-      paidAmount: paymentStatus === "paid" ? (Number(paidAmount) || 1000) : 0,
-      tranId,
+      gender: body.gender === "female" ? "female" : "male",
+      designation:
+        String(body.designation || "").trim() ||
+        (role === "admin" ? "System Administrator" : role === "instructor" ? "Master Trainer" : "TOT Trainee Teacher"),
+      paymentStatus: isStaff ? "free" : paymentStatus === "paid" ? "pending" : paymentStatus,
+      paidAmount: 0,
       isActive: true,
-      enrolledAt: paymentStatus === "paid" ? new Date() : null,
+      ...(isStaff ? { rating: 0, experienceYears: 0 } : {}),
     });
 
-    if (paymentStatus === "paid") {
-      await PaymentModel.create({
-        tranId,
-        userEmail: cleanEmail,
-        userName: fullName,
-        userPhone: phone,
-        track,
-        amount: Number(paidAmount) || 1000,
-        status: "VALID",
-        cardType: "ADMIN_CREATION",
-        paymentGateway: "admin_manual",
-      });
-    }
+    // Paid trainees get a recorded payment + enrolment, exactly like a real purchase.
+    if (!isStaff && paymentStatus === "paid") await markPaid(user, auth.session.email);
 
+    const fresh = await UserModel.findById(user._id).select(SAFE).lean();
     return NextResponse.json({
       success: true,
       message: `${role === "admin" ? "অ্যাডমিন" : "ইউজার"} সফলভাবে তৈরি হয়েছে!`,
-      user: {
-        _id: newUser._id.toString(),
-        fullName: newUser.fullName,
-        email: newUser.email,
-        phone: newUser.phone,
-        role: newUser.role,
-        track: newUser.track,
-        paymentStatus: newUser.paymentStatus,
-        tranId: newUser.tranId,
-        createdAt: newUser.createdAt.toISOString(),
-      },
+      user: JSON.parse(JSON.stringify(fresh)),
+      ...(generatedPassword ? { generatedPassword } : {}),
     });
   } catch (error) {
-    console.error("Admin user creation error:", error);
-    return NextResponse.json(
-      { success: false, message: "ইউজার তৈরিতে সমস্যা হয়েছে: " + error.message },
-      { status: 500 }
-    );
+    return serverError(error, "Admin users POST");
   }
 }

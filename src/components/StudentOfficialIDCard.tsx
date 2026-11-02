@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { UserCircle } from "lucide-react";
+import { IDCardShell, IDCardBackShell, type IDCardRow } from "@/components/TeacherOfficialIDCard";
 
 export interface StudentIDCardProfile {
   fullName?: string;
@@ -18,124 +18,70 @@ export interface StudentIDCardProfile {
   admissionDate?: string | Date;
   status?: string;
   bloodGroup?: string;
+  validity?: string;
   _id?: string;
 }
 
 /**
- * Official Student Digital ID Card — Front Side (Matches Teacher ID Card Design Style)
+ * Official Student Digital ID Card — Front Side (same pure-CSS layout as the teacher card)
  */
 export function StudentIDCard({
   profile,
   idRef,
   cardId = "student-official-id-card",
 }: {
-  profile: StudentIDCardProfile | any;
+  profile: StudentIDCardProfile;
   idRef?: React.RefObject<HTMLDivElement | null>;
   cardId?: string;
 }) {
-  const fullName = (profile?.fullName || "STUDENT NAME").toUpperCase();
-  const designation = (
-    profile?.course ? `STUDENT • ${profile.course}` : "STUDENT"
-  ).toUpperCase();
+  const fullName = (profile?.fullName || "—").toUpperCase();
+  const designation = (profile?.course ? `STUDENT • ${profile.course}` : "STUDENT").toUpperCase();
   const studentId =
-    profile?.studentId ||
-    (profile?._id ? `FJRS-${profile._id.toString().slice(-4).toUpperCase()}` : "FJRS-0001");
-  const extraInfo =
-    profile?.fatherName || profile?.motherName
-      ? `Guardian: ${profile?.fatherName || profile?.motherName}`
-      : profile?.teacherName
-      ? `Teacher: ${profile.teacherName}`
-      : profile?.bloodGroup
-      ? `Blood Group: ${profile.bloodGroup}`
-      : "Fajr Academy Online";
-  const avatarUrl = profile?.avatar || (profile?.gender === "female" ? "/default-female.png" : "");
+    profile?.studentId || (profile?._id ? `FJRS-${String(profile._id).slice(-4).toUpperCase()}` : "—");
+
+  const rows: IDCardRow[] = [
+    { label: "ID", value: studentId },
+    { label: "Blood Group", value: profile?.bloodGroup || "—" },
+  ];
+  const guardian = profile?.fatherName || profile?.motherName;
+  if (guardian) rows.push({ label: "Guardian", value: guardian });
+  if (profile?.teacherName) rows.push({ label: "Teacher", value: profile.teacherName });
 
   return (
-    <div
-      ref={idRef}
-      id={cardId}
-      className="relative w-[320px] h-[520px] rounded-3xl shadow-2xl overflow-hidden shrink-0 select-none transition-transform bg-[#121A36]"
-      style={{
-        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      }}
-    >
-      {/* Background Template */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/teacher-id-template.png"
-        alt="Student ID Card Template"
-        crossOrigin="anonymous"
-        className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
-      />
-
-      {/* Student Portrait Photo */}
-      <div className="absolute top-0 left-0 right-0 h-[250px] z-10 overflow-hidden flex items-center justify-center bg-slate-100">
-        {avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarUrl}
-            alt={fullName}
-            crossOrigin="anonymous"
-            className="w-full h-full object-cover object-top"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">
-            <UserCircle className="w-28 h-28 text-slate-400" />
-          </div>
-        )}
-      </div>
-
-      {/* Overlaid Details */}
-      <div className="absolute top-[258px] left-0 right-0 bottom-0 px-6 text-center z-20 flex flex-col items-center justify-start pointer-events-none">
-        <h2 className="text-[21px] sm:text-[23px] font-black text-white tracking-wide leading-tight uppercase font-sans drop-shadow-md px-1 line-clamp-2">
-          {fullName}
-        </h2>
-
-        <p className="text-xs sm:text-sm font-bold text-white tracking-widest uppercase font-sans mt-3 drop-shadow-sm line-clamp-1">
-          {designation}
-        </p>
-
-        <p className="text-[14px] sm:text-[15px] font-bold text-white tracking-wider font-sans mt-4 drop-shadow-sm">
-          ID: <span className="font-sans">{studentId}</span>
-        </p>
-
-        <p className="text-[14px] sm:text-[15px] font-bold text-white tracking-wider font-sans mt-1 drop-shadow-sm line-clamp-1">
-          {extraInfo}
-        </p>
-      </div>
-    </div>
+    <IDCardShell
+      idRef={idRef}
+      cardId={cardId}
+      title="STUDENT ID CARD"
+      name={fullName}
+      subtitle={designation}
+      avatar={profile?.avatar}
+      rows={rows.slice(0, 4)}
+    />
   );
 }
 
 /**
- * Official Student Digital ID Card — Back Side (Matches Teacher ID Card Back Design Style)
+ * Official Student Digital ID Card — Back Side
  */
 export function StudentIDCardBack({
   profile,
   idRef,
   cardId = "student-official-id-card-back",
+  helpline,
 }: {
-  profile?: StudentIDCardProfile | any;
+  profile?: StudentIDCardProfile;
   idRef?: React.RefObject<HTMLDivElement | null>;
   cardId?: string;
+  helpline?: string;
 }) {
   return (
-    <div
-      ref={idRef}
-      id={cardId}
-      className="relative w-[320px] h-[520px] rounded-3xl shadow-2xl overflow-hidden shrink-0 select-none transition-transform bg-[#121A36]"
-      style={{
-        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-      }}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/teacher-id-back.png"
-        alt="Student ID Card Back Part"
-        crossOrigin="anonymous"
-        className="w-full h-full object-cover pointer-events-none"
-      />
-    </div>
+    <IDCardBackShell
+      idRef={idRef}
+      cardId={cardId}
+      holder={profile?.fullName}
+      validity={profile?.validity}
+      helpline={helpline}
+    />
   );
 }
 

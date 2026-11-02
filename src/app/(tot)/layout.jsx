@@ -1,14 +1,19 @@
 import Link from "next/link";
 import TOTNavClient from "./TOTNavClient";
 import TOTLogoutButton from "@/components/TOTLogoutButton";
-import { Sparkles, MessageCircle, ShieldCheck } from "lucide-react";
+import { getSessionUser } from "@/lib/auth";
+import { Sparkles, MessageCircle } from "lucide-react";
 
 export const metadata = {
   title: "TOT লার্নিং পোর্টাল ও ড্যাশবোর্ড | ফজর একাডেমি",
   description: "ফজর একাডেমি ট্রেনিং অফ ট্রেইনার্স (TOT) অফিসিয়াল শিক্ষক প্রশিক্ষণ ও ক্যারিয়ার পোর্টাল।",
 };
 
-export default function TOTLayout({ children }) {
+export default async function TOTLayout({ children }) {
+  // Only used to decide whether the staff-panel shortcut is shown in the menu.
+  const session = await getSessionUser();
+  const role = session?.role || "";
+
   return (
     <div className="min-h-screen flex flex-col bg-[#051329] text-[#FDFBF7] font-sans selection:bg-[#C59B27] selection:text-slate-950 antialiased">
       {/* Background ambient lighting effects */}
@@ -47,7 +52,7 @@ export default function TOTLayout({ children }) {
           </div>
 
           {/* Interactive Client Navigation with active route detection */}
-          <TOTNavClient />
+          <TOTNavClient role={role} />
 
           {/* Right Action Bar */}
           <div className="hidden sm:flex items-center gap-3">

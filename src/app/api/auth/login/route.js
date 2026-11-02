@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyUserLoginCredentials } from "@/queries/auth-queries";
 import { signToken } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request) {
   try {
@@ -8,6 +9,15 @@ export async function POST(request) {
     const { identifier, email, phone, password } = body;
 
     const loginId = (identifier || email || phone || "").trim();
+
+    // Brute-force guard: per IP and per account identifier.
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+    if (!rateLimit(`login-ip:${ip}`, 30, 15 * 60 * 1000) || !rateLimit(`login-id:${loginId.toLowerCase()}`, 10, 15 * 60 * 1000)) {
+      return NextResponse.json(
+        { success: false, message: "অনেকবার ভুল চেষ্টা করা হয়েছে। অনুগ্রহ করে ১৫ মিনিট পর আবার চেষ্টা করুন।" },
+        { status: 429 }
+      );
+    }
 
     if (!loginId || !password) {
       return NextResponse.json(
@@ -19,7 +29,8 @@ export async function POST(request) {
     const result = await verifyUserLoginCredentials(loginId, password);
 
     if (!result.success) {
-      return NextResponse.json(result, { status: result.isUnpaid ? 402 : 401 });
+      const status = result.serviceUnavailable ? 503 : result.isUnpaid ? 402 : result.inactive ? 403 : 401;
+      return NextResponse.json(result, { status });
     }
 
     // Sign JWT token
@@ -48,12 +59,11 @@ export async function POST(request) {
       deviceType: isMobile ? "mobile" : "desktop",
     });
 
-    const redirectUrl =
-      result.user.role === "admin"
-        ? "/admin"
-        : result.user.role === "instructor"
-        ? "/instructor"
-        : "/dashboard";
+    const redirectUrl = ["admin", "super-admin"].includes(result.user.role)
+      ? "/admin"
+      : result.user.role === "instructor"
+      ? "/instructor"
+      : "/dashboard";
 
     const response = NextResponse.json({
       success: true,

@@ -3,21 +3,26 @@
  * Supports Next.js App Router with native fetch and SSLCommerz v4 API specifications.
  */
 
-const STORE_ID =
-  process.env.SSLCOMMERZ_STORE_ID ||
-  process.env.SSL_STORE_ID ||
-  "fajra6aa249a39ddb2";
+import { BASE_URL } from "@/constant";
 
-const STORE_PASS =
-  process.env.SSLCOMMERZ_STORE_PASSWORD ||
-  process.env.SSL_STORE_PASS ||
-  "fajra6aa249a39ddb2@ssl";
+// Credentials come from the environment only. The old source-code fallbacks published
+// the live store password; rotate it in the SSLCommerz merchant panel.
+const STORE_ID = process.env.SSLCOMMERZ_STORE_ID || process.env.SSL_STORE_ID || "";
+const STORE_PASS = process.env.SSLCOMMERZ_STORE_PASSWORD || process.env.SSL_STORE_PASS || "";
+const IS_LIVE = process.env.SSLCOMMERZ_IS_LIVE === "true" || process.env.SSLCOMMERZ_IS_LIVE === "1";
 
-const IS_LIVE =
-  process.env.SSLCOMMERZ_IS_LIVE === "true" ||
-  process.env.SSLCOMMERZ_IS_LIVE === "1"
-    ? true
-    : false;
+export const isGatewayConfigured = () => Boolean(STORE_ID && STORE_PASS);
+export const gatewayMode = () => (IS_LIVE ? "live" : "sandbox");
+
+/**
+ * Public base URL for gateway callbacks and redirects. Never built from the request's
+ * Host / X-Forwarded-Proto headers (those are client-controlled).
+ */
+export function getAppUrl() {
+  const fromEnv = process.env.APP_URL || process.env.NEXT_PUBLIC_SITE_URL;
+  if (fromEnv) return fromEnv.replace(/\/+$/, "");
+  return process.env.NODE_ENV === "production" ? `https://${BASE_URL}` : "http://localhost:3000";
+}
 
 export class SSLCommerzPayment {
   constructor(store_id = STORE_ID, store_passwd = STORE_PASS, live = IS_LIVE) {
@@ -190,12 +195,7 @@ export async function initSSLCommerzPayment({
   cusCountry = "Bangladesh",
   baseUrl,
 }) {
-  const rootUrl =
-    baseUrl ||
-    process.env.APP_URL ||
-    (process.env.NODE_ENV === "production"
-      ? "https://careers.fajracademy.io"
-      : "http://localhost:3000");
+  const rootUrl = baseUrl || getAppUrl();
 
   const successUrl = `${rootUrl}/api/payment/sslcommerz/success?tran_id=${tranId}`;
   const failUrl = `${rootUrl}/api/payment/sslcommerz/fail?tran_id=${tranId}`;
@@ -232,6 +232,10 @@ export async function initSSLCommerzPayment({
     ship_postcode: cusPostcode || "1000",
     ship_country: cusCountry || "Bangladesh",
   };
+
+  if (!isGatewayConfigured()) {
+    throw new Error("SSLCommerz store credentials are not configured (SSLCOMMERZ_STORE_ID / SSLCOMMERZ_STORE_PASSWORD).");
+  }
 
   try {
     const sslcz = getSSLCommerzInstance();

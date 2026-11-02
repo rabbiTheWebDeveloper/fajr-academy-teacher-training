@@ -1,217 +1,117 @@
 import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
 import { PaymentModel } from "@/model/payment-model";
-
-const SEED_ACCOUNTS = [
-  {
-    _id: "65f01a01b123456789000001",
-    fullName: "Maulana Farabi Chowdhury",
-    email: "admin@fajracademy.io",
-    phone: "01410764581",
-    password: "Fajr@Admin2026",
-    role: "admin",
-    track: "TOT-MEN",
-    gender: "male",
-    paymentStatus: "paid",
-    paidAmount: 1000,
-    tranId: "ADM-SEED-001",
-    isActive: true,
-  },
-  {
-    _id: "65f01a01b123456789000002",
-    fullName: "Shaykh Abdullah Al-Mahmud",
-    email: "instructor.men@fajracademy.io",
-    phone: "01711223344",
-    password: "Fajr@Instructor2026",
-    role: "instructor",
-    track: "TOT-MEN",
-    gender: "male",
-    paymentStatus: "paid",
-    paidAmount: 1000,
-    tranId: "INST-MEN-001",
-    isActive: true,
-  },
-  {
-    _id: "65f01a01b123456789000003",
-    fullName: "Ustadha Farhana Chowdhury",
-    email: "instructor.women@fajracademy.io",
-    phone: "01811223344",
-    password: "Fajr@Instructor2026",
-    role: "instructor",
-    track: "TOT-WOMEN-014",
-    gender: "female",
-    paymentStatus: "paid",
-    paidAmount: 1000,
-    tranId: "INST-WOMEN-014",
-    isActive: true,
-  },
-  {
-    _id: "65f01a01b123456789000004",
-    fullName: "Hafiz Tariqul Islam",
-    email: "teacher.men@fajracademy.io",
-    phone: "01911223344",
-    password: "Fajr@Teacher2026",
-    role: "teacher",
-    track: "TOT-MEN",
-    gender: "male",
-    paymentStatus: "paid",
-    paidAmount: 1000,
-    tranId: "TOT-PAID-MEN-001",
-    isActive: true,
-  },
-  {
-    _id: "65f01a01b123456789000005",
-    fullName: "Nusrat Jahan",
-    email: "teacher.women@fajracademy.io",
-    phone: "01611223344",
-    password: "Fajr@Teacher2026",
-    role: "teacher",
-    track: "TOT-WOMEN-014",
-    gender: "female",
-    paymentStatus: "paid",
-    paidAmount: 1000,
-    tranId: "TOT-PAID-WOMEN-014",
-    isActive: true,
-  },
-];
+import { isHashedPassword, verifyPassword } from "@/lib/password";
 
 /**
- * Helper to convert Bengali digits to English digits
+ * Login lookups.
+ *
+ * Removed on purpose (they were security holes):
+ *  - shared "master" passwords that unlocked every account (incl. admin),
+ *  - phone-last-6-digits / transaction-ID accepted as a password,
+ *  - an in-memory seed-account fallback that worked even with the DB down.
+ * Seed accounts now live only in the database (see /api/seed, dev-only).
  */
+
 function convertBengaliToEnglishNumbers(str) {
   if (!str) return "";
   const bnToEnMap = { "০": "0", "১": "1", "২": "2", "৩": "3", "৪": "4", "৫": "5", "৬": "6", "৭": "7", "৮": "8", "৯": "9" };
   return str.replace(/[০-৯]/g, (w) => bnToEnMap[w] || w);
 }
 
-/**
- * Find user by Email, Phone number, or TranID
- */
-export async function findUserByIdentifier(identifier) {
-  if (!identifier) return null;
-  const enIdentifier = convertBengaliToEnglishNumbers(identifier.toString().trim());
-  const clean = enIdentifier.toLowerCase();
-  const rawPhone = enIdentifier.replace(/[^0-9]/g, "");
-
-  try {
-    await dbConnect();
-    const query = {
-      $or: [
-        { email: clean },
-        { tranId: clean.toUpperCase() },
-        { tranId: clean },
-        ...(rawPhone.length >= 10
-          ? [
-              { phone: rawPhone },
-              { phone: `0${rawPhone.replace(/^0+/, "")}` },
-              { phone: `+88${rawPhone.replace(/^(\+?88)?0?/, "0")}` },
-              { phone: `+880${rawPhone.replace(/^(\+?88)?0?/, "")}` },
-              { phone: rawPhone.startsWith("88") ? rawPhone.slice(2) : rawPhone },
-            ]
-          : [{ phone: clean }, { phone: rawPhone }]),
-      ],
-    };
-
-    const found = await UserModel.findOne(query).lean();
-    if (found) return found;
-  } catch (err) {
-    console.warn("DB connection warning (checking seed fallback):", err.message);
-  }
-
-  // Fallback to in-memory seed accounts
-  return (
-    SEED_ACCOUNTS.find(
-      (u) =>
-        u.email.toLowerCase() === clean ||
-        u.phone === clean ||
-        u.phone === rawPhone ||
-        (rawPhone.length >= 10 && u.phone.endsWith(rawPhone.slice(-10))) ||
-        u.tranId.toLowerCase() === clean
-    ) || null
-  );
+/** Every stored phone spelling for a Bangladeshi number: 01XXXXXXXXX, 8801…, +8801… */
+export function phoneVariants(input) {
+  const digits = convertBengaliToEnglishNumbers(String(input || "")).replace(/[^0-9]/g, "");
+  if (digits.length < 10) return [];
+  const local = `0${digits.replace(/^(88)?0?/, "")}`; // 01XXXXXXXXX
+  return [...new Set([local, `88${local}`, `+88${local}`, local.slice(1)])];
 }
 
-/**
- * Verify user credentials for login
- */
+/** Find a user by email or phone number (case/format-insensitive). */
+export async function findUserByIdentifier(identifier) {
+  if (!identifier) return null;
+  const clean = convertBengaliToEnglishNumbers(identifier.toString().trim()).toLowerCase();
+  const phones = phoneVariants(clean);
+
+  await dbConnect();
+  const query = clean.includes("@")
+    ? { email: clean }
+    : { $or: [{ email: clean }, { tranId: clean.toUpperCase() }, ...phones.map((phone) => ({ phone }))] };
+  return UserModel.findOne(query).lean();
+}
+
+/** Verify login credentials. Returns { success, user } or { success: false, message, ... }. */
 export async function verifyUserLoginCredentials(identifier, password) {
+  let user;
   try {
-    await dbConnect();
+    user = await findUserByIdentifier(identifier);
   } catch (err) {
-    console.warn("DB connection issue in verify credentials:", err.message);
+    console.error("Login DB error:", err.message);
+    return {
+      success: false,
+      message: "সার্ভারের সাথে সংযোগ করা যাচ্ছে না। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।",
+      serviceUnavailable: true,
+    };
   }
-  const user = await findUserByIdentifier(identifier);
 
   if (!user) {
     return {
       success: false,
-      message: "এই ইমেইল বা ফোন নম্বরে কোনো অ্যাকাউন্ট পাওয়া যায়নি। অনুগ্রহ করে আগে রেজিস্ট্রেশন করুন।",
+      message: "এই ইমেইল বা ফোন নম্বরে কোনো অ্যাকাউন্ট পাওয়া যায়নি। অনুগ্রহ করে আগে রেজিস্ট্রেশন করুন।",
       notFound: true,
     };
   }
 
-  const cleanPass = (password || "").toString().trim();
-  const storedPass = (user.password || "").toString().trim();
+  const ok = await verifyPassword(String(password || "").trim(), user.password);
+  if (!ok) {
+    return { success: false, message: "ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিয়ে আবার চেষ্টা করুন।" };
+  }
 
-  // Check password (matches stored password or default fallback)
-  const isValidPassword =
-    storedPass === cleanPass ||
-    cleanPass === "Fajr@Admin2026" ||
-    cleanPass === "Fajr@Instructor2026" ||
-    cleanPass === "Fajr@Teacher2026" ||
-    (user.phone && cleanPass === user.phone.slice(-6)) ||
-    (user.tranId && cleanPass.toLowerCase() === user.tranId.toLowerCase());
-
-  if (!isValidPassword) {
+  if (user.isActive === false) {
     return {
       success: false,
-      message: "ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিয়ে আবার চেষ্টা করুন।",
+      message: "আপনার অ্যাকাউন্টটি সাময়িকভাবে নিষ্ক্রিয় রয়েছে। বিস্তারিত জানতে হেল্পলাইনে যোগাযোগ করুন।",
+      inactive: true,
     };
   }
 
-  // Check if payment is valid / completed
-  const isPaid =
-    user.paymentStatus === "paid" ||
-    user.paymentStatus === "free" ||
-    user.role === "admin" ||
-    user.role === "instructor";
+  const isStaff = ["admin", "super-admin", "instructor"].includes(user.role);
+  const isPaid = isStaff || user.paymentStatus === "paid" || user.paymentStatus === "free";
 
   if (!isPaid) {
-    try {
-      // Check if there is a successful payment record in PaymentModel
-      const payment = await PaymentModel.findOne({
-        $or: [{ tranId: user.tranId }, { userEmail: user.email }],
-        status: "VALID",
-      }).lean();
+    // Self-heal only a payment verified AFTER the user record last changed (i.e. provisioning
+    // crashed midway). If an admin later marked the user unpaid, that decision stands.
+    const payment = await PaymentModel.findOne({
+      status: "VALID",
+      finalizedAt: { $gt: user.updatedAt || new Date(0) },
+      $or: [{ user: user._id }, { userEmail: user.email }],
+    })
+      .sort({ finalizedAt: -1 })
+      .lean();
 
-      if (payment) {
-        // Auto-update user paymentStatus to paid
-        await UserModel.findByIdAndUpdate(user._id, {
-          paymentStatus: "paid",
-          paidAmount: 1000,
-          isActive: true,
-        });
-        user.paymentStatus = "paid";
-      } else {
-        return {
-          success: false,
-          isUnpaid: true,
-          tranId: user.tranId,
-          email: user.email,
-          message: "আপনার রেজিস্ট্রেশন সম্পন্ন হলেও ১,০০০ টাকা কোর্স পেমেন্ট এখনো বকেয়া রয়েছে। ড্যাশবোর্ডে প্রবেশ করতে অনুগ্রহ করে পেমেন্ট সম্পন্ন করুন।",
-        };
-      }
-    } catch (err) {
-      console.warn("Payment verification DB check warning:", err.message);
+    if (!payment) {
+      return {
+        success: false,
+        isUnpaid: true,
+        tranId: user.tranId,
+        email: user.email,
+        message:
+          "আপনার রেজিস্ট্রেশন সম্পন্ন হলেও কোর্স ফি এখনো পরিশোধ হয়নি। ড্যাশবোর্ডে প্রবেশ করতে অনুগ্রহ করে পেমেন্ট সম্পন্ন করুন।",
+      };
     }
+
+    await UserModel.updateOne(
+      { _id: user._id },
+      { paymentStatus: "paid", paidAmount: payment.amount, tranId: payment.tranId, isActive: true }
+    );
+    user.paymentStatus = "paid";
+    user.tranId = payment.tranId;
   }
 
-  // Update last login
-  try {
-    await UserModel.findByIdAndUpdate(user._id, { lastLogin: new Date() });
-  } catch (err) {
-    // Ignore if offline
-  }
+  // Record the login; re-save legacy plain-text passwords as a hash.
+  const update = { lastLogin: new Date() };
+  if (!isHashedPassword(user.password)) update.password = String(password).trim();
+  await UserModel.updateOne({ _id: user._id }, update).catch((err) => console.warn("Login update warning:", err.message));
 
   return {
     success: true,
@@ -229,17 +129,12 @@ export async function verifyUserLoginCredentials(identifier, password) {
   };
 }
 
-/**
- * Create or save active session in DB
- */
+/** Create the server-side session record for a freshly issued token. */
 export async function createDatabaseSession({ userId, userEmail, token, role, track, userAgent, ipAddress, deviceType }) {
   try {
     await dbConnect();
     const { SessionModel } = await import("@/model/session-model");
-    
-    // 30 days expiry
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
     return await SessionModel.create({
       userId,
       userEmail: userEmail.toLowerCase(),
@@ -259,9 +154,7 @@ export async function createDatabaseSession({ userId, userEmail, token, role, tr
   }
 }
 
-/**
- * Invalidate session on logout
- */
+/** Mark a session invalid on logout. */
 export async function invalidateDatabaseSession(token) {
   try {
     if (!token) return;
@@ -272,4 +165,3 @@ export async function invalidateDatabaseSession(token) {
     console.error("Session invalidation error:", err);
   }
 }
-

@@ -13,13 +13,13 @@ import {
   Menu,
   X,
   ShieldCheck,
-  Sparkles,
   ExternalLink,
   ChevronRight,
   Radio
 } from "lucide-react";
+import LogoutButton from "./_shared/LogoutButton";
 
-export default function InstructorNavClient() {
+export default function InstructorNavClient({ userName = "", badgeText = "" }) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -59,8 +59,9 @@ export default function InstructorNavClient() {
   ];
 
   const isActive = (item) => {
+    if (!pathname) return false;
     if (item.exact) return pathname === item.href;
-    return pathname.startsWith(item.href);
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
   };
 
   return (
@@ -175,8 +176,18 @@ export default function InstructorNavClient() {
               >
                 শিক্ষক / স্টুডেন্ট ভিউ <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
               </Link>
-              <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500">
-                <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" /> Authorized Trainer Access
+              {(userName || badgeText) && (
+                <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 text-center">
+                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <span className="truncate">
+                    {userName}
+                    {userName && badgeText ? " • " : ""}
+                    {badgeText}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-center">
+                <LogoutButton wrapperClassName="flex flex-col w-full text-center" className="w-full py-2 px-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 text-xs font-semibold flex items-center justify-center gap-2" showIcon />
               </div>
             </div>
           </div>

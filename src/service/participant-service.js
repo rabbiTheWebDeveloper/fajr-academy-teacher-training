@@ -77,7 +77,7 @@ export async function enrollUserInCourse({
     await participant.save();
 
     // Ensure user has reference
-    if (course && !user.enrolledCourses?.includes(course._id)) {
+    if (course && !(user.enrolledCourses || []).some((id) => String(id) === String(course._id))) {
       user.enrolledCourses = user.enrolledCourses || [];
       user.enrolledCourses.push(course._id);
     }
@@ -98,7 +98,8 @@ export async function enrollUserInCourse({
     };
   }
 
-  // 5. Create NEW Participant record
+  // 5. Create NEW Participant record (a concurrent call may win the unique user+course index)
+  try {
   participant = await ParticipantModel.create({
     user: user._id,
     course: course ? course._id : null,
@@ -120,6 +121,11 @@ export async function enrollUserInCourse({
     attendanceCount: 0,
     notes,
   });
+  } catch (err) {
+    if (err?.code !== 11000) throw err;
+    participant = await ParticipantModel.findOne({ user: user._id, courseId: actualCourseId });
+    return { isNew: false, participant, course, user };
+  }
 
   // 6. Increment course enrolledCount
   if (course) {
@@ -131,7 +137,7 @@ export async function enrollUserInCourse({
   // 7. Update User model references
   if (course) {
     user.enrolledCourses = user.enrolledCourses || [];
-    if (!user.enrolledCourses.includes(course._id)) {
+    if (!user.enrolledCourses.some((id) => String(id) === String(course._id))) {
       user.enrolledCourses.push(course._id);
     }
   }

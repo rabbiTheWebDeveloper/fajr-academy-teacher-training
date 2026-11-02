@@ -15,13 +15,21 @@ import {
   Sparkles,
   ChevronRight,
   ExternalLink,
-  Radio
+  Radio,
 } from "lucide-react";
 import TOTLogoutButton from "@/components/TOTLogoutButton";
 
-export default function TOTNavClient() {
-  const pathname = usePathname();
+// Staff who open the trainee pages get a shortcut back to their own panel; trainees don't.
+const STAFF_PANEL = {
+  admin: { href: "/admin", label: "অ্যাডমিন প্যানেল" },
+  "super-admin": { href: "/admin", label: "অ্যাডমিন প্যানেল" },
+  instructor: { href: "/instructor", label: "ইনস্ট্রাক্টর প্যানেল" },
+};
+
+export default function TOTNavClient({ role = "" }) {
+  const pathname = usePathname() || "";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const staffPanel = STAFF_PANEL[role] || null;
 
   const navItems = [
     {
@@ -168,13 +176,15 @@ export default function TOTNavClient() {
 
             {/* Bottom Actions in Drawer */}
             <div className="pt-6 border-t border-slate-800 space-y-3">
-              <Link
-                href="/instructor"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#081A3A] border border-[#C59B27]/30 text-[#D4AF37] text-xs font-semibold flex items-center justify-center gap-2"
-              >
-                ইনস্ট্রাক্টর প্যানেল <ExternalLink className="w-3.5 h-3.5" />
-              </Link>
+              {staffPanel && (
+                <Link
+                  href={staffPanel.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#081A3A] border border-[#C59B27]/30 text-[#D4AF37] text-xs font-semibold flex items-center justify-center gap-2"
+                >
+                  {staffPanel.label} <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+              )}
               <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500">
                 <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" /> Better Teachers, Brighter Generations
               </div>

@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
-import { dbConnect } from "@/service/mongo";
-import { UserModel } from "@/model/user-model";
-import { PaymentModel } from "@/model/payment-model";
 import { signToken } from "@/lib/auth";
-import { validateSSLCommerzPayment } from "@/lib/sslcommerz";
-import { enrollUserInCourse } from "@/service/participant-service";
+import { getAppUrl } from "@/lib/sslcommerz";
+import { claimPostPaymentLogin, finalizeGatewayPayment } from "@/service/payment-service";
+import { createDatabaseSession } from "@/queries/auth-queries";
 
+/**
+ * Browser return from SSLCommerz after a successful payment (POST form, sometimes GET).
+ * Nothing in this request is trusted: the payment is confirmed with the validation API
+ * inside finalizeGatewayPayment. A session cookie is issued only once per payment, within
+ * two hours of it being verified — replaying this URL never logs anyone in.
+ */
 export async function POST(request) {
   return handleSuccess(request);
 }
@@ -14,178 +18,71 @@ export async function GET(request) {
   return handleSuccess(request);
 }
 
+async function readParams(request) {
+  const url = new URL(request.url);
+  const params = { tranId: url.searchParams.get("tran_id") || "", valId: url.searchParams.get("val_id") || "" };
+  if (request.method === "POST") {
+    try {
+      const form = await request.formData();
+      params.tranId = form.get("tran_id") || params.tranId;
+      params.valId = form.get("val_id") || params.valId;
+    } catch {}
+  }
+  return params;
+}
+
 async function handleSuccess(request) {
+  const app = getAppUrl();
+  const { tranId, valId } = await readParams(request);
+
   try {
-    await dbConnect();
+    const result = await finalizeGatewayPayment({ tranId, valId, source: "success" });
 
-    const { searchParams } = new URL(request.url);
-    let tranId = searchParams.get("tran_id") || "";
-    let valId = searchParams.get("val_id") || "";
-    let cardType = searchParams.get("card_type") || "";
-    let bankTranId = searchParams.get("bank_tran_id") || "";
-    let amount = searchParams.get("amount") || "";
-    let rawData = {};
-
-    // If POST from SSLCommerz form-data / body
-    if (request.method === "POST") {
-      try {
-        const formData = await request.formData();
-        tranId = formData.get("tran_id") || tranId;
-        valId = formData.get("val_id") || valId;
-        cardType = formData.get("card_type") || cardType;
-        bankTranId = formData.get("bank_tran_id") || bankTranId;
-        amount = formData.get("amount") || amount;
-
-        for (const [key, value] of formData.entries()) {
-          rawData[key] = value;
-        }
-      } catch {
-        // Fallback to query param
-      }
+    if (!result.ok) {
+      const reason = result.code === "validation_unreachable" ? "verifying" : "failed";
+      return NextResponse.redirect(`${app}/?payment=${reason}&ref=${encodeURIComponent(tranId)}#register`, 303);
     }
 
-    if (!tranId) {
-      return NextResponse.redirect(new URL("/?payment=error", request.url));
+    const user = result.user;
+    // Auto-login needs proof from THIS request (its own val_id validated) and is single-use.
+    // Staff accounts never get a session from a payment URL.
+    const isStaff = ["admin", "super-admin", "instructor"].includes(user?.role);
+    const canLogin = user && !isStaff && user.isActive !== false && result.verifiedNow && (await claimPostPaymentLogin(tranId));
+    if (!canLogin) {
+      // Already used (refresh / replay) — ask the user to sign in normally.
+      const email = encodeURIComponent(user?.email || result.payment?.userEmail || "");
+      return NextResponse.redirect(`${app}/login?payment=success&email=${email}`, 303);
     }
 
-    // Perform SSLCommerz Order Validation API check if val_id is present
-    let isValidPayment = true;
-    let validatedData = null;
-
-    if (valId) {
-      try {
-        validatedData = await validateSSLCommerzPayment({ val_id: valId });
-        if (
-          validatedData &&
-          (validatedData.status === "VALID" ||
-            validatedData.status === "VALIDATED" ||
-            validatedData.status === "SUCCESS")
-        ) {
-          isValidPayment = true;
-          cardType = validatedData.card_type || cardType;
-          bankTranId = validatedData.bank_tran_id || bankTranId;
-        }
-      } catch (valErr) {
-        console.warn("SSLCommerz validation warning:", valErr);
-        // Continue if local record matches
-      }
-    }
-
-    // Find and update payment record
-    const payment = await PaymentModel.findOne({ tranId });
-    if (payment) {
-      payment.status = isValidPayment ? "VALID" : "PENDING";
-      payment.valId = valId || payment.valId || `VAL_${Date.now()}`;
-      payment.cardType = cardType || payment.cardType;
-      payment.bankTranId = bankTranId || payment.bankTranId;
-      payment.rawResponse = {
-        ...(payment.rawResponse || {}),
-        ...rawData,
-        ...(validatedData || {}),
-      };
-      await payment.save();
-    }
-
-    // Find or CREATE user only upon verified successful payment
-    let user = await UserModel.findOne({ tranId });
-    if (!user && payment?.userEmail) {
-      user = await UserModel.findOne({ email: payment.userEmail });
-    }
-
-    const reg = payment?.registrationData || {};
-
-    if (!user && (isValidPayment || payment?.status === "VALID")) {
-      // Create user account NOW upon successful payment
-      const userPassword = reg.password || "Fajr@Teacher2026";
-      const cleanEmail = (reg.email || payment?.userEmail || "").toLowerCase().trim();
-
-      user = await UserModel.create({
-        fullName: reg.fullName || payment?.userName || "Teacher Candidate",
-        email: cleanEmail,
-        phone: reg.phone || payment?.userPhone || "",
-        password: userPassword,
-        role: "teacher",
-        track: reg.track || payment?.track || "TOT-MEN",
-        gender: reg.gender === "female" ? "female" : "male",
-        hasLaptop: reg.hasLaptop || "yes",
-        quranSkill: reg.quranSkill || "fluent",
-        englishSkill: reg.englishSkill || "basic",
-        education: reg.education || "",
-        paymentStatus: "paid",
-        paidAmount: Number(amount) || payment?.amount || 1000,
-        tranId: tranId,
-        paymentGateway: "sslcommerz",
-        enrolledAt: new Date(),
-        isActive: true,
-      });
-    } else if (user) {
-      user.paymentStatus = "paid";
-      user.paidAmount = Number(amount) || payment?.amount || 1000;
-      user.enrolledAt = user.enrolledAt || new Date();
-      user.isActive = true;
-      user.role = "teacher";
-      if (tranId) user.tranId = tranId;
-      if (reg.fullName) user.fullName = reg.fullName;
-      if (reg.phone) user.phone = reg.phone;
-      if (reg.password) user.password = reg.password;
-      if (reg.gender) user.gender = reg.gender;
-      if (reg.track) user.track = reg.track;
-      if (reg.hasLaptop) user.hasLaptop = reg.hasLaptop;
-      if (reg.quranSkill) user.quranSkill = reg.quranSkill;
-      if (reg.englishSkill) user.englishSkill = reg.englishSkill;
-      if (reg.education) user.education = reg.education;
-      await user.save();
-    }
-
-    // Automatically enroll user as course Participant in ParticipantModel
-    if (user) {
-      try {
-        const courseTrack = user.track || payment?.track || reg.track || "TOT-MEN";
-        await enrollUserInCourse({
-          userId: user._id,
-          userEmail: user.email,
-          courseId: courseTrack,
-          tranId: tranId,
-          amount: Number(amount) || payment?.amount || 1000,
-          paymentStatus: "paid",
-          status: "active",
-        });
-      } catch (enrollErr) {
-        console.error("Auto participant enrollment error:", enrollErr);
-      }
-    }
-
-    // Sign authentication JWT
     const token = await signToken({
-      id: user ? user._id.toString() : "teacher_id",
-      email: user ? user.email : payment?.userEmail || "teacher@fajracademy.io",
-      fullName: user ? user.fullName : payment?.userName || "Teacher Candidate",
-      role: "teacher",
-      track: user?.track || payment?.track || "TOT-MEN",
+      id: user._id.toString(),
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      track: user.track,
+    });
+    await createDatabaseSession({
+      userId: user._id,
+      userEmail: user.email,
+      token,
+      role: user.role,
+      track: user.track,
+      userAgent: request.headers.get("user-agent") || "",
+      ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0] || "",
+      deviceType: /mobile|iphone|android|ipad/i.test(request.headers.get("user-agent") || "") ? "mobile" : "desktop",
     });
 
-    const host = request.headers.get("host") || "localhost:3000";
-    const protocol =
-      request.headers.get("x-forwarded-proto") ||
-      (host.includes("localhost") ? "http" : "https");
-    const redirectUrl = new URL(
-      `${protocol}://${host}/dashboard?enrolled=true&tran_id=${tranId}`
-    );
-
-    const response = NextResponse.redirect(redirectUrl);
-
-    // Set auth cookie
+    const response = NextResponse.redirect(`${app}/dashboard?enrolled=1`, 303);
     response.cookies.set("auth_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: 60 * 60 * 24 * 30,
       path: "/",
       sameSite: "lax",
     });
-
     return response;
   } catch (error) {
-    console.error("SSLCommerz Success Handling Error:", error);
-    return NextResponse.redirect(new URL("/?payment=error", request.url));
+    console.error(`[payment ${tranId}] success handler error:`, error);
+    return NextResponse.redirect(`${app}/?payment=verifying&ref=${encodeURIComponent(tranId)}#register`, 303);
   }
 }
