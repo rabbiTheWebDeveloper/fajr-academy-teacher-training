@@ -7,11 +7,12 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { INSTRUCTOR_ROLES } from "@/lib/api-auth";
 import { dbConnect } from "@/service/mongo";
-import { UserModel } from "@/model/user-model";
+import { TotModel } from "@/model/tot-model";
+import { findSessionAccount } from "@/service/account-service";
 import { CourseModel } from "@/model/course-model";
 import { EvaluationModel } from "@/model/evaluation-model";
 import { ensureDefaultCourses } from "@/service/course-service";
-import { TRAINEE_ROLE_LIST, isObjectId, searchFilter, toPlain, trackFilter } from "@/lib/query-helpers";
+import { searchFilter, toPlain, trackFilter } from "@/lib/query-helpers";
 
 export const DB_ERROR_MESSAGE =
   "ডাটাবেজ থেকে তথ্য আনা যায়নি। ইন্টারনেট / ডাটাবেজ সংযোগ পরীক্ষা করে পেজটি রিফ্রেশ করুন। (নিচের সংখ্যাগুলো সঠিক নাও হতে পারে)";
@@ -32,12 +33,8 @@ export const getInstructorProfile = cache(async () => {
   let user = null;
   let error = null;
   try {
-    if (isObjectId(session.id)) {
-      await dbConnect();
-      user = await UserModel.findById(session.id)
-        .select("fullName email phone designation role track gender avatar specialization")
-        .lean();
-    }
+    // Instructors are read from "instructors", admins (who may open this panel) from "users".
+    user = await findSessionAccount(session, "fullName email phone designation role track gender avatar specialization");
   } catch (err) {
     console.error("Instructor profile load error:", err?.message || err);
     error = DB_ERROR_MESSAGE;
@@ -72,18 +69,18 @@ const TRAINEE_FIELDS =
 /** One page of trainees with their latest evaluation — same shape as GET /api/instructor/trainees. */
 export async function loadTraineesPage({ track = "all", paymentStatus = "all", search = "", page = 1, limit = 25 } = {}) {
   await dbConnect();
-  const filters = [{ role: { $in: TRAINEE_ROLE_LIST } }];
+  const filters = [];
   const byTrack = trackFilter(track);
   if (byTrack) filters.push(byTrack);
   if (paymentStatus && paymentStatus !== "all") filters.push({ paymentStatus });
   const bySearch = searchFilter(search, ["fullName", "email", "phone", "tranId"]);
   if (bySearch) filters.push(bySearch);
-  const query = { $and: filters };
+  const query = filters.length ? { $and: filters } : {};
   const skip = (Math.max(page, 1) - 1) * limit;
 
   const [total, trainees] = await Promise.all([
-    UserModel.countDocuments(query),
-    UserModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).select(TRAINEE_FIELDS).lean(),
+    TotModel.countDocuments(query),
+    TotModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).select(TRAINEE_FIELDS).lean(),
   ]);
 
   const evaluations = await EvaluationModel.find({ traineeId: { $in: trainees.map((t) => t._id) } })

@@ -1,9 +1,11 @@
 import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
+import { InstructorModel } from "@/model/instructor-model";
+import { TotModel } from "@/model/tot-model";
 import { PaymentModel } from "@/model/payment-model";
 import { EvaluationModel } from "@/model/evaluation-model";
 import { NoticeModel } from "@/model/notice-model";
-import { trackFilter, toPlain, TRAINEE_ROLE_LIST } from "@/lib/query-helpers";
+import { trackFilter, toPlain } from "@/lib/query-helpers";
 import AdminDashboardClient from "./AdminDashboardClient";
 
 export const metadata = {
@@ -26,6 +28,7 @@ const EMPTY_STATS = {
   menTrainees: 0,
   womenTrainees: 0,
   totalInstructors: 0,
+  totalAdmins: 0,
   totalEvaluated: 0,
   hiredCount: 0,
   certifiedCount: 0,
@@ -37,10 +40,12 @@ const EMPTY_STATS = {
   notices: [],
 };
 
-/** Read-only: every number comes from the database, nothing is seeded or estimated. */
+/**
+ * Read-only: every number comes from the database, nothing is seeded or estimated.
+ * Trainees = TotModel ("tots"), instructors = InstructorModel, admins = UserModel ("users").
+ */
 async function loadDashboard() {
   await dbConnect();
-  const trainee = { role: { $in: TRAINEE_ROLE_LIST } };
 
   const [
     totalTrainees,
@@ -49,6 +54,7 @@ async function loadDashboard() {
     menTrainees,
     womenTrainees,
     totalInstructors,
+    totalAdmins,
     pendingPayments,
     revenue,
     totalEvaluated,
@@ -61,12 +67,13 @@ async function loadDashboard() {
     recentInstructors,
     notices,
   ] = await Promise.all([
-    UserModel.countDocuments(trainee),
-    UserModel.countDocuments({ ...trainee, paymentStatus: "paid" }),
-    UserModel.countDocuments({ ...trainee, paymentStatus: "pending" }),
-    UserModel.countDocuments({ $and: [trainee, trackFilter("men")] }),
-    UserModel.countDocuments({ $and: [trainee, trackFilter("women")] }),
-    UserModel.countDocuments({ role: "instructor" }),
+    TotModel.countDocuments({}),
+    TotModel.countDocuments({ paymentStatus: "paid" }),
+    TotModel.countDocuments({ paymentStatus: "pending" }),
+    TotModel.countDocuments(trackFilter("men")),
+    TotModel.countDocuments(trackFilter("women")),
+    InstructorModel.countDocuments({}),
+    UserModel.countDocuments({ role: { $in: ["admin", "super-admin"] } }),
     PaymentModel.countDocuments({ status: "PENDING" }),
     // Net verified revenue: VALID payments minus any partial refund already sent.
     PaymentModel.aggregate([
@@ -85,8 +92,8 @@ async function loadDashboard() {
     EvaluationModel.countDocuments({ qualificationStatus: "in-review" }),
     EvaluationModel.countDocuments({ qualificationStatus: "retake-needed" }),
     PaymentModel.find().sort({ createdAt: -1 }).limit(6).select(SAFE_PAYMENT).lean(),
-    UserModel.find(trainee).sort({ createdAt: -1 }).limit(6).select(SAFE_USER).lean(),
-    UserModel.find({ role: "instructor" }).sort({ createdAt: -1 }).limit(6).select(SAFE_USER).lean(),
+    TotModel.find({}).sort({ createdAt: -1 }).limit(6).select(SAFE_USER).lean(),
+    InstructorModel.find({}).sort({ createdAt: -1 }).limit(6).select(SAFE_USER).lean(),
     NoticeModel.find().sort({ isPinned: -1, createdAt: -1 }).limit(20).lean(),
   ]);
 
@@ -100,6 +107,7 @@ async function loadDashboard() {
     menTrainees,
     womenTrainees,
     totalInstructors,
+    totalAdmins,
     totalEvaluated,
     hiredCount,
     certifiedCount,

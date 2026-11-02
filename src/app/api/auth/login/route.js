@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyUserLoginCredentials } from "@/queries/auth-queries";
 import { signToken } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
+import { homeForRole } from "@/lib/roles";
 
 export async function POST(request) {
   try {
@@ -59,11 +60,7 @@ export async function POST(request) {
       deviceType: isMobile ? "mobile" : "desktop",
     });
 
-    const redirectUrl = ["admin", "super-admin"].includes(result.user.role)
-      ? "/admin"
-      : result.user.role === "instructor"
-      ? "/instructor"
-      : "/dashboard";
+    const redirectUrl = homeForRole(result.user.role);
 
     const response = NextResponse.json({
       success: true,

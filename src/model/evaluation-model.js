@@ -32,9 +32,10 @@ const scoreSchema = new Schema(
 
 const evaluationSchema = new Schema(
   {
+    // The trainee account (TotModel, collection "tots").
     traineeId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Tot",
       required: true,
       index: true,
     },

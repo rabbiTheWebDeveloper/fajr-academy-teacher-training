@@ -31,11 +31,12 @@ export default function AdminSidebar({ adminUser }) {
 
   const navItems = [
     { href: "/admin", label: "ড্যাশবোর্ড ওভারভিউ", icon: LayoutDashboard, exact: true },
-    { href: "/admin/users", label: "টিচার ও ট্রেইনি", icon: Users },
+    { href: "/admin/tots", label: "TOT ট্রেইনি (পেমেন্টকারী)", icon: Users },
     { href: "/admin/payments", label: "পেমেন্ট ভেরিফিকেশন", icon: CreditCard },
     { href: "/admin/courses", label: "কোর্স ও সেশন", icon: BookOpen },
-    { href: "/admin/instructors", label: "ইনস্ট্রাক্টর প্যানেল", icon: GraduationCap },
+    { href: "/admin/instructors", label: "ইনস্ট্রাক্টর", icon: GraduationCap },
     { href: "/admin/evaluations", label: "মূল্যায়ন ও ফলাফল", icon: Award },
+    { href: "/admin/users", label: "অ্যাডমিন ইউজার", icon: ShieldCheck },
     { href: "/admin/settings", label: "সিস্টেম সেটিংস", icon: Settings },
   ];
 
@@ -203,8 +204,9 @@ export default function AdminSidebar({ adminUser }) {
           </button>
 
           <div className="space-y-1 text-xs">
+            {/* Admins have no trainee (TOT) record, so link the public site instead of /dashboard. */}
             <Link
-              href="/dashboard"
+              href="/"
               target="_blank"
               className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors font-bold ${
                 isLight
@@ -212,7 +214,7 @@ export default function AdminSidebar({ adminUser }) {
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-900 font-medium"
               }`}
             >
-              <span>টিচার পোর্টাল</span>
+              <span>পাবলিক ওয়েবসাইট</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </Link>
             <Link

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireAuth, serverError } from "@/lib/api-auth";
+import { requireAuth, serverError, TRAINEE_ROLES } from "@/lib/api-auth";
 import { getTraineeEvaluations, getTraineeUser } from "@/service/trainee-service";
 
 /** The signed-in trainee's own evaluations (latest first). */
 export async function GET(request) {
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, TRAINEE_ROLES); // trainee (TOT) accounts only
   if (auth.error) return auth.error;
 
   try {

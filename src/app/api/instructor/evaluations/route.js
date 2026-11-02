@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { EvaluationModel, calculateGradeAndStatus } from "@/model/evaluation-model";
-import { UserModel } from "@/model/user-model";
+import { TotModel } from "@/model/tot-model";
 import { ParticipantModel } from "@/model/participant-model";
 import { requireAuth, INSTRUCTOR_ROLES, isAdminRole, serverError } from "@/lib/api-auth";
-import { TRAINEE_ROLE_LIST, courseIdForTrack, isObjectId, trackFilter } from "@/lib/query-helpers";
+import { courseIdForTrack, isObjectId, trackFilter } from "@/lib/query-helpers";
 
 const SCORE_KEYS = ["makhrajTajweed", "childPsychologyPedagogy", "digitalClassroomTools", "microTeachingDemo"];
 const clampScore = (v) => Math.min(Math.max(Math.round(Number(v) || 0), 0), 25);
@@ -53,7 +53,7 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: "ট্রেইনি নির্বাচন আবশ্যক।" }, { status: 400 });
     }
 
-    const trainee = await UserModel.findOne({ _id: traineeId, role: { $in: TRAINEE_ROLE_LIST } })
+    const trainee = await TotModel.findById(traineeId)
       .select("fullName email phone track")
       .lean();
     if (!trainee) {

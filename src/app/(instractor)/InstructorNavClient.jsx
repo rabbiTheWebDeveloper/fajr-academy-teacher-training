@@ -170,11 +170,11 @@ export default function InstructorNavClient({ userName = "", badgeText = "" }) {
             {/* Bottom Actions in Drawer */}
             <div className="pt-6 border-t border-slate-800 space-y-3">
               <Link
-                href="/dashboard"
+                href="/"
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full py-2.5 px-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-semibold flex items-center justify-center gap-2"
               >
-                শিক্ষক / স্টুডেন্ট ভিউ <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                পাবলিক ওয়েবসাইট <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
               </Link>
               {(userName || badgeText) && (
                 <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 text-center">

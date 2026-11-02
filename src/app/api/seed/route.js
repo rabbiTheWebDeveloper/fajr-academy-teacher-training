@@ -1,24 +1,27 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
-import { UserModel } from "@/model/user-model";
 import { PaymentModel } from "@/model/payment-model";
 import { enrollUserInCourse } from "@/service/participant-service";
+import { findAccountByEmail, modelForType } from "@/service/account-service";
 import { requireAuth, ADMIN_ROLES } from "@/lib/api-auth";
+import { generatePassword } from "@/lib/password";
+import { homeForRole } from "@/lib/roles";
 
 /**
- * Demo-account seeder.
- * - Development: open (handy for a fresh local DB).
- * - Production: admin-only, POST only — it used to be a public GET that reset the
- *   admin password to a value published in the source code.
- * Existing accounts are never overwritten, so it can't reset anyone's password.
+ * Demo-account seeder — one account per collection type:
+ *   users (admin) · instructors · tots (paid trainees, with payment + enrolment).
+ * - Development: GET or POST, demo passwords from the list below.
+ * - Production: POST by an admin only, and every new account gets a RANDOM password that
+ *   is returned once in this response (the demo passwords are public in the source).
+ * Existing accounts (in any collection) are never touched.
  */
 const isProd = process.env.NODE_ENV === "production";
 
-export async function GET(request) {
+export async function GET() {
   if (isProd) {
     return NextResponse.json({ success: false, message: "Not available." }, { status: 404 });
   }
-  return handleSeed(request);
+  return handleSeed();
 }
 
 export async function POST(request) {
@@ -26,155 +29,159 @@ export async function POST(request) {
     const auth = await requireAuth(request, ADMIN_ROLES);
     if (auth.error) return auth.error;
   }
-  return handleSeed(request);
+  return handleSeed();
 }
+
+const SEED_ACCOUNTS = [
+  {
+    type: "admin",
+    demoPassword: "Fajr@Admin2026",
+    data: {
+      fullName: "Maulana Farabi Chowdhury",
+      email: "admin@fajracademy.io",
+      phone: "01410764581",
+      role: "admin",
+      designation: "Founder & Lead Administrator",
+    },
+  },
+  {
+    type: "instructor",
+    demoPassword: "Fajr@Instructor2026",
+    data: {
+      fullName: "Shaykh Abdullah Al-Mahmud",
+      email: "instructor.men@fajracademy.io",
+      phone: "01711223344",
+      role: "instructor",
+      track: "TOT-MEN",
+      gender: "male",
+      designation: "Senior Master Trainer (Men Track)",
+      experienceYears: 8,
+      rating: 4.9,
+    },
+  },
+  {
+    type: "instructor",
+    demoPassword: "Fajr@Instructor2026",
+    data: {
+      fullName: "Ustadha Farhana Chowdhury",
+      email: "instructor.women@fajracademy.io",
+      phone: "01811223344",
+      role: "instructor",
+      track: "TOT-WOMEN-014",
+      gender: "female",
+      designation: "Lead Trainer (Women Batch 014)",
+      experienceYears: 6,
+      rating: 4.8,
+    },
+  },
+  {
+    type: "tot",
+    demoPassword: "Fajr@Teacher2026",
+    tranId: "TOT-PAID-MEN-001",
+    data: {
+      fullName: "Hafiz Tariqul Islam",
+      email: "teacher.men@fajracademy.io",
+      phone: "01911223344",
+      role: "teacher",
+      track: "TOT-MEN",
+      gender: "male",
+    },
+  },
+  {
+    type: "tot",
+    demoPassword: "Fajr@Teacher2026",
+    tranId: "TOT-PAID-WOMEN-014",
+    data: {
+      fullName: "Nusrat Jahan",
+      email: "teacher.women@fajracademy.io",
+      phone: "01611223344",
+      role: "teacher",
+      track: "TOT-WOMEN-014",
+      gender: "female",
+    },
+  },
+];
 
 async function handleSeed() {
   try {
     await dbConnect();
-
-    const seedUsers = [
-      {
-        fullName: "Maulana Farabi Chowdhury",
-        email: "admin@fajracademy.io",
-        phone: "01410764581",
-        password: "Fajr@Admin2026",
-        role: "admin",
-        track: "TOT-MEN",
-        gender: "male",
-        designation: "Founder & Lead Administrator",
-        paymentStatus: "paid",
-        paidAmount: 1000,
-        tranId: "ADM-SEED-001",
-        isActive: true,
-      },
-      {
-        fullName: "Shaykh Abdullah Al-Mahmud",
-        email: "instructor.men@fajracademy.io",
-        phone: "01711223344",
-        password: "Fajr@Instructor2026",
-        role: "instructor",
-        track: "TOT-MEN",
-        gender: "male",
-        designation: "Senior Master Trainer (Men Track)",
-        paymentStatus: "paid",
-        paidAmount: 1000,
-        tranId: "INST-MEN-001",
-        isActive: true,
-      },
-      {
-        fullName: "Ustadha Farhana Chowdhury",
-        email: "instructor.women@fajracademy.io",
-        phone: "01811223344",
-        password: "Fajr@Instructor2026",
-        role: "instructor",
-        track: "TOT-WOMEN-014",
-        gender: "female",
-        designation: "Lead Trainer (Women Batch 014)",
-        paymentStatus: "paid",
-        paidAmount: 1000,
-        tranId: "INST-WOMEN-014",
-        isActive: true,
-      },
-      {
-        fullName: "Hafiz Tariqul Islam",
-        email: "teacher.men@fajracademy.io",
-        phone: "01911223344",
-        password: "Fajr@Teacher2026",
-        role: "teacher",
-        track: "TOT-MEN",
-        gender: "male",
-        designation: "TOT Trainee Teacher",
-        paymentStatus: "paid",
-        paidAmount: 1000,
-        tranId: "TOT-PAID-MEN-001",
-        isActive: true,
-      },
-      {
-        fullName: "Nusrat Jahan",
-        email: "teacher.women@fajracademy.io",
-        phone: "01611223344",
-        password: "Fajr@Teacher2026",
-        role: "teacher",
-        track: "TOT-WOMEN-014",
-        gender: "female",
-        designation: "TOT Trainee Teacher",
-        paymentStatus: "paid",
-        paidAmount: 1000,
-        tranId: "TOT-PAID-WOMEN-014",
-        isActive: true,
-      },
-    ];
-
     const results = [];
 
-    for (const u of seedUsers) {
-      // Create only if missing — never overwrite a real account's password or data.
-      const existing = await UserModel.findOne({ email: u.email });
-      const user = existing || (await UserModel.create(u));
-      const created = !existing;
+    for (const seed of SEED_ACCOUNTS) {
+      const { email } = seed.data;
+      const existing = await findAccountByEmail(email);
+      if (existing) {
+        results.push({ name: existing.account.fullName, email, type: existing.type, role: existing.account.role, status: "already-exists" });
+        continue;
+      }
 
-      // Create verified payment records for teachers
-      await PaymentModel.findOneAndUpdate(
-        { tranId: u.tranId },
-        {
-          tranId: u.tranId,
-          userEmail: u.email,
-          userName: u.fullName,
-          userPhone: u.phone,
-          track: u.track,
-          amount: u.paidAmount || 1000,
-          status: "VALID",
-          cardType: "SEED_VERIFIED",
-          paymentGateway: "sslcommerz",
-        },
-        { upsert: true, new: true }
-      );
+      const password = isProd ? generatePassword() : seed.demoPassword;
+      const Model = modelForType(seed.type);
+      const isTrainee = seed.type === "tot";
+      const account = await Model.create({
+        ...seed.data,
+        password,
+        isActive: true,
+        ...(isTrainee ? { paymentStatus: "paid", paidAmount: 1000, tranId: seed.tranId, enrolledAt: new Date() } : {}),
+      });
 
-      // If user is a trainee teacher or participant, auto-enroll in their course
-      if (u.role === "teacher" || u.role === "participant") {
+      // Trainees get a verified payment record and an active enrolment, like a real purchase.
+      if (isTrainee) {
+        await PaymentModel.updateOne(
+          { tranId: seed.tranId },
+          {
+            $setOnInsert: {
+              tranId: seed.tranId,
+              user: account._id,
+              userEmail: email,
+              userName: account.fullName,
+              userPhone: account.phone,
+              track: account.track,
+              courseId: account.track,
+              amount: 1000,
+              status: "VALID",
+              purpose: "manual",
+              cardType: "SEED_VERIFIED",
+              paymentMethod: "SEED",
+              paymentGateway: "seed",
+              finalizedAt: new Date(),
+              verifiedBy: "seed",
+            },
+          },
+          { upsert: true }
+        );
         try {
           await enrollUserInCourse({
-            userId: user._id,
-            userEmail: user.email,
-            courseId: u.track,
-            tranId: u.tranId,
-            amount: u.paidAmount || 1000,
+            userId: account._id,
+            courseId: account.track,
+            tranId: seed.tranId,
+            amount: 1000,
             paymentStatus: "paid",
             status: "active",
           });
         } catch (e) {
-          console.warn("Seed participant enroll warning:", e.message);
+          console.warn("Seed enrolment warning:", e.message);
         }
       }
 
       results.push({
-        name: user.fullName,
-        email: user.email,
-        // Plain-text demo password is only echoed for accounts this call just created, outside production.
-        password: created && !isProd ? u.password : undefined,
-        status: created ? "created" : "already-exists",
-        role: user.role,
-        track: user.track,
-        loginPortal:
-          user.role === "admin"
-            ? "/admin"
-            : user.role === "instructor"
-            ? "/instructor"
-            : "/dashboard",
+        name: account.fullName,
+        email,
+        password, // shown once, only for accounts this call created
+        type: seed.type,
+        role: account.role,
+        status: "created",
+        loginPortal: homeForRole(account.role),
       });
     }
 
     return NextResponse.json({
       success: true,
-      message: "সকল সিড ইউজার সফলভাবে ডাটাবেজে তৈরি ও আপডেট হয়েছে!",
+      message: "সিড অ্যাকাউন্ট তৈরি সম্পন্ন — অ্যাডমিন (users), ইনস্ট্রাক্টর (instructors) ও ট্রেইনি (tots) আলাদা কালেকশনে।",
       accounts: results,
     });
   } catch (error) {
     console.error("Seed execution error:", error);
-    return NextResponse.json(
-      { success: false, message: "সিড তৈরিতে সমস্যা হয়েছে: " + error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: "সিড তৈরিতে সমস্যা হয়েছে।" }, { status: 500 });
   }
 }

@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
-import { UserModel } from "@/model/user-model";
+import { TotModel } from "@/model/tot-model";
 import { PaymentModel } from "@/model/payment-model";
 import { SettingModel } from "@/model/setting-model";
 import { initSSLCommerzPayment, isGatewayConfigured } from "@/lib/sslcommerz";
 import { hashPassword, MIN_PASSWORD_LENGTH } from "@/lib/password";
 import { REGISTRABLE_TRACKS, getPriceForTrack } from "@/service/course-service";
 import { newTranId } from "@/service/payment-service";
-import { phoneVariants } from "@/queries/auth-queries";
+import { phoneVariants } from "@/lib/phone";
+import { emailInUse, emailTakenMessage, phoneInUse, phoneTakenMessage } from "@/service/account-service";
 import { rateLimit } from "@/lib/rate-limit";
 
 /**
@@ -61,20 +62,20 @@ export async function POST(request) {
     }
 
     // Duplicate account / payment checks.
-    const existing = await UserModel.findOne({ email }).select("paymentStatus role").lean();
+    // An admin / instructor e-mail can never become a trainee account.
+    const staffType = await emailInUse(email);
+    if (staffType && staffType !== "tot") return bad(emailTakenMessage(staffType), 409, { staffEmail: true });
+    const existing = await TotModel.findOne({ email }).select("_id paymentStatus").lean();
     const verifiedPayment = await PaymentModel.exists({ userEmail: email, status: "VALID" });
-    if (
-      verifiedPayment ||
-      (existing && (["paid", "free"].includes(existing.paymentStatus) || ["admin", "super-admin", "instructor"].includes(existing.role)))
-    ) {
+    if (verifiedPayment || (existing && ["paid", "free"].includes(existing.paymentStatus))) {
       return bad(
         "এই ইমেইল দিয়ে ইতোমধ্যে একটি সক্রিয় অ্যাকাউন্ট রয়েছে। অনুগ্রহ করে লগইন করুন — লগইনের পর ড্যাশবোর্ড থেকে অন্য কোর্সও কিনতে পারবেন।",
         409,
         { alreadyPaid: true }
       );
     }
-    const phoneOwner = await UserModel.findOne({ phone: { $in: phones }, email: { $ne: email } }).select("_id").lean();
-    if (phoneOwner) return bad("এই মোবাইল নম্বরটি অন্য একটি অ্যাকাউন্টে ব্যবহৃত হচ্ছে।", 409);
+    const phoneOwner = await phoneInUse(phone, existing ? { exceptId: existing._id } : {});
+    if (phoneOwner) return bad(phoneTakenMessage(phoneOwner), 409);
 
     const tranId = newTranId("TOT");
     const payment = await PaymentModel.create({

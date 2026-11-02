@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
-import { UserModel } from "@/model/user-model";
+import { TotModel } from "@/model/tot-model";
 import { PaymentModel } from "@/model/payment-model";
 import { ParticipantModel } from "@/model/participant-model";
 import { CourseModel } from "@/model/course-model";
-import { requireAuth } from "@/lib/api-auth";
+import { requireAuth, TRAINEE_ROLES } from "@/lib/api-auth";
 import { verifyPassword } from "@/lib/password";
 import { initSSLCommerzPayment, isGatewayConfigured } from "@/lib/sslcommerz";
 import { courseIdForUserTrack, ensureDefaultCourses } from "@/service/course-service";
@@ -33,21 +33,21 @@ export async function POST(request) {
     await dbConnect();
 
     // Resolve the paying account.
+    // Only trainee (TOT) accounts buy courses — admins / instructors are refused.
     let user = null;
     const auth = await requireAuth(request);
     if (!auth.error) {
-      user = await UserModel.findById(auth.session.id).lean();
+      if (!TRAINEE_ROLES.includes(auth.session.role)) return bad("স্টাফ অ্যাকাউন্ট দিয়ে কোর্স কেনা যায় না।", 403);
+      user = await TotModel.findById(auth.session.id).lean();
     } else {
       const found = await findUserByIdentifier(body.identifier);
       if (!found || !(await verifyPassword(String(body.password || "").trim(), found.password))) {
         return bad("ইমেইল/মোবাইল বা পাসওয়ার্ড সঠিক নয়।", 401);
       }
+      if (found.accountType !== "tot") return bad("স্টাফ অ্যাকাউন্ট দিয়ে কোর্স কেনা যায় না।", 403);
       user = found;
     }
     if (!user || user.isActive === false) return bad("অ্যাকাউন্টটি পাওয়া যায়নি বা নিষ্ক্রিয়।", 403);
-    if (["admin", "super-admin", "instructor"].includes(user.role)) {
-      return bad("স্টাফ অ্যাকাউন্ট দিয়ে কোর্স কেনা যায় না।", 403);
-    }
 
     // Resolve the course.
     await ensureDefaultCourses();

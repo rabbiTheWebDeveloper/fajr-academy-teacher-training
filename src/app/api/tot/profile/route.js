@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
-import { UserModel } from "@/model/user-model";
+import { TotModel } from "@/model/tot-model";
 import { requireAuth, serverError } from "@/lib/api-auth";
 import { getTraineeEvaluations, getTraineeUser, USER_SAFE_FIELDS } from "@/service/trainee-service";
-import { phoneVariants } from "@/queries/auth-queries";
+import { phoneVariants } from "@/lib/phone";
+import { TRAINEE_ROLES } from "@/lib/roles";
+import { phoneInUse, phoneTakenMessage } from "@/service/account-service";
 
-/** The signed-in user's own profile. Client-supplied email/tran_id are ignored. */
+/** The signed-in trainee's own profile (TotModel). Client-supplied email/tran_id are ignored. */
 export async function GET(request) {
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, TRAINEE_ROLES);
   if (auth.error) return auth.error;
 
   try {
@@ -25,7 +27,7 @@ const ENGLISH_SKILLS = ["basic", "good", "fluent"];
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", ""];
 
 export async function PATCH(request) {
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, TRAINEE_ROLES);
   if (auth.error) return auth.error;
 
   try {
@@ -38,8 +40,8 @@ export async function PATCH(request) {
       if (!phone || !/^01[3-9]\d{8}$/.test(phone)) {
         return NextResponse.json({ success: false, message: "সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন।" }, { status: 400 });
       }
-      const taken = await UserModel.exists({ phone: { $in: phoneVariants(phone) }, _id: { $ne: auth.session.id } });
-      if (taken) return NextResponse.json({ success: false, message: "এই মোবাইল নম্বরটি অন্য অ্যাকাউন্টে ব্যবহৃত হচ্ছে।" }, { status: 409 });
+      const taken = await phoneInUse(phone, { exceptId: auth.session.id });
+      if (taken) return NextResponse.json({ success: false, message: phoneTakenMessage(taken) }, { status: 409 });
       update.phone = phone;
     }
     if (body.emergencyContactNumber !== undefined) update.emergencyContactNumber = String(body.emergencyContactNumber).trim().slice(0, 20);
@@ -66,7 +68,7 @@ export async function PATCH(request) {
       return NextResponse.json({ success: false, message: "পরিবর্তনের মতো কোনো তথ্য পাওয়া যায়নি।" }, { status: 400 });
     }
 
-    const updated = await UserModel.findByIdAndUpdate(auth.session.id, { $set: update }, { returnDocument: "after", runValidators: true })
+    const updated = await TotModel.findByIdAndUpdate(auth.session.id, { $set: update }, { returnDocument: "after", runValidators: true })
       .select(USER_SAFE_FIELDS)
       .lean();
     if (!updated) return NextResponse.json({ success: false, message: "প্রোফাইল পাওয়া যায়নি।" }, { status: 404 });

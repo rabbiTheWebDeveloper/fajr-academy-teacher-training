@@ -197,15 +197,17 @@ export function GeneratedPasswordBox({ password, email, isLight, onDone }) {
 
 /* ---------------------------- formatting helpers ---------------------------- */
 
-export const ROLE_OPTIONS = [
+/** Roles of TOT trainee accounts (TotModel — Admin → TOT ট্রেইনি). */
+export const TOT_ROLE_OPTIONS = [
   { value: "teacher", label: "Teacher (ট্রেইনি শিক্ষক)" },
   { value: "student", label: "Student (শিক্ষার্থী)" },
   { value: "participant", label: "Participant (অংশগ্রহণকারী)" },
-  { value: "instructor", label: "Instructor (ট্রেইনার)" },
+];
+
+/** Roles of admin accounts (UserModel — Admin → অ্যাডমিন ইউজার). */
+export const ADMIN_ROLE_OPTIONS = [
   { value: "admin", label: "Admin (অ্যাডমিন)" },
   { value: "super-admin", label: "Super Admin (সুপার অ্যাডমিন)" },
-  { value: "staff", label: "Staff (স্টাফ)" },
-  { value: "organizer", label: "Organizer (অর্গানাইজার)" },
 ];
 
 export const TRAINEE_ROLES = ["teacher", "student", "participant"];

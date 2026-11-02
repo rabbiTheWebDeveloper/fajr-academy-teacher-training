@@ -83,9 +83,10 @@ const paymentSchema = new Schema(
       default: "",
       index: true,
     },
+    // The trainee account this payment belongs to (TotModel, collection "tots").
     user: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Tot",
       default: null,
       index: true,
     },

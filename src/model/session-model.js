@@ -2,11 +2,16 @@ import mongoose, { Schema } from "mongoose";
 
 const sessionSchema = new Schema(
   {
+    // Id in the collection named by accountType (users / instructors / tots).
     userId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
       required: true,
       index: true,
+    },
+    accountType: {
+      type: String,
+      enum: ["admin", "instructor", "tot"],
+      default: "tot",
     },
     userEmail: {
       type: String,

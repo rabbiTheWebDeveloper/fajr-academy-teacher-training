@@ -2,9 +2,10 @@ import mongoose, { Schema } from "mongoose";
 
 const participantSchema = new Schema(
   {
+    // The trainee account (TotModel, collection "tots").
     user: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Tot",
       required: true,
       index: true,
     },

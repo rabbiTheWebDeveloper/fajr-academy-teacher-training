@@ -1,7 +1,7 @@
 import { dbConnect } from '@/service/mongo'
 import { CourseModel, DEFAULT_TOT_CURRICULUM } from '@/model/course-model'
 import { SettingModel } from '@/model/setting-model'
-import { UserModel } from '@/model/user-model'
+import { InstructorModel } from '@/model/instructor-model'
 import { DEFAULT_INSTRUCTORS } from '@/constant/instructor-defaults'
 
 /* ------------------------------------------------------------------ */
@@ -43,7 +43,7 @@ export async function getMainPageData() {
       // Class links and resources are for enrolled trainees only.
       CourseModel.find({ isPublished: true }).select("-meetLink -whatsappLink -resources").sort({ createdAt: 1 }).lean(),
       SettingModel.findOne({ key: 'system_settings' }).lean(),
-      UserModel.find({ role: { $in: ['instructor', 'admin'] }, isActive: { $ne: false } })
+      InstructorModel.find({ isActive: { $ne: false } })
         .sort({ rating: -1, experienceYears: -1 })
         .select('fullName designation specialization bio experienceYears rating avatar')
         .limit(6)

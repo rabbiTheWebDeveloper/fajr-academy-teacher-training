@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireAuth, serverError } from "@/lib/api-auth";
+import { requireAuth, serverError, TRAINEE_ROLES } from "@/lib/api-auth";
 import { classView, getEnrolledCourses, getTraineeNotices, getTraineeUser, isPaidUser } from "@/service/trainee-service";
 
 /** Schedule, class links (paid only) and notices for the signed-in trainee's courses. */
 export async function GET(request) {
-  const auth = await requireAuth(request);
+  const auth = await requireAuth(request, TRAINEE_ROLES); // trainee (TOT) accounts only
   if (auth.error) return auth.error;
 
   try {

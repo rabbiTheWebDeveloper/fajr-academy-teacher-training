@@ -7,7 +7,7 @@ import { BASE_URL } from '@/constant'
 import { dbConnect } from '@/service/mongo'
 import { CourseModel, DEFAULT_TOT_CURRICULUM } from '@/model/course-model'
 import { SettingModel } from '@/model/setting-model'
-import { UserModel } from '@/model/user-model'
+import { InstructorModel } from '@/model/instructor-model'
 import { DEFAULT_INSTRUCTORS } from '@/constant/instructor-defaults'
 import { toBengaliNumber } from '@/lib/utils'
 import { publicSettings } from '@/lib/public-settings'
@@ -75,7 +75,7 @@ export default async function TeacherRegistrationMarketingPage() {
       // Class links and resources are for enrolled trainees only.
       CourseModel.find({ isPublished: true }).select("-meetLink -whatsappLink -resources").sort({ createdAt: 1 }).lean(),
       SettingModel.findOne({ key: 'system_settings' }).lean(),
-      UserModel.find({ role: { $in: ['instructor', 'admin'] }, isActive: { $ne: false } })
+      InstructorModel.find({ isActive: { $ne: false } })
         .sort({ rating: -1, experienceYears: -1 })
         .select('fullName designation specialization bio experienceYears rating gender avatar track')
         .limit(6)
@@ -157,7 +157,7 @@ export default async function TeacherRegistrationMarketingPage() {
     ],
   }
 
-  // Active Instructors Roster (Live from UserModel or Fallback)
+  // Active Instructors Roster (Live from InstructorModel or Fallback)
   const activeInstructors =
     instructorsData && instructorsData.length > 0
       ? JSON.parse(JSON.stringify(instructorsData))

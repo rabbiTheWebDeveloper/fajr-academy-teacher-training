@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { ParticipantModel } from "@/model/participant-model";
+import "@/model/tot-model"; // registers "Tot" for populate("user")
 import { CourseModel } from "@/model/course-model";
 import { enrollUserInCourse } from "@/service/participant-service";
 import { requireAuth, ADMIN_ROLES } from "@/lib/api-auth";

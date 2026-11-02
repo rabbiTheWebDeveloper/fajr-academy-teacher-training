@@ -1,9 +1,8 @@
 import { dbConnect } from "@/service/mongo";
-import { UserModel } from "@/model/user-model";
+import { TotModel } from "@/model/tot-model";
 import { CourseModel } from "@/model/course-model";
 import { EvaluationModel } from "@/model/evaluation-model";
 import { NoticeModel } from "@/model/notice-model";
-import { TRAINEE_ROLE_LIST } from "@/lib/query-helpers";
 
 /**
  * Instructor dashboard numbers, all computed from the database.
@@ -11,14 +10,13 @@ import { TRAINEE_ROLE_LIST } from "@/lib/query-helpers";
  */
 export async function getInstructorStats() {
   await dbConnect();
-  const trainee = { role: { $in: TRAINEE_ROLE_LIST } };
 
   const [totalTrainees, menCount, womenCount, paidCount, pendingCount, evalAgg, courses, noticesCount] = await Promise.all([
-    UserModel.countDocuments(trainee),
-    UserModel.countDocuments({ ...trainee, track: "TOT-MEN" }),
-    UserModel.countDocuments({ ...trainee, track: { $regex: /WOMEN/i } }),
-    UserModel.countDocuments({ ...trainee, paymentStatus: { $in: ["paid", "free"] } }),
-    UserModel.countDocuments({ ...trainee, paymentStatus: { $in: ["pending", "failed"] } }),
+    TotModel.countDocuments({}),
+    TotModel.countDocuments({ track: "TOT-MEN" }),
+    TotModel.countDocuments({ track: { $regex: /WOMEN/i } }),
+    TotModel.countDocuments({ paymentStatus: { $in: ["paid", "free"] } }),
+    TotModel.countDocuments({ paymentStatus: { $in: ["pending", "failed"] } }),
     EvaluationModel.aggregate([
       {
         $group: {

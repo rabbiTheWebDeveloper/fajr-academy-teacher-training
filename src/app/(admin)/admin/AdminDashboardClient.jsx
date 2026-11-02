@@ -244,10 +244,10 @@ export default function AdminDashboardClient({ stats, loadError }) {
             <GraduationCap className="w-4 h-4" /> ইনস্ট্রাক্টর
           </Link>
           <Link
-            href="/admin/users"
+            href="/admin/tots"
             className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all"
           >
-            <Users className="w-4 h-4" /> ইউজার
+            <Users className="w-4 h-4" /> TOT ট্রেইনি
           </Link>
           <Link
             href="/admin/payments"
@@ -478,7 +478,7 @@ export default function AdminDashboardClient({ stats, loadError }) {
               <p className={`text-xs mt-0.5 ${isLight ? "text-slate-500 font-medium" : "text-slate-400"}`}>TOT কোর্স শিক্ষার্থী তালিকা</p>
             </div>
             <Link
-              href="/admin/users"
+              href="/admin/tots"
               className={`text-xs font-bold flex items-center gap-1 ${isLight ? "text-blue-700 hover:text-blue-800" : "text-blue-400 hover:text-blue-300"}`}
             >
               সব দেখুন <ChevronRight className="w-3.5 h-3.5" />

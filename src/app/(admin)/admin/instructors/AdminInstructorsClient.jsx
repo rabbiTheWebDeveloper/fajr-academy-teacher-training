@@ -19,6 +19,7 @@ import {
   Camera,
   RefreshCw,
   Power,
+  KeyRound,
 } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
 import CloudinaryImageUpload from "@/components/CloudinaryImageUpload";
@@ -77,6 +78,7 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
   const [busyId, setBusyId] = useState(null);
   const [addError, setAddError] = useState("");
   const [addResult, setAddResult] = useState(null); // { email, password }
+  const [resetInfo, setResetInfo] = useState(null); // { name, email, password } shown once
   const { isLight } = useAdminTheme();
   const { toast, showToast, hideToast } = useToast();
 
@@ -182,6 +184,24 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
     }
     if (data.instructor) replaceInstructor(data.instructor);
     showToast(next ? "ইনস্ট্রাক্টর অ্যাকাউন্ট সক্রিয় করা হয়েছে।" : "ইনস্ট্রাক্টর অ্যাকাউন্ট নিষ্ক্রিয় করা হয়েছে।");
+  };
+
+  // New password for an instructor (shown once)
+  const handleResetPassword = async (inst) => {
+    if (!window.confirm(`"${inst.fullName}"-এর জন্য নতুন পাসওয়ার্ড তৈরি করবেন?\n\nপুরনো পাসওয়ার্ড আর কাজ করবে না।`)) return;
+    setBusyId(inst._id);
+    const { ok, data, message } = await callApi("/api/admin/instructors", {
+      method: "PATCH",
+      body: { instructorId: inst._id, resetPassword: true },
+    });
+    setBusyId(null);
+    if (!ok) {
+      showToast(message, "error");
+      return;
+    }
+    if (data.instructor) replaceInstructor(data.instructor);
+    if (data.generatedPassword) setResetInfo({ name: inst.fullName, email: inst.email, password: data.generatedPassword });
+    showToast("নতুন পাসওয়ার্ড তৈরি হয়েছে।");
   };
 
   // Delete Instructor
@@ -449,6 +469,18 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
                     title="এডিট করুন"
                   >
                     <Edit className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleResetPassword(inst)}
+                    disabled={busy}
+                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer disabled:opacity-50 ${
+                      isLight ? "bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-700" : "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-400"
+                    }`}
+                    title="নতুন পাসওয়ার্ড তৈরি করুন"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
                   </button>
 
                   <button
@@ -954,6 +986,20 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* One-time display of an admin-reset password */}
+      {resetInfo && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div
+            className={`border rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 ${
+              isLight ? "bg-white border-slate-200 text-slate-900" : "bg-slate-900 border-slate-800 text-white"
+            }`}
+          >
+            <h3 className="text-base font-bold">নতুন পাসওয়ার্ড — {resetInfo.name}</h3>
+            <GeneratedPasswordBox password={resetInfo.password} email={resetInfo.email} isLight={isLight} onDone={() => setResetInfo(null)} />
           </div>
         </div>
       )}

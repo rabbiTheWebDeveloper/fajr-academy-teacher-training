@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
+import { ADMIN_ROLES, INSTRUCTOR_ROLES, TRAINEE_ROLES, accountTypeForRole, homeForRole } from "@/lib/roles";
 
 /**
  * Next 16 Proxy (formerly middleware.js): first line of defence for every panel.
@@ -7,28 +8,22 @@ import { verifyToken } from "@/lib/auth";
  * is about fast redirects for pages and early 401/403s for APIs.
  */
 
-const ADMIN = ["admin", "super-admin"];
-const INSTRUCTOR = ["instructor", ...ADMIN];
-
-// Trainee ("TOT") panel pages — any signed-in account may open them.
-const TRAINEE_PAGES = ["/dashboard", "/classes", "/materials", "/payments", "/results", "/id-card"];
+// Trainee ("TOT") panel pages — trainee accounts only (admins / instructors have their own
+// panels and no TOT record). /id-card is also open to staff, to view a trainee's card.
+const TRAINEE_PAGES = ["/dashboard", "/classes", "/materials", "/payments", "/results"];
+const SHARED_PAGES = ["/id-card"];
 
 const startsWithAny = (pathname, prefixes) =>
   prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
-function homeFor(role) {
-  if (ADMIN.includes(role)) return "/admin";
-  if (role === "instructor") return "/instructor";
-  return "/dashboard";
-}
-
 function rule(pathname) {
-  if (startsWithAny(pathname, ["/api/admin"])) return { api: true, roles: ADMIN };
-  if (startsWithAny(pathname, ["/api/instructor"])) return { api: true, roles: INSTRUCTOR };
-  if (startsWithAny(pathname, ["/api/tot"])) return { api: true, roles: null };
-  if (startsWithAny(pathname, ["/admin"])) return { api: false, roles: ADMIN };
-  if (startsWithAny(pathname, ["/instructor"])) return { api: false, roles: INSTRUCTOR };
-  if (startsWithAny(pathname, TRAINEE_PAGES)) return { api: false, roles: null };
+  if (startsWithAny(pathname, ["/api/admin"])) return { api: true, roles: ADMIN_ROLES };
+  if (startsWithAny(pathname, ["/api/instructor"])) return { api: true, roles: INSTRUCTOR_ROLES };
+  if (startsWithAny(pathname, ["/api/tot"])) return { api: true, roles: TRAINEE_ROLES };
+  if (startsWithAny(pathname, ["/admin"])) return { api: false, roles: ADMIN_ROLES };
+  if (startsWithAny(pathname, ["/instructor"])) return { api: false, roles: INSTRUCTOR_ROLES };
+  if (startsWithAny(pathname, TRAINEE_PAGES)) return { api: false, roles: TRAINEE_ROLES, quiet: true };
+  if (startsWithAny(pathname, SHARED_PAGES)) return { api: false, roles: null };
   return null;
 }
 
@@ -38,9 +33,11 @@ export async function proxy(request) {
   if (!r) return NextResponse.next();
 
   const token = request.cookies.get("auth_token")?.value;
-  const payload = token ? await verifyToken(token) : null;
+  const verified = token ? await verifyToken(token) : null;
+  // A token whose role has no panel (e.g. an old "staff" account) counts as signed out.
+  const payload = verified?.id && accountTypeForRole(verified.role) ? verified : null;
 
-  if (!payload?.id) {
+  if (!payload) {
     if (r.api) {
       const res = NextResponse.json(
         { success: false, message: "অনুগ্রহ করে লগইন করুন। আপনার সেশন পাওয়া যায়নি বা মেয়াদ শেষ হয়ে গেছে।" },
@@ -64,8 +61,9 @@ export async function proxy(request) {
         { status: 403 }
       );
     }
-    const home = new URL(homeFor(payload.role), request.url);
-    home.searchParams.set("error", "no_access");
+    // Staff opening a trainee page simply land on their own panel (no error banner).
+    const home = new URL(homeForRole(payload.role), request.url);
+    if (!r.quiet) home.searchParams.set("error", "no_access");
     return NextResponse.redirect(home);
   }
 

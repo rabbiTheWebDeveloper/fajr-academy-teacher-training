@@ -1,6 +1,6 @@
 import { dbConnect } from "@/service/mongo";
 import { ParticipantModel } from "@/model/participant-model";
-import { UserModel } from "@/model/user-model";
+import { TotModel } from "@/model/tot-model";
 import { CourseModel } from "@/model/course-model";
 import { PaymentModel } from "@/model/payment-model";
 
@@ -23,13 +23,13 @@ export async function enrollUserInCourse({
 }) {
   await dbConnect();
 
-  // 1. Locate User
+  // 1. Locate the trainee account (only TOT accounts are enrolled in courses)
   let user = null;
   if (userId) {
-    user = await UserModel.findById(userId);
+    user = await TotModel.findById(userId);
   }
   if (!user && userEmail) {
-    user = await UserModel.findOne({ email: userEmail.toLowerCase().trim() });
+    user = await TotModel.findOne({ email: userEmail.toLowerCase().trim() });
   }
 
   if (!user) {

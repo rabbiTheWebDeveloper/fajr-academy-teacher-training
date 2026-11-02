@@ -84,10 +84,10 @@ export default async function InstructorLayout({ children }) {
             )}
 
             <Link
-              href="/dashboard"
+              href="/"
               className="text-xs font-medium text-slate-400 hover:text-white transition-colors bg-slate-900/90 border border-slate-800 hover:border-slate-700 px-3 py-1.5 rounded-full"
             >
-              টিচার ভিউ →
+              ওয়েবসাইট →
             </Link>
           </div>
         </div>

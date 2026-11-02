@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
-import { UserModel } from "@/model/user-model";
+import { TotModel } from "@/model/tot-model";
 import { EvaluationModel } from "@/model/evaluation-model";
 import { requireAuth, INSTRUCTOR_ROLES, serverError } from "@/lib/api-auth";
+import { phoneVariants } from "@/lib/phone";
+import { phoneInUse, phoneTakenMessage } from "@/service/account-service";
 import {
-  TRAINEE_ROLE_LIST,
   isObjectId,
   pagination,
   pick,
@@ -41,7 +42,7 @@ export async function GET(request) {
     const { limit, page, skip } = pagination(searchParams, { defaultLimit: 50 });
     const paymentStatus = searchParams.get("paymentStatus") || "all";
 
-    const filters = [{ role: { $in: TRAINEE_ROLE_LIST } }];
+    const filters = [];
     const byTrack = trackFilter(searchParams.get("track"));
     if (byTrack) filters.push(byTrack);
     if (paymentStatus !== "all") filters.push({ paymentStatus });
@@ -53,11 +54,11 @@ export async function GET(request) {
       const evaluatedIds = await EvaluationModel.distinct("traineeId");
       filters.push({ _id: evaluated === "yes" ? { $in: evaluatedIds } : { $nin: evaluatedIds } });
     }
-    const query = { $and: filters };
+    const query = filters.length ? { $and: filters } : {};
 
     const [total, trainees] = await Promise.all([
-      UserModel.countDocuments(query),
-      UserModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).select(LIST_FIELDS).lean(),
+      TotModel.countDocuments(query),
+      TotModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).select(LIST_FIELDS).lean(),
     ]);
 
     const evaluations = await EvaluationModel.find({ traineeId: { $in: trainees.map((t) => t._id) } })
@@ -121,9 +122,17 @@ export async function PATCH(request) {
       return NextResponse.json({ success: false, message: "পরিবর্তনের মতো কোনো তথ্য পাওয়া যায়নি।" }, { status: 400 });
     }
 
-    // Only trainee accounts can be edited here — never instructors or admins.
-    const updated = await UserModel.findOneAndUpdate(
-      { _id: traineeId, role: { $in: TRAINEE_ROLE_LIST } },
+    if (updateFields.phone) {
+      const phone = phoneVariants(updateFields.phone)[0];
+      if (!phone) return NextResponse.json({ success: false, message: "মোবাইল নম্বরটি সঠিক নয়।" }, { status: 400 });
+      const owner = await phoneInUse(phone, { exceptId: traineeId });
+      if (owner) return NextResponse.json({ success: false, message: phoneTakenMessage(owner) }, { status: 409 });
+      updateFields.phone = phone;
+    }
+
+    // Trainee (TOT) accounts only — instructors and admins live in other collections.
+    const updated = await TotModel.findOneAndUpdate(
+      { _id: traineeId },
       { $set: updateFields },
       { returnDocument: "after", runValidators: true }
     )

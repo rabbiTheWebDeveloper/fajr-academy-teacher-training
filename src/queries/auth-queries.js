@@ -1,10 +1,16 @@
 import { dbConnect } from "@/service/mongo";
-import { UserModel } from "@/model/user-model";
+import { TotModel } from "@/model/tot-model";
 import { PaymentModel } from "@/model/payment-model";
 import { isHashedPassword, verifyPassword } from "@/lib/password";
+import { accountTypeForRole } from "@/lib/roles";
+import { convertBengaliToEnglishNumbers, phoneVariants } from "@/lib/phone";
+import { findAccount, modelForType } from "@/service/account-service";
+
+export { phoneVariants };
 
 /**
- * Login lookups.
+ * Login lookups across the three account collections:
+ *   users (admins) · instructors · tots (trainees).
  *
  * Removed on purpose (they were security holes):
  *  - shared "master" passwords that unlocked every account (incl. admin),
@@ -13,31 +19,26 @@ import { isHashedPassword, verifyPassword } from "@/lib/password";
  * Seed accounts now live only in the database (see /api/seed, dev-only).
  */
 
-function convertBengaliToEnglishNumbers(str) {
-  if (!str) return "";
-  const bnToEnMap = { "০": "0", "১": "1", "২": "2", "৩": "3", "৪": "4", "৫": "5", "৬": "6", "৭": "7", "৮": "8", "৯": "9" };
-  return str.replace(/[০-৯]/g, (w) => bnToEnMap[w] || w);
-}
-
-/** Every stored phone spelling for a Bangladeshi number: 01XXXXXXXXX, 8801…, +8801… */
-export function phoneVariants(input) {
-  const digits = convertBengaliToEnglishNumbers(String(input || "")).replace(/[^0-9]/g, "");
-  if (digits.length < 10) return [];
-  const local = `0${digits.replace(/^(88)?0?/, "")}`; // 01XXXXXXXXX
-  return [...new Set([local, `88${local}`, `+88${local}`, local.slice(1)])];
-}
-
-/** Find a user by email or phone number (case/format-insensitive). */
+/**
+ * Find an account by e-mail or phone (any collection), or by payment transaction ID
+ * (trainees only). Returns the lean document with `accountType` added, or null.
+ */
 export async function findUserByIdentifier(identifier) {
   if (!identifier) return null;
   const clean = convertBengaliToEnglishNumbers(identifier.toString().trim()).toLowerCase();
-  const phones = phoneVariants(clean);
+  if (!clean) return null;
 
-  await dbConnect();
-  const query = clean.includes("@")
-    ? { email: clean }
-    : { $or: [{ email: clean }, { tranId: clean.toUpperCase() }, ...phones.map((phone) => ({ phone }))] };
-  return UserModel.findOne(query).lean();
+  const phones = clean.includes("@") ? [] : phoneVariants(clean);
+  const filter = phones.length ? { $or: [{ email: clean }, { phone: { $in: phones } }] } : { email: clean };
+  const found = await findAccount(filter);
+  if (found) return { ...found.account, accountType: found.type };
+
+  if (!clean.includes("@")) {
+    await dbConnect();
+    const byTran = await TotModel.findOne({ tranId: clean.toUpperCase() }).lean();
+    if (byTran) return { ...byTran, accountType: "tot" };
+  }
+  return null;
 }
 
 /** Verify login credentials. Returns { success, user } or { success: false, message, ... }. */
@@ -67,6 +68,16 @@ export async function verifyUserLoginCredentials(identifier, password) {
     return { success: false, message: "ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিয়ে আবার চেষ্টা করুন।" };
   }
 
+  // The role must belong to the collection the account was found in (old "staff" /
+  // "organizer" records have no panel).
+  if (accountTypeForRole(user.role || (user.accountType === "tot" ? "teacher" : "")) !== user.accountType) {
+    return {
+      success: false,
+      message: "এই অ্যাকাউন্টের জন্য কোনো প্যানেল নির্ধারিত নেই। অনুগ্রহ করে অ্যাডমিনের সাথে যোগাযোগ করুন।",
+      inactive: true,
+    };
+  }
+
   if (user.isActive === false) {
     return {
       success: false,
@@ -75,12 +86,12 @@ export async function verifyUserLoginCredentials(identifier, password) {
     };
   }
 
-  const isStaff = ["admin", "super-admin", "instructor"].includes(user.role);
-  const isPaid = isStaff || user.paymentStatus === "paid" || user.paymentStatus === "free";
+  const Model = modelForType(user.accountType);
+  const isTrainee = user.accountType === "tot";
 
-  if (!isPaid) {
-    // Self-heal only a payment verified AFTER the user record last changed (i.e. provisioning
-    // crashed midway). If an admin later marked the user unpaid, that decision stands.
+  if (isTrainee && user.paymentStatus !== "paid" && user.paymentStatus !== "free") {
+    // Self-heal only a payment verified AFTER the trainee record last changed (i.e.
+    // provisioning crashed midway). If an admin later marked them unpaid, that stands.
     const payment = await PaymentModel.findOne({
       status: "VALID",
       finalizedAt: { $gt: user.updatedAt || new Date(0) },
@@ -100,7 +111,7 @@ export async function verifyUserLoginCredentials(identifier, password) {
       };
     }
 
-    await UserModel.updateOne(
+    await Model.updateOne(
       { _id: user._id },
       { paymentStatus: "paid", paidAmount: payment.amount, tranId: payment.tranId, isActive: true }
     );
@@ -111,20 +122,20 @@ export async function verifyUserLoginCredentials(identifier, password) {
   // Record the login; re-save legacy plain-text passwords as a hash.
   const update = { lastLogin: new Date() };
   if (!isHashedPassword(user.password)) update.password = String(password).trim();
-  await UserModel.updateOne({ _id: user._id }, update).catch((err) => console.warn("Login update warning:", err.message));
+  await Model.updateOne({ _id: user._id }, update).catch((err) => console.warn("Login update warning:", err.message));
 
   return {
     success: true,
     user: {
       id: user._id.toString(),
+      accountType: user.accountType,
       fullName: user.fullName,
       email: user.email,
       phone: user.phone,
       role: user.role || "teacher",
-      track: user.track || "TOT-MEN",
-      gender: user.gender || "male",
-      paymentStatus: user.paymentStatus,
-      tranId: user.tranId,
+      track: user.track || "",
+      gender: user.gender || "",
+      ...(isTrainee ? { paymentStatus: user.paymentStatus, tranId: user.tranId } : {}),
     },
   };
 }
@@ -137,10 +148,11 @@ export async function createDatabaseSession({ userId, userEmail, token, role, tr
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     return await SessionModel.create({
       userId,
+      accountType: accountTypeForRole(role) || "tot",
       userEmail: userEmail.toLowerCase(),
       token,
       role: role || "teacher",
-      track: track || "TOT-MEN",
+      track: track || "",
       userAgent: userAgent || "",
       ipAddress: ipAddress || "",
       deviceType: deviceType || "unknown",

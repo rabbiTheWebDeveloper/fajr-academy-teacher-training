@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
+import { ADMIN_ROLES, INSTRUCTOR_ROLES, TRAINEE_ROLES, isAdminRole } from "@/lib/roles";
 
 /**
- * Role groups. Every API route checks the session itself (not only proxy.js),
- * so a proxy bypass or a mis-typed matcher can never expose data.
+ * Role groups (see src/lib/roles.js). Every API route checks the session itself
+ * (not only proxy.js), so a proxy bypass or a mis-typed matcher can never expose data.
  */
-export const ADMIN_ROLES = ["admin", "super-admin"];
-export const INSTRUCTOR_ROLES = ["instructor", ...ADMIN_ROLES];
-export const TRAINEE_ROLES = ["teacher", "student", "participant"];
-
-export const isAdminRole = (role) => ADMIN_ROLES.includes(role);
+export { ADMIN_ROLES, INSTRUCTOR_ROLES, TRAINEE_ROLES, isAdminRole };
 
 const unauthorized = () =>
   NextResponse.json(

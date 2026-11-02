@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { dbConnect } from "@/service/mongo";
 import { PaymentModel } from "@/model/payment-model";
-import { UserModel } from "@/model/user-model";
+import { TotModel } from "@/model/tot-model";
 import { ParticipantModel } from "@/model/participant-model";
 import { SettingModel } from "@/model/setting-model";
 import { validateSSLCommerzPayment } from "@/lib/sslcommerz";
@@ -10,6 +10,7 @@ import { enrollUserInCourse } from "@/service/participant-service";
 import { courseIdForUserTrack } from "@/service/course-service";
 import { sendCustomEmail } from "@/utlis/mail";
 import { generatePassword } from "@/lib/password";
+import { emailInUse } from "@/service/account-service";
 
 /**
  * Payment lifecycle — the only code allowed to mark a payment VALID from the gateway.
@@ -22,6 +23,8 @@ import { generatePassword } from "@/lib/password";
  *     redirect, the IPN and refreshes can all arrive in any order: exactly one of them
  *     provisions the account; the rest see "already finalised".
  *  4. Existing accounts are never re-roled and their passwords are never overwritten.
+ *  5. Trainee accounts live in TotModel ("tots"). An e-mail that already belongs to an
+ *     admin or instructor never gets a trainee account (no duplicate logins).
  */
 
 // Any non-final state can still become VALID if the gateway confirms the money arrived.
@@ -52,7 +55,7 @@ export async function finalizeGatewayPayment({ tranId, valId, source = "gateway"
         verifiedNow = !validationProblem(await validateSSLCommerzPayment({ val_id: valId }), payment);
       } catch {}
     }
-    const user = payment.user ? await UserModel.findById(payment.user).lean() : null;
+    const user = payment.user ? await TotModel.findById(payment.user).lean() : null;
     return { ok: true, code: "already_final", payment, user, firstTime: false, verifiedNow };
   }
   if (payment.status === "REFUNDED") return { ok: false, code: "refunded", payment };
@@ -98,7 +101,7 @@ export async function finalizeGatewayPayment({ tranId, valId, source = "gateway"
 
   if (!claimed) {
     const current = await PaymentModel.findOne({ tranId }).lean();
-    const user = current?.user ? await UserModel.findById(current.user).lean() : null;
+    const user = current?.user ? await TotModel.findById(current.user).lean() : null;
     // Lost the race, but this request's val_id was validated above.
     return { ok: current?.status === "VALID", code: "already_final", payment: current, user, firstTime: false, verifiedNow: true };
   }
@@ -116,11 +119,22 @@ export async function provisionForPayment(payment) {
   const reg = payment.registrationData || {};
   const email = (payment.userEmail || reg.email || "").toLowerCase().trim();
 
-  let user = payment.user ? await UserModel.findById(payment.user) : null;
-  if (!user && email) user = await UserModel.findOne({ email });
+  let user = payment.user ? await TotModel.findById(payment.user) : null;
+  if (!user && email) user = await TotModel.findOne({ email });
   let generatedPassword = null;
 
   if (!user) {
+    // Entry points refuse staff e-mails; this guards the rare race (an admin creates a
+    // staff account with this e-mail while the payer is on the gateway page).
+    const staffType = await emailInUse(email);
+    if (staffType) {
+      console.error(`[payment ${payment.tranId}] not provisioned: ${email} belongs to a ${staffType} account`);
+      await PaymentModel.updateOne(
+        { _id: payment._id },
+        { $set: { notes: `Not provisioned: ${email} is already used by a ${staffType} account — resolve manually.` } }
+      );
+      return null;
+    }
     // New applicant: create the account now that the money is confirmed. If the stored
     // hash is gone (e.g. re-verifying after the account was deleted), issue a fresh
     // password and hand it back to the admin who triggered this.
@@ -130,7 +144,7 @@ export async function provisionForPayment(payment) {
       password = generatedPassword;
     }
     try {
-      user = await UserModel.create({
+      user = await TotModel.create({
         fullName: reg.fullName || payment.userName || "TOT Trainee",
         email,
         phone: reg.phone || payment.userPhone || "",
@@ -151,17 +165,16 @@ export async function provisionForPayment(payment) {
       });
     } catch (err) {
       if (err?.code !== 11000) throw err;
-      user = await UserModel.findOne({ email }); // created concurrently
+      user = await TotModel.findOne({ email }); // created concurrently
     }
   } else {
-    // Existing account: mark paid; never change role or password.
-    const isTrainee = !["admin", "super-admin", "instructor"].includes(user.role);
-    user.paymentStatus = isTrainee ? "paid" : user.paymentStatus;
+    // Existing trainee: mark paid; never change role or password.
+    user.paymentStatus = "paid";
     user.paidAmount = (Number(user.paidAmount) || 0) + Number(payment.amount || 0);
     user.tranId = user.tranId || payment.tranId;
     user.isActive = true;
     user.enrolledAt = user.enrolledAt || new Date();
-    if (isTrainee && payment.purpose === "registration" && reg.track) user.track = reg.track;
+    if (payment.purpose === "registration" && reg.track) user.track = reg.track;
     await user.save();
   }
 
@@ -210,8 +223,8 @@ export async function revokeForPayment(payment) {
     { $set: { paymentStatus: "pending", status: "pending" } }
   );
 
-  const user = userId ? await UserModel.findById(userId) : await UserModel.findOne({ email });
-  if (!user || ["admin", "super-admin", "instructor"].includes(user.role)) return;
+  const user = userId ? await TotModel.findById(userId) : await TotModel.findOne({ email });
+  if (!user) return;
 
   const other = await PaymentModel.exists({
     _id: { $ne: payment._id },

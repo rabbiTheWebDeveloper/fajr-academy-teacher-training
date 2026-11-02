@@ -1,198 +1,30 @@
 import mongoose, { Schema } from "mongoose";
-import { hashPassword, isHashedPassword } from "@/lib/password";
+import { applyAccountSecurity, baseAccountFields } from "./account-schema";
+
+/**
+ * Admin accounts — collection "users".
+ * Instructors live in InstructorModel ("instructors") and paying trainees in TotModel ("tots").
+ * Older databases kept everyone here; src/service/account-migration.js moves those
+ * documents (same _id) to their own collection on the first connection.
+ */
+export const USER_ROLES = ["admin", "super-admin"];
+// Roles some old records carry. They have no panel access and are never created anymore.
+const LEGACY_ROLES = ["staff", "organizer"];
 
 const userSchema = new Schema(
   {
-    fullName: { 
-      type: String, 
-      required: true, 
-      trim: true 
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-      index: true,
-    },
-    phone: { 
-      type: String, 
-      trim: true, 
-      default: "" 
-    },
-    emergencyContactNumber: { 
-      type: String, 
-      trim: true, 
-      default: "" 
-    },
-    designation: { 
-      type: String, 
-      trim: true, 
-      default: "TOT Trainee Teacher" 
-    },
-    employeeId: { 
-      type: String, 
-      trim: true, 
-      default: "" 
-    },
-    bloodGroup: {
-      type: String,
-      enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", ""],
-      default: "",
-    },
-    department: { 
-      type: String, 
-      trim: true, 
-      default: "Teacher Training Division" 
-    },
-    password: { 
-      type: String, 
-      required: true 
-    },
-    role: {
-      type: String,
-      enum: ["teacher", "admin", "instructor", "student", "organizer", "super-admin", "staff", "participant"],
-      default: "teacher",
-      index: true,
-    },
-    track: {
-      type: String,
-      enum: ["TOT-MEN", "TOT-WOMEN-014", "TOT-WOMEN", ""],
-      default: "TOT-MEN",
-      index: true,
-    },
-    gender: {
-      type: String,
-      enum: ["male", "female", "other", ""],
-      default: "male",
-    },
-    hasLaptop: {
-      type: String,
-      enum: ["yes", "no", ""],
-      default: "yes",
-    },
-    quranSkill: {
-      type: String,
-      default: "fluent",
-    },
-    englishSkill: {
-      type: String,
-      default: "basic",
-    },
-    education: {
-      type: String,
-      default: "",
-    },
-    bio: {
-      type: String,
-      default: "",
-    },
-    specialization: {
-      type: String,
-      default: "আন্তর্জাতিক কুরআন টিচিং পেডাগজি ও তাজবীদ",
-    },
-    experienceYears: {
-      type: Number,
-      default: 5,
-    },
-    rating: {
-      type: Number,
-      default: 4.9,
-    },
-    paymentStatus: {
-      type: String,
-      enum: ["paid", "pending", "failed", "free"],
-      default: "pending",
-      index: true,
-    },
-    paidAmount: {
-      type: Number,
-      default: 0,
-    },
-    tranId: {
-      type: String,
-      default: "",
-      index: true,
-    },
-    paymentGateway: {
-      type: String,
-      default: "sslcommerz",
-    },
-    enrolledAt: {
-      type: Date,
-      default: null,
-    },
-    avatar: { 
-      type: String, 
-      default: "" 
-    },
-    enrolledCourses: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Course",
-      },
-    ],
-    enrolledCourseIds: [{ type: String }],
+    ...baseAccountFields(),
+    role: { type: String, enum: [...USER_ROLES, ...LEGACY_ROLES], default: "admin", index: true },
+    designation: { type: String, trim: true, default: "System Administrator" },
+    department: { type: String, trim: true, default: "Administration" },
+    employeeId: { type: String, trim: true, default: "" },
+    gender: { type: String, enum: ["male", "female", "other", ""], default: "" },
     permissions: [{ type: String }],
-    isActive: { 
-      type: Boolean, 
-      default: true, 
-      index: true 
-    },
-    lastLogin: { 
-      type: Date, 
-      default: null 
-    },
-    emailVerified: { 
-      type: Boolean, 
-      default: false 
-    },
-    resetPasswordToken: { type: String },
-    resetPasswordExpires: { type: Date },
   },
-  {
-    timestamps: true,
-    versionKey: false,
-  }
+  { timestamps: true, versionKey: false, collection: "users" }
 );
 
 userSchema.index({ createdAt: -1 });
-userSchema.index({ email: 1, role: 1 });
-userSchema.index({ track: 1, paymentStatus: 1 });
+applyAccountSecurity(userSchema);
 
-// Hash passwords on every write path (create/save and findOneAndUpdate/updateOne),
-// so no route can accidentally persist a plain-text password.
-userSchema.pre("save", async function () {
-  if (this.isModified("password") && this.password && !isHashedPassword(this.password)) {
-    this.password = await hashPassword(this.password);
-  }
-});
-
-async function hashPasswordInUpdate() {
-  const update = this.getUpdate();
-  if (!update) return;
-  for (const target of [update, update.$set, update.$setOnInsert]) {
-    if (target && typeof target.password === "string" && target.password && !isHashedPassword(target.password)) {
-      target.password = await hashPassword(target.password);
-    }
-  }
-  this.setUpdate(update);
-}
-
-userSchema.pre("findOneAndUpdate", hashPasswordInUpdate);
-userSchema.pre("updateOne", hashPasswordInUpdate);
-userSchema.pre("updateMany", hashPasswordInUpdate);
-
-// Never serialise the hash or reset tokens to API responses.
-userSchema.set("toJSON", {
-  transform(_doc, ret) {
-    delete ret.password;
-    delete ret.resetPasswordToken;
-    delete ret.resetPasswordExpires;
-    return ret;
-  },
-});
-
-export const UserModel =
-  mongoose.models.User ?? mongoose.model("User", userSchema);
+export const UserModel = mongoose.models.User ?? mongoose.model("User", userSchema);

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import dns from "node:dns";
+import { migrateAccountCollections } from "./account-migration";
 
 // Fix Node.js DNS resolution on Windows / local ISPs
 try {
@@ -104,5 +105,23 @@ export async function dbConnect() {
     throw err;
   }
 
+  await ensureAccountsSplit(cached.conn);
   return cached.conn;
+}
+
+/**
+ * Once per process: move instructors / trainees out of the old shared "users" collection
+ * (see account-migration.js). Every caller waits for it, so no query ever sees a half-split
+ * database. A failure is logged and retried at most once a minute; it never blocks requests.
+ */
+async function ensureAccountsSplit(conn) {
+  if (!cached.accountSplit) {
+    if (cached.accountSplitRetryAt && Date.now() < cached.accountSplitRetryAt) return;
+    cached.accountSplit = migrateAccountCollections(conn.connection.db).catch((err) => {
+      console.error("[accounts] collection split failed — will retry:", err?.message || err);
+      cached.accountSplit = null;
+      cached.accountSplitRetryAt = Date.now() + 60_000;
+    });
+  }
+  await cached.accountSplit;
 }

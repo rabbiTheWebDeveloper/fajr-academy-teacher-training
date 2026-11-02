@@ -30,7 +30,7 @@ export default async function TraineeIDCardPage({ searchParams }) {
     else targetId = requested;
   }
   const viewingOther = targetId !== session.id;
-  const staffBackHref = session.role === "instructor" ? "/instructor/trainees" : "/admin/users";
+  const staffBackHref = session.role === "instructor" ? "/instructor/trainees" : "/admin/tots";
 
   let user = null;
   try {
@@ -41,6 +41,16 @@ export default async function TraineeIDCardPage({ searchParams }) {
   }
 
   if (!user) {
+    // Staff have no TOT record of their own — they open trainee cards with ?user=<id>.
+    if (!viewingOther && isStaff) {
+      return (
+        <TraineeIDCardClient
+          missing
+          missingText="আইডি কার্ড শুধু TOT ট্রেইনিদের জন্য। ট্রেইনি তালিকা থেকে কোনো ট্রেইনির “আইডি” বাটনে ক্লিক করুন।"
+          backHref={staffBackHref}
+        />
+      );
+    }
     if (!viewingOther) return <TraineeLoadError error="not_found" />;
     return <TraineeIDCardClient missing backHref={staffBackHref} />;
   }

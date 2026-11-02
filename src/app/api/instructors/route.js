@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
-import { UserModel } from "@/model/user-model";
+import { InstructorModel } from "@/model/instructor-model";
 import { DEFAULT_INSTRUCTORS } from "@/constant/instructor-defaults";
 
 const PUBLIC_FIELDS = "fullName designation specialization bio experienceYears rating gender avatar track";
@@ -23,9 +23,9 @@ export async function GET(request) {
 
   try {
     await dbConnect();
-    const query = { role: "instructor", isActive: { $ne: false } };
+    const query = { isActive: { $ne: false } };
     if (track && track !== "all") query.track = track;
-    const instructors = await UserModel.find(query).select(PUBLIC_FIELDS).sort({ rating: -1, experienceYears: -1 }).limit(12).lean();
+    const instructors = await InstructorModel.find(query).select(PUBLIC_FIELDS).sort({ rating: -1, experienceYears: -1 }).limit(12).lean();
     return NextResponse.json({
       success: true,
       instructors: instructors.length ? JSON.parse(JSON.stringify(instructors)) : fallback,

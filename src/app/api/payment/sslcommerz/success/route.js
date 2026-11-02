@@ -45,9 +45,8 @@ async function handleSuccess(request) {
 
     const user = result.user;
     // Auto-login needs proof from THIS request (its own val_id validated) and is single-use.
-    // Staff accounts never get a session from a payment URL.
-    const isStaff = ["admin", "super-admin", "instructor"].includes(user?.role);
-    const canLogin = user && !isStaff && user.isActive !== false && result.verifiedNow && (await claimPostPaymentLogin(tranId));
+    // The user here is always a trainee (TotModel) — staff accounts are never provisioned by a payment.
+    const canLogin = user && user.isActive !== false && result.verifiedNow && (await claimPostPaymentLogin(tranId));
     if (!canLogin) {
       // Already used (refresh / replay) — ask the user to sign in normally.
       const email = encodeURIComponent(user?.email || result.payment?.userEmail || "");

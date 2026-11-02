@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { PaymentModel } from "@/model/payment-model";
-import { UserModel } from "@/model/user-model";
+import { TotModel } from "@/model/tot-model";
 import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
 import { generatePassword, hashPassword } from "@/lib/password";
 import { isObjectId, searchFilter } from "@/lib/query-helpers";
 import { REGISTRABLE_TRACKS, getPriceForTrack } from "@/service/course-service";
 import { newTranId, provisionForPayment, revokeForPayment } from "@/service/payment-service";
 import { phoneVariants } from "@/queries/auth-queries";
+import { emailInUse, emailTakenMessage, phoneInUse, phoneTakenMessage } from "@/service/account-service";
 
 // Never send password hashes, gateway raw dumps or login markers to the browser.
 const SAFE = "-registrationData.passwordHash -registrationData.password -rawResponse -loginIssuedAt";
@@ -74,9 +75,15 @@ export async function PATCH(request) {
     else if (wasValid) await revokeForPayment(payment);
 
     const updated = await PaymentModel.findById(payment._id).select(SAFE).lean();
+    const provisioned = status !== "VALID" || Boolean(user);
     return NextResponse.json({
       success: true,
-      message: status === "VALID" ? "পেমেন্ট যাচাই হয়েছে এবং ট্রেইনির অ্যাকাউন্ট ও এনরোলমেন্ট সক্রিয় করা হয়েছে।" : "পেমেন্ট স্ট্যাটাস আপডেট হয়েছে।",
+      message:
+        status !== "VALID"
+          ? "পেমেন্ট স্ট্যাটাস আপডেট হয়েছে।"
+          : provisioned
+            ? "পেমেন্ট যাচাই হয়েছে এবং ট্রেইনির অ্যাকাউন্ট ও এনরোলমেন্ট সক্রিয় করা হয়েছে।"
+            : "পেমেন্ট VALID করা হয়েছে, কিন্তু এই ইমেইলটি একটি অ্যাডমিন/ইনস্ট্রাক্টর অ্যাকাউন্টের — তাই ট্রেইনি অ্যাকাউন্ট তৈরি হয়নি। পেমেন্টের নোট দেখুন।",
       payment: plain(updated),
       user: user ? { _id: String(user._id), email: user.email, paymentStatus: user.paymentStatus } : null,
       ...(user?.generatedPassword ? { generatedPassword: user.generatedPassword } : {}),
@@ -106,8 +113,15 @@ export async function POST(request) {
 
     if (!EMAIL_RX.test(email)) return bad("ইউজারের সঠিক ইমেইল আবশ্যক।");
 
-    const existingUser = await UserModel.findOne({ email }).select("_id fullName phone").lean();
-    if (!existingUser && userName.length < 2) return bad("নতুন ট্রেইনির জন্য নাম আবশ্যক।");
+    // Offline payments are for trainees (TOT accounts) only.
+    const existingUser = await TotModel.findOne({ email }).select("_id fullName phone").lean();
+    if (!existingUser) {
+      const takenBy = await emailInUse(email);
+      if (takenBy) return bad(emailTakenMessage(takenBy), 409);
+      if (userName.length < 2) return bad("নতুন ট্রেইনির জন্য নাম আবশ্যক।");
+      const phoneOwner = phone ? await phoneInUse(phone) : null;
+      if (phoneOwner) return bad(phoneTakenMessage(phoneOwner), 409);
+    }
 
     const customTranId = String(body.tranId || "").trim();
     if (customTranId && (await PaymentModel.exists({ tranId: customTranId }))) {

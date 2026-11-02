@@ -1,27 +1,28 @@
 import { dbConnect } from "@/service/mongo";
-import { UserModel } from "@/model/user-model";
+import { TotModel } from "@/model/tot-model";
 import { ParticipantModel } from "@/model/participant-model";
 import { PaymentModel } from "@/model/payment-model";
 import { CourseModel } from "@/model/course-model";
 import { EvaluationModel } from "@/model/evaluation-model";
 import { NoticeModel } from "@/model/notice-model";
 import { courseIdForUserTrack, getCourseForTrack } from "@/service/course-service";
-import { toPlain } from "@/lib/query-helpers";
+import { isObjectId, toPlain } from "@/lib/query-helpers";
 
 /**
- * Everything the trainee ("TOT") panel shows, always for ONE user id taken from the
- * signed session. No email / tran_id overrides, no "first teacher" fallbacks.
+ * Everything the trainee ("TOT") panel shows, always for ONE trainee id taken from the
+ * signed session. Trainee accounts live in TotModel (collection "tots").
+ * No email / tran_id overrides, no "first teacher" fallbacks.
  */
 
-export const USER_SAFE_FIELDS = "-password -resetPasswordToken -resetPasswordExpires -permissions";
+export const USER_SAFE_FIELDS = "-password -resetPasswordToken -resetPasswordExpires";
 const PAYMENT_SAFE_FIELDS = "-registrationData -rawResponse -loginIssuedAt";
 
-export const isPaidUser = (user) =>
-  ["paid", "free"].includes(user?.paymentStatus) || ["admin", "super-admin", "instructor"].includes(user?.role);
+export const isPaidUser = (user) => ["paid", "free"].includes(user?.paymentStatus);
 
 export async function getTraineeUser(userId) {
   await dbConnect();
-  return toPlain(await UserModel.findById(userId).select(USER_SAFE_FIELDS).lean());
+  if (!isObjectId(userId)) return null;
+  return toPlain(await TotModel.findById(userId).select(USER_SAFE_FIELDS).lean());
 }
 
 /** Courses this user is enrolled in (paid/free participants), with a track fallback for older accounts. */

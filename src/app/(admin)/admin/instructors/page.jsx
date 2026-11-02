@@ -1,5 +1,5 @@
 import { dbConnect } from "@/service/mongo";
-import { UserModel } from "@/model/user-model";
+import { InstructorModel } from "@/model/instructor-model";
 import { toPlain } from "@/lib/query-helpers";
 import AdminInstructorsClient from "./AdminInstructorsClient";
 
@@ -16,8 +16,8 @@ export default async function AdminInstructorsPage() {
 
   try {
     await dbConnect();
-    // Instructors only (admins are managed on the Users screen). Nothing is seeded here.
-    const data = await UserModel.find({ role: "instructor" })
+    // InstructorModel ("instructors" collection). Nothing is seeded here.
+    const data = await InstructorModel.find({})
       .sort({ createdAt: -1 })
       .select("-password -resetPasswordToken -resetPasswordExpires")
       .lean();

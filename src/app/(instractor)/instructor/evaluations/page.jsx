@@ -1,8 +1,8 @@
 import { dbConnect } from "@/service/mongo";
-import { UserModel } from "@/model/user-model";
+import { TotModel } from "@/model/tot-model";
 import { EvaluationModel } from "@/model/evaluation-model";
 import { isAdminRole } from "@/lib/api-auth";
-import { TRAINEE_ROLE_LIST, toPlain } from "@/lib/query-helpers";
+import { toPlain } from "@/lib/query-helpers";
 import EvaluationsClient from "./EvaluationsClient";
 import { DB_ERROR_MESSAGE, getInstructorProfile, requireInstructorPage } from "../../_shared/server";
 
@@ -24,7 +24,7 @@ export default async function EvaluationsPage({ searchParams }) {
     await dbConnect();
     const [evals, users] = await Promise.all([
       EvaluationModel.find().sort({ evaluatedAt: -1 }).lean(),
-      UserModel.find({ role: { $in: TRAINEE_ROLE_LIST } })
+      TotModel.find({})
         .select("fullName email phone track paymentStatus")
         .sort({ fullName: 1 })
         .lean(),
