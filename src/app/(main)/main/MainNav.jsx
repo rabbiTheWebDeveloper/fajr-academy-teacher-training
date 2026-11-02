@@ -16,7 +16,25 @@ const LINKS = [
 
 export default function MainNav({ registerHref }) {
   const [open, setOpen] = useState(false)
+  const [active, setActive] = useState('')
   const headerRef = useRef(null)
+
+  // Scroll-spy: the section crossing a thin band at mid-viewport lights up its nav link.
+  useEffect(() => {
+    const sections = LINKS.map((l) => document.getElementById(l.href.slice(1))).filter(Boolean)
+    if (!sections.length) return
+    const visible = new Set()
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => (e.isIntersecting ? visible.add(e.target.id) : visible.delete(e.target.id)))
+        const current = sections.find((s) => visible.has(s.id))
+        setActive(current ? `#${current.id}` : '')
+      },
+      { rootMargin: '-45% 0px -50% 0px' }
+    )
+    sections.forEach((s) => io.observe(s))
+    return () => io.disconnect()
+  }, [])
 
   // Off-screen sections skip rendering (content-visibility: auto) and only have estimated heights.
   // Before the first in-page jump, render them all so the browser scrolls to the target's real position.
@@ -62,7 +80,9 @@ export default function MainNav({ registerHref }) {
         <ul className={styles.navLinks}>
           {LINKS.map((l) => (
             <li key={l.href}>
-              <a href={l.href}>{l.label}</a>
+              <a href={l.href} aria-current={active === l.href ? 'location' : undefined}>
+                {l.label}
+              </a>
             </li>
           ))}
         </ul>
@@ -89,7 +109,14 @@ export default function MainNav({ registerHref }) {
         <ul>
           {LINKS.map((l, i) => (
             <li key={l.href} style={{ '--i': i }}>
-              <a href={l.href} onClick={() => setOpen(false)}>
+              <a
+                href={l.href}
+                aria-current={active === l.href ? 'location' : undefined}
+                onClick={() => setOpen(false)}
+              >
+                <span className={styles.menuIdx} aria-hidden="true">
+                  {String(i + 1).padStart(2, '0').replace(/[0-9]/g, (d) => '০১২৩৪৫৬৭৮৯'[d])}
+                </span>
                 {l.label}
               </a>
             </li>

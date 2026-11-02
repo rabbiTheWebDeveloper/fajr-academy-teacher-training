@@ -78,22 +78,21 @@ export default function RegistrationForm({
   })
   const [loading,   setLoading]   = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [errorMsg,  setErrorMsg]  = useState('')
-  const [alreadyPaid, setAlreadyPaid] = useState(false)
-
-  useEffect(() => {
+  const [errorMsg,  setErrorMsg]  = useState(() => {
     if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search)
-      const paymentParam = urlParams.get('payment')
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentParam = urlParams.get('payment');
       if (paymentParam === 'cancelled') {
-        setErrorMsg('আপনার পেমেন্ট সম্পন্ন হয়নি (বাতিল করা হয়েছে)। কোনো অ্যাকাউন্ট তৈরি করা হয়নি। কোর্স ফি ১,০০০৳ পরিশোধ করলেই অ্যাকাউন্ট তৈরি হবে।')
+        return 'আপনার পেমেন্ট সম্পন্ন হয়নি (বাতিল করা হয়েছে)। কোনো অ্যাকাউন্ট তৈরি করা হয়নি। কোর্স ফি ১,০০০৳ পরিশোধ করলেই অ্যাকাউন্ট তৈরি হবে।';
       } else if (paymentParam === 'failed') {
-        setErrorMsg('পেমেন্ট ব্যর্থ হয়েছে! আপনার কোনো টাকা কাটা হয়নি এবং কোনো অ্যাকাউন্ট তৈরি হয়নি। অনুগ্রহ করে সঠিক পেমেন্ট তথ্য দিয়ে পুনরায় চেষ্টা করুন।')
+        return 'পেমেন্ট ব্যর্থ হয়েছে! আপনার কোনো টাকা কাটা হয়নি এবং কোনো অ্যাকাউন্ট তৈরি হয়নি। অনুগ্রহ করে সঠিক পেমেন্ট তথ্য দিয়ে পুনরায় চেষ্টা করুন।';
       } else if (paymentParam === 'error') {
-        setErrorMsg('পেমেন্টে সাময়িক সমস্যা হয়েছে। কোনো অ্যাকাউন্ট তৈরি হয়নি। অনুগ্রহ করে আবার চেষ্টা করুন।')
+        return 'পেমেন্টে সাময়িক সমস্যা হয়েছে। কোনো অ্যাকাউন্ট তৈরি হয়নি। অনুগ্রহ করে আবার চেষ্টা করুন।';
       }
     }
-  }, [])
+    return '';
+  });
+  const [alreadyPaid, setAlreadyPaid] = useState(false);
 
   const handleTrackChange = (track) => {
     setSelectedTrack(track)

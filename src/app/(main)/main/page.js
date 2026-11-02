@@ -2,6 +2,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowRight,
+  ArrowUp,
+  ArrowUpRight,
   Award,
   BadgeCheck,
   BookOpen,
@@ -24,6 +26,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import MainNav from './MainNav'
+import MainFx, { CopyButton, CountUp } from './MainFx'
 import { getMainPageData } from './get-main-data'
 import { toBengaliNumber } from '@/lib/utils'
 import styles from './main.module.css'
@@ -114,7 +117,10 @@ function initials(name = '') {
 function SectionHead({ id, kicker, title, accent, lead, align = 'center' }) {
   return (
     <header className={`${styles.head} ${align === 'left' ? styles.headLeft : ''} ${styles.reveal}`}>
-      <p className={styles.kicker}>{kicker}</p>
+      <p className={styles.kicker}>
+        <span className={styles.kickerDot} aria-hidden="true" />
+        <span className={styles.kickerText}>{kicker}</span>
+      </p>
       <h2 id={id} className={styles.title}>
         {title}
         {accent && (
@@ -135,7 +141,7 @@ function ProgramCard({ course, tone, fallbackFee, fallbackRegular }) {
   const perks = course.perks?.length ? course.perks : []
 
   return (
-    <article className={`${styles.program} ${styles.reveal}`} data-tone={tone}>
+    <article className={`${styles.program} ${styles.reveal}`} data-tone={tone} data-spot data-tilt>
       <div className={styles.programInner}>
         <div>
           <span className={styles.programTag}>{course.tag || (tone === 'men' ? 'MEN BATCH' : 'WOMEN BATCH')}</span>
@@ -283,17 +289,19 @@ export default async function MainPage() {
   const year = toBnDigits(new Date().getFullYear())
 
   return (
-    <div className={styles.page}>
+    <div id="top" className={styles.page}>
       <MainNav registerHref={REGISTER_HREF} />
+      <MainFx />
 
       <main>
         {/* ==================== HERO — "Fajr" dawn over the horizon ==================== */}
-        <section className={styles.hero} aria-labelledby="hero-title">
+        <section className={styles.hero} aria-labelledby="hero-title" data-glow>
           <div className={styles.aurora} aria-hidden="true">
             <span className={`${styles.blob} ${styles.blobA}`} />
             <span className={`${styles.blob} ${styles.blobB}`} />
             <span className={styles.stars} />
           </div>
+          <span className={styles.heroCursor} aria-hidden="true" />
 
           <div className={`${styles.container} ${styles.heroInner}`}>
             <p className={styles.heroBadge} data-tone={admission}>
@@ -330,39 +338,43 @@ export default async function MainPage() {
             <div className={styles.horizon} aria-hidden="true" />
 
             <div className={`${styles.container} ${styles.heroStageInner}`}>
-              <dl className={styles.heroPanel}>
-                <div className={styles.panelCell}>
-                  <dt className={styles.panelLabel}>
+              {/* Each cell is a shortcut to the section that explains it */}
+              <div className={styles.heroPanel}>
+                <a href="#journey" className={styles.panelCell} data-spot>
+                  <span className={styles.panelLabel}>
                     <CalendarDays aria-hidden="true" /> লাইভ ওরিয়েন্টেশন
-                  </dt>
-                  <dd className={styles.panelRows}>
+                  </span>
+                  <span className={styles.panelRows}>
                     <span>
                       <small>পুরুষ</small> {menCourse.orientationDate}
                     </span>
                     <span>
                       <small>নারী</small> {womenCourse.orientationDate}
                     </span>
-                  </dd>
-                  <dd className={styles.panelSub}>{menCourse.orientationTime}</dd>
-                </div>
-                <div className={styles.panelCell}>
-                  <dt className={styles.panelLabel}>
+                  </span>
+                  <span className={styles.panelSub}>{menCourse.orientationTime}</span>
+                  <ArrowUpRight className={styles.panelGo} aria-hidden="true" />
+                </a>
+                <a href="#programs" className={styles.panelCell} data-spot>
+                  <span className={styles.panelLabel}>
                     <CreditCard aria-hidden="true" /> রেজিস্ট্রেশন ফি
-                  </dt>
-                  <dd className={styles.panelValue}>
+                  </span>
+                  <span className={styles.panelValue}>
                     ৳{fee}
                     {regularPrice > coursePrice && <del>৳{toBengaliNumber(regularPrice)}</del>}
-                  </dd>
-                  <dd className={styles.panelSub}>এককালীন · বিকাশ / নগদ / রকেট / কার্ড</dd>
-                </div>
-                <div className={styles.panelCell}>
-                  <dt className={styles.panelLabel}>
+                  </span>
+                  <span className={styles.panelSub}>এককালীন · বিকাশ / নগদ / রকেট / কার্ড</span>
+                  <ArrowUpRight className={styles.panelGo} aria-hidden="true" />
+                </a>
+                <a href="#why" className={styles.panelCell} data-spot>
+                  <span className={styles.panelLabel}>
                     <Wallet aria-hidden="true" /> মাসিক সম্মানী
-                  </dt>
-                  <dd className={styles.panelValue}>১৫–২২ হাজার ৳</dd>
-                  <dd className={styles.panelSub}>শিক্ষক হিসেবে কাজের সুযোগ পেলে</dd>
-                </div>
-              </dl>
+                  </span>
+                  <span className={styles.panelValue}>১৫–২২ হাজার ৳</span>
+                  <span className={styles.panelSub}>শিক্ষক হিসেবে কাজের সুযোগ পেলে</span>
+                  <ArrowUpRight className={styles.panelGo} aria-hidden="true" />
+                </a>
+              </div>
             </div>
           </div>
         </section>
@@ -372,27 +384,35 @@ export default async function MainPage() {
           <div className={styles.container}>
             <ul className={styles.stats}>
               {STATS.map((s, i) => (
-                <li key={s.label} className={styles.reveal} style={{ '--d': `${i * 3}%`, '--pos': `${i * 33}%` }}>
-                  <span className={styles.statValue}>{s.value}</span>
+                <li
+                  key={s.label}
+                  className={`${styles.stat} ${styles.reveal}`}
+                  style={{ '--d': `${i * 3}%`, '--pos': `${i * 33}%` }}
+                  data-spot
+                >
+                  <CountUp value={s.value} className={styles.statValue} />
                   <span className={styles.statLabel}>{s.label}</span>
                 </li>
               ))}
             </ul>
           </div>
 
+          {/* Two rails drifting in opposite directions; the second is decorative only */}
           <div className={styles.marquee}>
-            <div className={styles.marqueeRail}>
-              {[0, 1].map((copy) => (
-                <ul key={copy} className={styles.marqueeList} aria-hidden={copy === 1 || undefined}>
-                  {HIGHLIGHTS.map((h) => (
-                    <li key={h} className={styles.chip}>
-                      <CheckCircle2 aria-hidden="true" />
-                      {h}
-                    </li>
-                  ))}
-                </ul>
-              ))}
-            </div>
+            {[HIGHLIGHTS, [...HIGHLIGHTS].reverse()].map((row, r) => (
+              <div key={r} className={styles.marqueeRail} data-reverse={r === 1 || undefined} aria-hidden={r === 1 || undefined}>
+                {[0, 1].map((copy) => (
+                  <ul key={copy} className={styles.marqueeList} aria-hidden={(r === 0 && copy === 1) || undefined}>
+                    {row.map((h) => (
+                      <li key={h} className={styles.chip}>
+                        <CheckCircle2 aria-hidden="true" />
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                ))}
+              </div>
+            ))}
           </div>
         </section>
 
@@ -408,7 +428,7 @@ export default async function MainPage() {
             />
 
             <div className={styles.bento}>
-              <article className={`${styles.tile} ${styles.tileHome} ${styles.reveal}`}>
+              <article className={`${styles.tile} ${styles.tileHome} ${styles.reveal}`} data-spot>
                 <div className={styles.tileBody}>
                   <span className={`${styles.tileIcon} ${styles.iconBlue}`}>
                     <House aria-hidden="true" />
@@ -418,6 +438,9 @@ export default async function MainPage() {
                     কোনো ট্রাফিক জ্যাম নেই, রোদে পুড়তে হবে না। সম্পূর্ণ ট্রেনিং ও পরবর্তী শিক্ষকতার ক্লাস ঘরে বসেই
                     ল্যাপটপে সম্পন্ন করতে পারবেন।
                   </p>
+                  <a href="#curriculum" className={styles.tileLink}>
+                    কারিকুলাম দেখুন <ArrowRight aria-hidden="true" />
+                  </a>
                 </div>
                 <div className={styles.classMock} aria-hidden="true">
                   <div className={styles.mockBar}>
@@ -444,7 +467,7 @@ export default async function MainPage() {
                 </div>
               </article>
 
-              <article className={`${styles.tile} ${styles.tileIncome} ${styles.reveal}`} style={{ '--d': '4%' }}>
+              <article className={`${styles.tile} ${styles.tileIncome} ${styles.reveal}`} style={{ '--d': '4%' }} data-spot>
                 <p className={styles.incomeLabel}>মাসিক সম্মানী</p>
                 <p className={styles.incomeFigure}>
                   <b>১৫,০০০৳</b>
@@ -455,9 +478,12 @@ export default async function MainPage() {
                 <span className={styles.halal}>
                   <ShieldCheck aria-hidden="true" /> ১০০% হালাল উপার্জন
                 </span>
+                <a href="#programs" className={styles.tileLink}>
+                  ব্যাচ বেছে নিন <ArrowRight aria-hidden="true" />
+                </a>
               </article>
 
-              <article className={`${styles.tile} ${styles.reveal}`}>
+              <article className={`${styles.tile} ${styles.reveal}`} data-spot>
                 <span className={`${styles.tileIcon} ${styles.iconSunset}`}>
                   <Laptop aria-hidden="true" />
                 </span>
@@ -466,9 +492,12 @@ export default async function MainPage() {
                   কুরআন তিলাওয়াত ও ইংরেজি ভালো থাকলে কিন্তু ডিভাইস না থাকলে, ফজর একাডেমি নিজস্ব তহবিল থেকে ল্যাপটপ
                   সহায়তা প্রদান করবে।
                 </p>
+                <a href="#faq" className={styles.tileLink}>
+                  বিস্তারিত জানুন <ArrowRight aria-hidden="true" />
+                </a>
               </article>
 
-              <article className={`${styles.tile} ${styles.reveal}`} style={{ '--d': '4%' }}>
+              <article className={`${styles.tile} ${styles.reveal}`} style={{ '--d': '4%' }} data-spot>
                 <span className={`${styles.tileIcon} ${styles.iconGold}`}>
                   <Award aria-hidden="true" />
                 </span>
@@ -477,9 +506,12 @@ export default async function MainPage() {
                   {sessionCount}টি প্রফেশনাল সেশন শেষে অফিসিয়াল মূল্যায়ন সার্টিফিকেট এবং নিয়মিত গ্রুমিং ও স্কিল
                   ডেভেলপমেন্টের মাধ্যমে ক্যারিয়ার বৃদ্ধি।
                 </p>
+                <a href="#journey" className={styles.tileLink}>
+                  ধাপসমূহ দেখুন <ArrowRight aria-hidden="true" />
+                </a>
               </article>
 
-              <article className={`${styles.tile} ${styles.tileHadith} ${styles.reveal}`}>
+              <article className={`${styles.tile} ${styles.tileHadith} ${styles.reveal}`} data-spot>
                 <Quote className={styles.quoteMark} aria-hidden="true" />
                 <blockquote>
                   <p>তোমাদের মধ্যে সর্বোত্তম ব্যক্তি সে, যে নিজে কুরআন শেখে এবং অন্যকে শেখায়।</p>
@@ -489,7 +521,7 @@ export default async function MainPage() {
                 </blockquote>
               </article>
 
-              <article className={`${styles.tile} ${styles.tileSafe} ${styles.reveal}`} style={{ '--d': '4%' }}>
+              <article className={`${styles.tile} ${styles.tileSafe} ${styles.reveal}`} style={{ '--d': '4%' }} data-spot>
                 <span className={`${styles.tileIcon} ${styles.iconGreen}`}>
                   <ShieldCheck aria-hidden="true" />
                 </span>
@@ -498,6 +530,9 @@ export default async function MainPage() {
                   পুরুষ ও নারীদের জন্য আলাদা ব্যাচ — ১০০% ঘরে বসেই পাঠদানের সুযোগ, ক্লাস রেকর্ডিং ও লাইফটাইম
                   সাপোর্ট।
                 </p>
+                <a href="#programs" className={styles.tileLink}>
+                  আলাদা ব্যাচ দেখুন <ArrowRight aria-hidden="true" />
+                </a>
               </article>
             </div>
           </div>
@@ -538,6 +573,7 @@ export default async function MainPage() {
                   key={m.moduleNo ?? i}
                   className={`${styles.session} ${styles.reveal}`}
                   style={{ '--d': `${(i % 2) * 4}%` }}
+                  data-spot
                 >
                   <div className={styles.sessionHead}>
                     <span className={styles.sessionNo}>{bnPad(m.moduleNo ?? i + 1)}</span>
@@ -599,7 +635,7 @@ export default async function MainPage() {
               </div>
               <ol className={styles.steps}>
                 {steps.map(({ icon: Icon, title, text }, i) => (
-                  <li key={title} className={`${styles.step} ${styles.reveal}`} style={{ '--d': `${i * 4}%` }}>
+                  <li key={title} className={`${styles.step} ${styles.reveal}`} style={{ '--d': `${i * 4}%` }} data-spot>
                     <span className={styles.stepIcon}>
                       <Icon aria-hidden="true" />
                     </span>
@@ -612,7 +648,7 @@ export default async function MainPage() {
             </div>
 
             <div className={styles.ready}>
-              <div className={`${styles.readyCard} ${styles.reveal}`}>
+              <div className={`${styles.readyCard} ${styles.reveal}`} data-spot>
                 <h3>আবেদনের সাধারণ যোগ্যতা</h3>
                 <ul className={styles.checklist}>
                   {ELIGIBILITY.map((item) => (
@@ -623,7 +659,7 @@ export default async function MainPage() {
                   ))}
                 </ul>
               </div>
-              <div className={`${styles.readyCard} ${styles.reveal}`} style={{ '--d': '4%' }}>
+              <div className={`${styles.readyCard} ${styles.reveal}`} style={{ '--d': '4%' }} data-spot>
                 <h3>কোর্স ফি ও পেমেন্ট তথ্য</h3>
                 <p className={styles.readyPrice}>
                   ৳{fee} <span>এককালীন রেজিস্ট্রেশন ফি</span>
@@ -635,7 +671,10 @@ export default async function MainPage() {
                   </div>
                   <div>
                     <dt>বিকাশ / নগদ / রকেট</dt>
-                    <dd>{settings.bkashMerchantNumber}</dd>
+                    <dd className={styles.payAction}>
+                      <span>{settings.bkashMerchantNumber}</span>
+                      <CopyButton text={settings.bkashMerchantNumber} label="বিকাশ নম্বর" />
+                    </dd>
                   </div>
                   <div>
                     <dt>কোর্স ট্র্যাক</dt>
@@ -643,7 +682,11 @@ export default async function MainPage() {
                   </div>
                   <div>
                     <dt>হটলাইন / WhatsApp</dt>
-                    <dd>{helplinePhone}</dd>
+                    <dd>
+                      <a href={telHref} className={styles.payLink}>
+                        <Phone aria-hidden="true" /> {helplinePhone}
+                      </a>
+                    </dd>
                   </div>
                 </dl>
               </div>
@@ -663,7 +706,7 @@ export default async function MainPage() {
             />
             <ul className={styles.faculty}>
               {instructors.map((t, i) => (
-                <li key={t.fullName} className={`${styles.member} ${styles.reveal}`} style={{ '--d': `${(i % 4) * 3}%` }}>
+                <li key={t.fullName} className={`${styles.member} ${styles.reveal}`} style={{ '--d': `${(i % 4) * 3}%` }} data-spot>
                   <span className={styles.memberAvatar}>
                     {t.avatar ? (
                       // eslint-disable-next-line @next/next/no-img-element -- admin-uploaded avatars come from arbitrary hosts
@@ -828,6 +871,11 @@ export default async function MainPage() {
           </div>
         </div>
       </footer>
+
+      {/* Back to top — its RGB ring fills as you read down the page */}
+      <a href="#top" className={styles.toTop} aria-label="পেজের শুরুতে যান">
+        <ArrowUp aria-hidden="true" />
+      </a>
 
       <a
         href={whatsappUrl}

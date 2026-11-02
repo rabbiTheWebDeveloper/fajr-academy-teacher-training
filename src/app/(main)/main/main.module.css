@@ -5,6 +5,20 @@
    scroll-driven animations, so they cost zero JavaScript.
    ===================================================================== */
 
+/* Animatable angle for the spinning RGB rings, and the reading progress
+   for the back-to-top ring (100% = full ring where scroll timelines are missing). */
+@property --spin {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --read {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+
 /* ---------- Tokens ---------- */
 .page {
   /* Colour channels — always consumed as rgba(var(--c-*), alpha) */
@@ -42,6 +56,17 @@
   --grad-dawn-ink: linear-gradient(90deg, rgba(0, 102, 204, 1), rgba(125, 63, 216, 1) 38%, rgba(214, 36, 110, 1) 72%, rgba(194, 65, 12, 1));
   --grad-gold: linear-gradient(135deg, rgba(var(--c-gold-soft), 1), rgba(var(--c-gold), 1) 55%, rgba(184, 134, 11, 1));
   --grad-avatar: linear-gradient(135deg, rgba(var(--c-blue), 1), rgba(var(--c-purple), 1));
+
+  /* Full RGB wheel. Only the colour stops live here: each ring writes its own
+     conic-gradient(from var(--spin), var(--rgb-stops)), because a var(--spin) inside an
+     inherited token would be frozen at .page's value and never turn. */
+  --rgb-stops: rgba(var(--c-red), 1), rgba(var(--c-orange), 1), rgba(var(--c-gold-soft), 1), rgba(var(--c-green), 1), rgba(var(--c-cyan), 1), rgba(var(--c-blue), 1), rgba(var(--c-purple), 1), rgba(var(--c-pink), 1), rgba(var(--c-red), 1);
+
+  /* Periodic RGB loop (starts and ends on blue) for the shimmering hero headline */
+  --grad-rgb-loop: linear-gradient(90deg, rgba(var(--c-blue), 1), rgba(var(--c-cyan), 1) 14%, rgba(var(--c-green), 1) 28%, rgba(var(--c-gold-soft), 1) 42%, rgba(var(--c-orange), 1) 56%, rgba(var(--c-pink), 1) 70%, rgba(var(--c-purple), 1) 85%, rgba(var(--c-blue), 1));
+
+  /* Cursor-following glow on card rims; cards opt in by setting --rim-hot on hover */
+  --rim-off: linear-gradient(transparent, transparent);
 
   --text-on-dark: rgba(255, 255, 255, 0.92);
   --text-on-dark-2: rgba(235, 235, 245, 0.66);
@@ -177,20 +202,50 @@
   text-align: left;
 }
 
+/* Kicker: a pill with an RGB spectrum rim and a glowing colour-wheel dot */
 .kicker {
-  display: inline-block;
-  padding-block: 0.1em;
-  margin-bottom: 10px;
-  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.1875rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 5px 16px 5px 12px;
+  border-radius: 980px;
+  font-size: clamp(0.9375rem, 0.9rem + 0.25vw, 1.0625rem);
   font-weight: 700;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(rgba(var(--c-night-2), 1), rgba(var(--c-night-2), 1)) padding-box,
+    var(--grad-spectrum) border-box;
+  box-shadow: 0 10px 28px -14px rgba(var(--c-purple), 0.7);
+}
+
+.light .kicker,
+.white .kicker {
+  background:
+    linear-gradient(rgba(255, 255, 255, 1), rgba(255, 255, 255, 1)) padding-box,
+    var(--grad-spectrum) border-box;
+  box-shadow: 0 10px 28px -16px rgba(var(--c-blue), 0.5);
+}
+
+.kickerDot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: conic-gradient(var(--rgb-stops));
+  box-shadow: 0 0 10px rgba(var(--c-pink), 0.7);
+}
+
+.kickerText {
+  padding-block: 0.1em;
   background: var(--grad-dawn);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-.light .kicker,
-.white .kicker {
+.light .kickerText,
+.white .kickerText {
   background-image: var(--grad-dawn-ink);
 }
 
@@ -282,18 +337,24 @@
   margin-top: auto;
 }
 
+/* Gold pill inside a spinning RGB rim (border-box conic under a padding-box fill) */
 .btnPrimary {
   position: relative;
   isolation: isolate;
   overflow: hidden;
+  padding: 10px 24px;
   color: var(--on-gold);
-  background: var(--grad-gold);
+  border: 2px solid transparent;
+  background:
+    var(--grad-gold) padding-box,
+    conic-gradient(from var(--spin), var(--rgb-stops)) border-box;
   /* gold lift plus a blue-left / red-right RGB halo */
   box-shadow:
     0 10px 30px -10px rgba(var(--c-gold), 0.65),
     -14px 12px 36px -14px rgba(var(--c-blue), 0.55),
     14px 12px 36px -14px rgba(var(--c-red), 0.55),
     inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  animation: spin 4s linear infinite;
 }
 
 /* Light sweep on hover */
@@ -308,15 +369,21 @@
 }
 
 .btnGhost {
+  padding: 11px 25px;
   color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
 .btnLight {
+  padding: 10px 24px;
   color: rgba(var(--c-ink), 1);
-  background: rgba(255, 255, 255, 1);
-  box-shadow: 0 14px 34px -12px rgba(0, 0, 0, 0.45);
+  border: 2px solid transparent;
+  background:
+    linear-gradient(rgba(255, 255, 255, 1), rgba(255, 255, 255, 1)) padding-box,
+    conic-gradient(from var(--spin), var(--rgb-stops)) border-box;
+  box-shadow: 0 14px 34px -12px rgba(0, 0, 0, 0.45), 0 0 40px -10px rgba(var(--c-purple), 0.55);
+  animation: spin 4s linear infinite;
 }
 
 .btnSoft {
@@ -354,8 +421,13 @@
     transform: translateX(120%);
   }
 
+  /* Ghost buttons pick up an RGB rim on hover */
   .btnGhost:hover {
-    background: rgba(255, 255, 255, 0.14);
+    border-color: transparent;
+    background:
+      linear-gradient(rgba(var(--c-night-2), 1), rgba(var(--c-night-2), 1)) padding-box,
+      var(--grad-spectrum) border-box;
+    box-shadow: 0 12px 30px -14px rgba(var(--c-cyan), 0.6);
   }
 
   .btnSoft:hover {
@@ -436,17 +508,23 @@
 }
 
 .navCta {
-  padding: 6px 15px;
+  padding: 5px 14px;
   border-radius: 980px;
   font-size: 14px;
   font-weight: 600;
   color: var(--on-gold);
-  background: var(--grad-gold);
-  transition: filter 0.2s ease;
+  border: 1.5px solid transparent;
+  background:
+    var(--grad-gold) padding-box,
+    conic-gradient(from var(--spin), var(--rgb-stops)) border-box;
+  box-shadow: 0 0 22px -6px rgba(var(--c-gold), 0.6);
+  transition: filter 0.2s ease, transform 0.3s var(--ease-out);
+  animation: spin 4s linear infinite;
 }
 
 .navCta:hover {
   filter: brightness(1.08);
+  transform: translateY(-1px);
 }
 
 .menuBtn {
@@ -513,23 +591,54 @@
 }
 
 .menu a {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
   padding: 14px 0;
   font-size: 26px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.92);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  transition: color 0.25s ease, padding-left 0.35s var(--ease-out);
+}
+
+.menu a:active {
+  padding-left: 6px;
+}
+
+.menuIdx {
+  min-width: 26px;
+  padding-block: 0.1em;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--grad-spectrum);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  opacity: 0.55;
+}
+
+.menu a[aria-current] {
+  color: rgba(var(--c-gold-soft), 1);
+}
+
+.menu a[aria-current] .menuIdx {
+  opacity: 1;
 }
 
 .menu .menuCta {
+  justify-content: center;
   margin-top: 24px;
   padding: 14px;
-  border: 0;
+  border: 2px solid transparent;
   border-radius: 980px;
   font-size: 18px;
   text-align: center;
   color: var(--on-gold);
-  background: var(--grad-gold);
+  background:
+    var(--grad-gold) padding-box,
+    conic-gradient(from var(--spin), var(--rgb-stops)) border-box;
+  animation: spin 4s linear infinite;
 }
 
 @media (min-width: 1069px) {
@@ -548,12 +657,35 @@
   }
 
   .navLinks a {
+    position: relative;
+    display: inline-block;
+    padding-block: 6px;
     color: rgba(255, 255, 255, 0.78);
     transition: color 0.2s ease;
   }
 
-  .navLinks a:hover {
+  /* RGB underline: slides in on hover, stays lit for the section in view (scroll-spy) */
+  .navLinks a::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--grad-spectrum);
+    box-shadow: 0 0 10px rgba(var(--c-purple), 0.8);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.45s var(--ease-out);
+  }
+
+  .navLinks a:hover,
+  .navLinks a[aria-current] {
     color: rgba(255, 255, 255, 1);
+  }
+
+  .navLinks a:hover::after,
+  .navLinks a[aria-current]::after {
+    transform: scaleX(1);
   }
 
   .navActions {
@@ -662,12 +794,30 @@
   font-size: 14px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
-  /* spectrum ring via padding-box / border-box backgrounds (no mask needed) */
-  border: 1px solid transparent;
+  /* spinning RGB ring via padding-box / border-box backgrounds (no mask needed) */
+  border: 1.5px solid transparent;
   background:
     linear-gradient(rgba(var(--c-night-2), 1), rgba(var(--c-night-2), 1)) padding-box,
-    var(--grad-spectrum) border-box;
-  animation: fadeUp 0.9s var(--ease-out) both;
+    conic-gradient(from var(--spin), var(--rgb-stops)) border-box;
+  box-shadow: 0 0 34px -8px rgba(var(--c-purple), 0.55);
+  animation: fadeUp 0.9s var(--ease-out) both, spin 6s linear infinite;
+}
+
+/* Desktop: a soft RGB aurora follows the cursor across the hero (MainFx sets --hx / --hy) */
+.heroCursor {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(560px circle at var(--hx, 50%) var(--hy, 30%), rgba(var(--c-cyan), 0.16), rgba(var(--c-purple), 0.09) 38%, rgba(var(--c-pink), 0) 70%);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hero:hover .heroCursor {
+    opacity: 1;
+  }
 }
 
 .liveDot {
@@ -721,13 +871,13 @@
 .heroGradient {
   display: block;
   padding-block: 0.1em;
-  background: var(--grad-dawn-loop);
+  background: var(--grad-rgb-loop);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   /* background-position repaints text each frame, so it waits until the page has settled */
-  animation: shimmer 12s 2.5s linear infinite;
+  animation: shimmer 10s 2.5s linear infinite;
 }
 
 /* Usually the LCP element: transform-only entrance, visible from the first frame */
@@ -820,11 +970,51 @@
   pointer-events: none;
 }
 
-/* Each cell carries one primary: blue · green · red */
+/* Each cell carries one primary: blue · green · red — and is a shortcut link */
 .panelCell {
   --tint: var(--c-blue);
+  position: relative;
+  isolation: isolate;
+  display: block;
   padding: 26px 28px;
+  color: inherit;
   background: radial-gradient(90% 100% at 0% 0%, rgba(var(--tint), 0.2), rgba(var(--tint), 0) 72%);
+  transition: background-color 0.3s ease;
+}
+
+.panelCell:focus-visible {
+  outline-offset: -3px;
+}
+
+.panelGo {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  transition: transform 0.45s var(--ease-out), background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+@media (hover: hover) {
+  .panelCell:hover {
+    background-color: rgba(255, 255, 255, 0.035);
+  }
+
+  .panelCell:hover .panelGo {
+    transform: rotate(45deg);
+    color: rgba(255, 255, 255, 1);
+    background: rgba(var(--tint), 1);
+    box-shadow: 0 0 22px rgba(var(--tint), 0.75);
+  }
+}
+
+.panelCell:active .panelGo {
+  transform: rotate(45deg) scale(0.9);
 }
 
 .panelCell:nth-child(2) {
@@ -854,6 +1044,7 @@
 }
 
 .panelValue {
+  display: block;
   margin-top: 10px;
   font-size: clamp(1.625rem, 1.3rem + 1vw, 2.125rem);
   font-weight: 700;
@@ -885,6 +1076,7 @@
 }
 
 .panelSub {
+  display: block;
   margin-top: 6px;
   font-size: 14px;
   color: var(--text-on-dark-2);
@@ -920,14 +1112,62 @@
 .stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 40px 20px;
+  gap: 14px;
   text-align: center;
+}
+
+/* Glass stat cards, each carrying its own slice of the spectrum */
+.stat {
+  --tint: var(--c-red);
+  position: relative;
+  isolation: isolate;
+  padding: clamp(22px, 3vw, 34px) 8px;
+  border-radius: 24px;
+  background:
+    radial-gradient(90% 80% at 50% 0%, rgba(var(--tint), 0.14), rgba(var(--tint), 0) 70%),
+    rgba(255, 255, 255, 0.025);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: transform 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out);
+}
+
+.stat:nth-child(2) {
+  --tint: var(--c-green);
+}
+
+.stat:nth-child(3) {
+  --tint: var(--c-cyan);
+}
+
+.stat:nth-child(4) {
+  --tint: var(--c-purple);
+}
+
+/* the card's slice of the spectrum, as a glowing cap */
+.stat::before {
+  content: "";
+  position: absolute;
+  inset: 0 18% auto;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--grad-spectrum);
+  background-size: 400% 100%;
+  background-position: var(--pos, 0%) 0;
+  box-shadow: 0 0 18px rgba(var(--tint), 0.9);
+}
+
+@media (hover: hover) {
+  .stat:hover {
+    transform: translateY(-5px);
+    box-shadow: inset 0 0 0 1px rgba(var(--tint), 0.5), 0 26px 56px -26px rgba(var(--tint), 0.75);
+  }
 }
 
 .statValue {
   display: block;
   padding-block: 0.08em;
-  font-size: clamp(2.5rem, 1.6rem + 3.6vw, 4.5rem);
+  /* sized to fit "১০,০০০+" inside a quarter-width card at every breakpoint */
+  font-size: clamp(2.125rem, 1.2rem + 2.6vw, 3.5rem);
+  white-space: nowrap;
   font-weight: 700;
   line-height: 1.15;
   /* One continuous RGB spectrum sliced across the four numbers */
@@ -949,11 +1189,14 @@
 @media (min-width: 1069px) {
   .stats {
     grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
   }
 }
 
 .marquee {
   position: relative;
+  display: grid;
+  gap: 10px;
   margin-top: clamp(56px, 7vw, 88px);
   overflow: hidden;
 }
@@ -978,7 +1221,13 @@
 .marqueeRail {
   display: flex;
   width: max-content;
+  padding-block: 4px;
   animation: marquee 50s linear infinite;
+}
+
+.marqueeRail[data-reverse] {
+  animation-duration: 62s;
+  animation-direction: reverse;
 }
 
 .marquee:hover .marqueeRail {
@@ -1005,6 +1254,15 @@
   color: rgba(255, 255, 255, 0.9);
   background: rgba(var(--tint), 0.12);
   box-shadow: inset 0 0 0 1px rgba(var(--tint), 0.4);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* The marquee pauses under the cursor, so the hovered chip can light up */
+@media (hover: hover) {
+  .chip:hover {
+    background: rgba(var(--tint), 0.26);
+    box-shadow: inset 0 0 0 1px rgba(var(--tint), 0.9), 0 0 22px -4px rgba(var(--tint), 0.8);
+  }
 }
 
 .chip:nth-child(4n + 2) {
@@ -1050,26 +1308,83 @@
   background:
     radial-gradient(80% 70% at 100% 0%, rgba(var(--tint, 255, 255, 255), 0.13), rgba(var(--tint, 255, 255, 255), 0) 70%) padding-box,
     linear-gradient(rgba(255, 255, 255, 1), rgba(255, 255, 255, 1)) padding-box,
+    var(--rim-hot, var(--rim-off)) border-box,
     linear-gradient(150deg, rgba(var(--tint, 0, 0, 0), 0.5), rgba(var(--tint, 0, 0, 0), 0.06) 45%, rgba(var(--tint, 0, 0, 0), 0.22)) border-box;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 40px -18px rgba(0, 0, 0, 0.18);
   transition: transform 0.6s var(--ease-out), box-shadow 0.6s var(--ease-out);
 }
 
-/* one primary per tile, in source order: blue · (dark) · red · gold · (dark) · green */
+/* "Learn more" link stretched over the whole tile, so the entire card is clickable */
+.tileLink {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(var(--link, var(--c-blue-ink)), 1);
+}
+
+.tileLink::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.tileLink svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.4s var(--ease-out);
+}
+
+.tileLink:focus-visible {
+  outline: none;
+}
+
+.tile:has(.tileLink:focus-visible) {
+  outline: 2px solid rgba(var(--c-blue), 1);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) {
+  .tile:hover .tileLink svg {
+    transform: translateX(5px);
+  }
+}
+
+/* one primary per tile, in source order: blue · (dark) · red · gold · (dark) · green.
+   --link is a deeper ink of the same hue so link text keeps its contrast on white. */
 .tileHome {
   --tint: var(--c-blue);
+  --link: var(--c-blue-ink);
 }
 
 .tile:nth-child(3) {
   --tint: var(--c-red);
+  --link: var(--c-red-ink);
 }
 
 .tile:nth-child(4) {
   --tint: var(--c-gold);
+  --link: 146, 104, 0;
 }
 
 .tileSafe {
   --tint: var(--c-green);
+  --link: var(--c-green-ink);
+}
+
+.tileIncome {
+  --spot: var(--c-gold-soft);
+  --link: var(--c-gold-soft);
+}
+
+.tileHadith {
+  --spot: 255, 255, 255;
 }
 
 .tile h3 {
@@ -1087,6 +1402,13 @@
   .tile:hover {
     transform: translateY(-4px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 28px 60px -22px rgba(var(--tint, 0, 0, 0), 0.42);
+  }
+
+  /* the rim lights up in full RGB right under the cursor */
+  .tile:hover,
+  .session:hover,
+  .member:hover {
+    --rim-hot: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(var(--c-red), 1), rgba(var(--c-green), 0.9) 30%, rgba(var(--c-blue), 0.8) 55%, rgba(var(--c-blue), 0) 80%);
   }
 }
 
@@ -1399,18 +1721,23 @@
   gap: 24px;
 }
 
+/* 2px rim = a conic "comet" in the card's two colours, always turning; on hover it
+   becomes the full RGB wheel. --rx / --ry (from MainFx) tilt the card toward the cursor. */
 .program {
   --a: var(--c-blue);
   --b: var(--c-green);
+  --tint: var(--a);
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  padding: 1.5px;
+  padding: 2px;
   border-radius: 32px;
-  background: linear-gradient(160deg, rgba(var(--a), 0.9), rgba(255, 255, 255, 0.06) 38%, rgba(255, 255, 255, 0.04) 62%, rgba(var(--b), 0.75));
+  background: conic-gradient(from var(--spin), rgba(var(--a), 1), rgba(var(--a), 0.08) 20%, rgba(255, 255, 255, 0.05) 30%, rgba(var(--b), 1) 50%, rgba(var(--b), 0.08) 70%, rgba(255, 255, 255, 0.05) 80%, rgba(var(--a), 1));
   /* ambient light in the card's own colours pooling beneath it */
   box-shadow: -20px 44px 90px -44px rgba(var(--a), 0.6), 20px 44px 90px -44px rgba(var(--b), 0.6);
+  transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
   transition: transform 0.6s var(--ease-out), box-shadow 0.6s var(--ease-out);
+  animation: spin 8s linear infinite;
 }
 
 .program[data-tone="women"] {
@@ -1437,12 +1764,13 @@
 
 .programInner {
   position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   gap: 24px;
   height: 100%;
   padding: clamp(28px, 3.4vw, 44px);
-  border-radius: 30.5px;
+  border-radius: 30px;
   background:
     radial-gradient(90% 55% at 100% 0%, rgba(var(--a), 0.26), transparent 60%),
     radial-gradient(80% 45% at 0% 100%, rgba(var(--b), 0.2), transparent 60%),
@@ -1562,9 +1890,20 @@
 
 @media (hover: hover) {
   .program:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 40px 80px -36px rgba(var(--a), 0.55);
+    background: conic-gradient(from var(--spin), var(--rgb-stops));
+    transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-6px);
+    /* quick follow while the cursor moves; the 0.6s ease still settles it on leave */
+    transition: transform 0.2s ease-out, box-shadow 0.6s var(--ease-out);
+    box-shadow: -24px 44px 90px -40px rgba(var(--c-blue), 0.55), 24px 44px 90px -40px rgba(var(--c-red), 0.55), 0 40px 80px -36px rgba(var(--a), 0.55);
   }
+
+  .program:hover .perks svg {
+    transform: scale(1.08);
+  }
+}
+
+.perks svg {
+  transition: transform 0.4s var(--ease-out);
 }
 
 @media (min-width: 1069px) {
@@ -1588,6 +1927,9 @@
   --tint: var(--c-blue);
   --ink: var(--c-blue-ink);
   --ink-2: var(--c-indigo);
+  --fill: var(--c-mist);
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1596,9 +1938,10 @@
   border-radius: 28px;
   background:
     radial-gradient(80% 50% at 100% 0%, rgba(var(--tint), 0.14), rgba(var(--tint), 0) 70%) padding-box,
-    linear-gradient(rgba(var(--c-mist), 1), rgba(var(--c-mist), 1)) padding-box,
+    linear-gradient(rgba(var(--fill), 1), rgba(var(--fill), 1)) padding-box,
+    var(--rim-hot, var(--rim-off)) border-box,
     linear-gradient(150deg, rgba(var(--tint), 0.5), rgba(var(--tint), 0.06) 45%, rgba(var(--tint), 0.22)) border-box;
-  transition: transform 0.6s var(--ease-out), box-shadow 0.6s var(--ease-out), background-color 0.4s ease;
+  transition: transform 0.6s var(--ease-out), box-shadow 0.6s var(--ease-out);
 }
 
 .session:nth-child(3n + 2) {
@@ -1632,7 +1975,10 @@
 }
 
 .sessionNo {
+  display: inline-block;
   padding-block: 0.1em;
+  transform-origin: left center;
+  transition: transform 0.5s var(--ease-out);
   font-size: clamp(3rem, 2.4rem + 2vw, 4rem);
   font-weight: 700;
   line-height: 1;
@@ -1730,9 +2076,13 @@
 
 @media (hover: hover) {
   .session:hover {
+    --fill: var(--c-white);
     transform: translateY(-4px);
-    background: rgba(255, 255, 255, 1);
-    box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 30px 60px -30px rgba(var(--tint), 0.45);
+  }
+
+  .session:hover .sessionNo {
+    transform: scale(1.08);
   }
 
   .session:hover .topics li {
@@ -1769,6 +2119,27 @@
   --tint: var(--c-red);
   --tint-2: var(--c-orange);
   position: relative;
+  isolation: isolate;
+  padding: 22px 18px 24px;
+  border-radius: 26px;
+  transition: background-color 0.4s ease, box-shadow 0.5s var(--ease-out);
+}
+
+/* Hover: a glass card in the step's colour; the icon gets a spinning RGB halo */
+@media (hover: hover) {
+  .step:hover {
+    background-color: rgba(255, 255, 255, 0.035);
+    box-shadow: inset 0 0 0 1px rgba(var(--tint), 0.35), 0 30px 60px -36px rgba(var(--tint), 0.8);
+  }
+
+  /* no transform here: it would make the icon a stacking context and pull the halo on top */
+  .step:hover .stepIcon {
+    box-shadow: 0 14px 40px -10px rgba(var(--tint), 0.9);
+  }
+
+  .step:hover .stepIcon::before {
+    opacity: 1;
+  }
 }
 
 .step:nth-child(2) {
@@ -1787,6 +2158,7 @@
 }
 
 .stepIcon {
+  position: relative;
   display: grid;
   place-items: center;
   width: 64px;
@@ -1797,6 +2169,21 @@
   /* solid primary → secondary disc; the dark ring is the gap to the connecting line */
   background: linear-gradient(135deg, rgba(var(--tint), 1), rgba(var(--tint-2), 1));
   box-shadow: 0 0 0 8px rgba(var(--c-night), 1), 0 14px 40px -12px rgba(var(--tint), 0.7);
+  transition: box-shadow 0.4s ease;
+}
+
+/* RGB halo: a conic disc 5px larger than the icon, painted behind it (z-index -1 lands in
+   the step's stacking context, under the icon's own background) */
+.stepIcon::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  z-index: -1;
+  border-radius: 50%;
+  background: conic-gradient(from var(--spin), var(--rgb-stops));
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  animation: spin 2.4s linear infinite;
 }
 
 /* white on gold is too faint — the "alpha" step takes dark ink */
@@ -1850,9 +2237,10 @@
     text-align: center;
   }
 
+  /* centre of the 64px icon, below the step card's 22px top padding */
   .stepsLine {
     position: absolute;
-    top: 32px;
+    top: 54px;
     right: 12.5%;
     left: 12.5%;
     display: block;
@@ -1880,12 +2268,88 @@
 /* Eligibility card is green, payment card is blue */
 .readyCard {
   --tint: var(--c-green);
+  position: relative;
+  isolation: isolate;
   padding: clamp(28px, 3.4vw, 44px);
   border-radius: 28px;
   background:
     radial-gradient(80% 60% at 0% 0%, rgba(var(--tint), 0.2), rgba(var(--tint), 0) 70%),
     rgba(255, 255, 255, 0.04);
   box-shadow: inset 0 0 0 1px rgba(var(--tint), 0.28);
+  transition: box-shadow 0.5s var(--ease-out);
+}
+
+@media (hover: hover) {
+  .readyCard:hover {
+    box-shadow: inset 0 0 0 1px rgba(var(--tint), 0.6), 0 34px 70px -40px rgba(var(--tint), 0.8);
+  }
+}
+
+/* bKash number + one-tap copy */
+.payAction {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 10px;
+}
+
+.copyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: 980px;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 1);
+  background: rgba(var(--c-blue), 0.2);
+  box-shadow: inset 0 0 0 1px rgba(var(--c-blue), 0.55);
+  cursor: pointer;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease, transform 0.25s var(--ease-out);
+}
+
+.copyBtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.copyBtn:active {
+  transform: scale(0.94);
+}
+
+.copyBtn[data-copied="true"] {
+  color: rgba(134, 239, 160, 1);
+  background: rgba(var(--c-green), 0.2);
+  box-shadow: inset 0 0 0 1px rgba(var(--c-green), 0.7), 0 0 18px -4px rgba(var(--c-green), 0.8);
+}
+
+@media (hover: hover) {
+  .copyBtn:hover {
+    background: rgba(var(--c-blue), 0.34);
+    box-shadow: inset 0 0 0 1px rgba(var(--c-blue), 0.9), 0 0 18px -4px rgba(var(--c-blue), 0.8);
+  }
+}
+
+.payLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 1);
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.35);
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.payLink svg {
+  width: 15px;
+  height: 15px;
+  color: rgba(var(--c-green), 1);
+}
+
+.payLink:hover {
+  color: rgba(var(--c-cyan), 1);
+  border-color: rgba(var(--c-cyan), 0.8);
 }
 
 .readyCard:nth-child(2) {
@@ -1979,6 +2443,8 @@
 .member {
   --tint: var(--c-blue);
   --tint-2: var(--c-indigo);
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1990,6 +2456,7 @@
   background:
     radial-gradient(90% 40% at 50% 0%, rgba(var(--tint), 0.16), rgba(var(--tint), 0) 75%) padding-box,
     linear-gradient(rgba(255, 255, 255, 1), rgba(255, 255, 255, 1)) padding-box,
+    var(--rim-hot, var(--rim-off)) border-box,
     linear-gradient(180deg, rgba(var(--tint), 0.55), rgba(var(--tint), 0.06) 55%, rgba(var(--tint), 0.16)) border-box;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 40px -18px rgba(0, 0, 0, 0.16);
   transition: transform 0.6s var(--ease-out), box-shadow 0.6s var(--ease-out);
@@ -2013,6 +2480,7 @@
   border-radius: 50%;
   background: linear-gradient(135deg, rgba(var(--tint), 1), rgba(var(--tint-2), 1));
   box-shadow: 0 12px 28px -10px rgba(var(--tint), 0.6);
+  transition: box-shadow 0.4s ease;
 }
 
 .memberAvatar > span,
@@ -2082,6 +2550,13 @@
     transform: translateY(-4px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 28px 60px -22px rgba(var(--tint), 0.45);
   }
+
+  /* the avatar ring becomes a spinning RGB wheel */
+  .member:hover .memberAvatar {
+    background: conic-gradient(from var(--spin), var(--rgb-stops));
+    box-shadow: 0 0 0 4px rgba(var(--tint), 0.12), 0 16px 36px -10px rgba(var(--c-purple), 0.6);
+    animation: spin 2.4s linear infinite;
+  }
 }
 
 /* =====================================================================
@@ -2143,6 +2618,19 @@
 
 .faq summary::-webkit-details-marker {
   display: none;
+}
+
+@media (hover: hover) {
+  .faq:not([open]):hover {
+    background: rgba(255, 255, 255, 1);
+    box-shadow: inset 0 0 0 1px rgba(var(--tint), 0.4), 0 16px 36px -24px rgba(var(--tint), 0.6);
+  }
+
+  .faq:not([open]):hover .faqIcon {
+    transform: rotate(90deg);
+    color: rgba(255, 255, 255, 1);
+    background: rgba(var(--tint), 0.85);
+  }
 }
 
 .faqIcon {
@@ -2332,11 +2820,24 @@
   align-items: center;
   gap: 8px;
   word-break: break-word;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, transform 0.3s var(--ease-out);
 }
 
 .footCols a:hover {
   color: rgba(255, 255, 255, 1);
+  transform: translateX(3px);
+}
+
+.footCols a:hover svg {
+  color: rgba(var(--c-cyan), 1);
+}
+
+.footBrand strong {
+  width: fit-content;
+  background: var(--grad-dawn);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .footCols svg {
@@ -2365,6 +2866,81 @@
 @media (min-width: 1069px) {
   .footTop {
     grid-template-columns: 1fr 1.6fr;
+  }
+}
+
+/* =====================================================================
+   CURSOR SPOTLIGHT — MainFx feeds --mx / --my to every [data-spot] card.
+   A soft glow of the card's own colour (--spot, else --tint) follows the
+   cursor, painted between the card's background and its content.
+   ===================================================================== */
+.tile::after,
+.session::after,
+.member::after,
+.readyCard::after,
+.stat::after,
+.step::after,
+.panelCell::after,
+.programInner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(400px circle at var(--mx, 50%) var(--my, 50%), rgba(var(--spot, var(--tint, var(--c-blue))), 0.18), rgba(var(--spot, var(--tint, var(--c-blue))), 0) 65%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tile:hover::after,
+  .session:hover::after,
+  .member:hover::after,
+  .readyCard:hover::after,
+  .stat:hover::after,
+  .step:hover::after,
+  .panelCell:hover::after,
+  .program:hover .programInner::after {
+    opacity: 1;
+  }
+}
+
+/* ---------- Back to top (RGB reading-progress ring) ---------- */
+.toTop {
+  position: fixed;
+  right: 24px;
+  bottom: 88px;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 1);
+  /* fill · unread track (covers the wheel past --read) · RGB wheel */
+  border: 3px solid transparent;
+  background:
+    linear-gradient(rgba(var(--c-night-2), 1), rgba(var(--c-night-2), 1)) padding-box,
+    conic-gradient(rgba(0, 0, 0, 0) var(--read), rgba(44, 48, 74, 1) var(--read)) border-box,
+    conic-gradient(var(--rgb-stops)) border-box;
+  box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.8), 0 0 24px -8px rgba(var(--c-purple), 0.7);
+  transition: transform 0.35s var(--ease-out);
+}
+
+.toTop svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.35s var(--ease-out);
+}
+
+@media (hover: hover) {
+  .toTop:hover {
+    transform: scale(1.08);
+  }
+
+  .toTop:hover svg {
+    transform: translateY(-2px);
   }
 }
 
@@ -2420,6 +2996,13 @@
       animation-range: entry calc(4% + var(--d, 0%)) cover calc(24% + var(--d, 0%));
     }
 
+    /* Programme cards reveal on scroll AND keep their RGB rim turning on the clock */
+    .program.reveal {
+      animation: reveal linear both, spin 8s linear infinite;
+      animation-timeline: view(), auto;
+      animation-range: entry calc(4% + var(--d, 0%)) cover calc(24% + var(--d, 0%)), normal;
+    }
+
     .heroInner {
       animation: heroAway linear both;
       animation-timeline: scroll(root);
@@ -2436,6 +3019,13 @@
     .nav::after {
       animation: grow linear both;
       animation-timeline: scroll(root);
+    }
+
+    /* back-to-top fades in after the hero; its RGB ring fills with reading progress */
+    .toTop {
+      animation: toTopIn linear both, readFill linear both;
+      animation-timeline: scroll(root), scroll(root);
+      animation-range: 30vh 70vh, normal;
     }
   }
 
@@ -2595,6 +3185,36 @@
   45%,
   100% {
     transform: rotate(25deg) translateX(560%);
+  }
+}
+
+@keyframes spin {
+  to {
+    --spin: 360deg;
+  }
+}
+
+@keyframes readFill {
+  from {
+    --read: 0%;
+  }
+  to {
+    --read: 100%;
+  }
+}
+
+@keyframes toTopIn {
+  from {
+    opacity: 0;
+    visibility: hidden;
+    translate: 0 16px;
+    scale: 0.7;
+  }
+  to {
+    opacity: 1;
+    visibility: visible;
+    translate: 0 0;
+    scale: 1;
   }
 }
 
