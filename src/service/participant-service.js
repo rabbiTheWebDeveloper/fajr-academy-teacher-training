@@ -38,9 +38,10 @@ export async function enrollUserInCourse({
 
   // 2. Resolve Course
   const resolvedCourseId = courseId || user.track || "TOT-MEN";
-  let course = await CourseModel.findOne({
-    $or: [{ courseId: resolvedCourseId }, { track: resolvedCourseId.toLowerCase() }],
-  });
+  // Exact courseId first: a track-only match ("men") must never win over the real batch id,
+  // now that several batches (copies, new intakes) can share a track.
+  let course = await CourseModel.findOne({ courseId: resolvedCourseId });
+  if (!course) course = await CourseModel.findOne({ track: resolvedCourseId.toLowerCase() });
 
   if (!course) {
     // If not found by courseId, try finding by MongoDB ObjectId
@@ -157,4 +158,13 @@ export async function enrollUserInCourse({
     course,
     user,
   };
+}
+
+/** Adds `enrolmentCount` (number of course enrolments) to each trainee object (lean docs). */
+export async function withEnrolmentCounts(tots) {
+  const ids = tots.map((t) => t._id).filter(Boolean);
+  if (!ids.length) return tots;
+  const rows = await ParticipantModel.aggregate([{ $match: { user: { $in: ids } } }, { $group: { _id: "$user", n: { $sum: 1 } } }]);
+  const byId = new Map(rows.map((r) => [String(r._id), r.n]));
+  return tots.map((t) => ({ ...t, enrolmentCount: byId.get(String(t._id)) || 0 }));
 }

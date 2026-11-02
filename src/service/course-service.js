@@ -1,6 +1,7 @@
 import { dbConnect } from "@/service/mongo";
 import { CourseModel } from "@/model/course-model";
 import { SettingModel } from "@/model/setting-model";
+import { OPERATING_COURSE_FILTER } from "@/lib/course-state";
 import { MEN_TOT_CURRICULUM, WOMEN_TOT_CURRICULUM } from "@/constant/course-defaults";
 
 /**
@@ -125,4 +126,16 @@ export async function getPriceForTrack(track) {
   ]);
   const fee = Number(course?.fee) || Number(settings?.coursePrice) || 1000;
   return { amount: fee, currency: course?.currency || "BDT", course };
+}
+
+/**
+ * Courses an admin may enrol trainees into: published ones and unpublished ones (a running batch
+ * that is hidden from the website) — never drafts or archives.
+ */
+export async function listEnrollableCourses() {
+  await ensureDefaultCourses();
+  return CourseModel.find(OPERATING_COURSE_FILTER)
+    .sort({ createdAt: 1 })
+    .select("courseId name track publishState isPublished fee currency enrolledCount maxSeats")
+    .lean();
 }

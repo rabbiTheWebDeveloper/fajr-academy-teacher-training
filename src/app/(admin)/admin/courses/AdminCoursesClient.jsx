@@ -32,7 +32,8 @@ import {
 import { useAdminTheme } from "../../AdminThemeContext";
 import { WOMEN_TOT_CURRICULUM, MEN_TOT_CURRICULUM } from "@/constant/course-defaults";
 import { COURSE_STATE_LABEL, courseState } from "@/lib/course-state";
-import { AdminToast, DbErrorBanner, callApi, formatDate, formatMoney, useToast } from "../../_shared/admin-ui";
+import EnrolmentManager from "../../_shared/EnrolmentManager";
+import { AdminToast, DbErrorBanner, callApi, formatDate, formatMoney, useConfirm, useToast } from "../../_shared/admin-ui";
 
 /** Fields edited on the course card. Curriculum/resources are saved separately so a stale card can never overwrite them. */
 const CARD_FIELDS = [
@@ -207,6 +208,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
   const [showAddModal, setShowAddModal] = useState(false);
   const { isLight } = useAdminTheme();
   const { toast, showToast, hideToast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
 
   // Curriculum & Resource Modal state
   const [selectedCourseForCurriculum, setSelectedCourseForCurriculum] = useState(null);
@@ -223,6 +225,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
   const [busyKey, setBusyKey] = useState(null);
   const [highlightKey, setHighlightKey] = useState(null);
   const [dupSource, setDupSource] = useState(null);
+  const [rosterFor, setRosterFor] = useState(null); // course whose trainee roster is open
   const [dupForm, setDupForm] = useState({ name: "", newCourseId: "" });
 
   const reload = async () => {
@@ -317,7 +320,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
 
   /** Publish / unpublish / archive / restore / move to draft — the server checks the rules. */
   const changeState = async (batch, to) => {
-    if (!window.confirm(confirmText(batch, to))) return;
+    if (!(await confirm(confirmText(batch, to), { tone: to === "published" ? "primary" : "warning", title: to === "unpublished" && courseState(batch) === "archived" ? "কোর্স রিস্টোর করবেন?" : { published: "কোর্স প্রকাশ করবেন?", unpublished: "কোর্স আনপাবলিশ করবেন?", archived: "কোর্স আর্কাইভ করবেন?", draft: "ড্রাফটে ফিরিয়ে নেবেন?" }[to] || "অবস্থা পরিবর্তন করবেন?" }))) return;
     setBusyKey(keyOf(batch));
     const { ok, data, message } = await callApi("/api/admin/courses", {
       method: "PATCH",
@@ -363,7 +366,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
   };
 
   const handleDeleteCourse = async (batch) => {
-    if (!window.confirm(`আপনি কি নিশ্চিত যে "${batch.name}" কোর্সটি স্থায়ীভাবে মুছে ফেলতে চান?\n\nশেষ হওয়া ব্যাচ ইতিহাসে রাখতে চাইলে মুছে না ফেলে “আর্কাইভ” করুন।`)) return;
+    if (!(await confirm(`আপনি কি নিশ্চিত যে "${batch.name}" কোর্সটি স্থায়ীভাবে মুছে ফেলতে চান?\n\nশেষ হওয়া ব্যাচ ইতিহাসে রাখতে চাইলে মুছে না ফেলে “আর্কাইভ” করুন।`, { tone: "danger", title: "কোর্স মুছে ফেলবেন?" }))) return;
 
     const query = batch._id ? `id=${encodeURIComponent(batch._id)}` : `courseId=${encodeURIComponent(batch.courseId)}`;
     const { ok, message } = await callApi(`/api/admin/courses?${query}`, { method: "DELETE" });
@@ -423,9 +426,10 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
     const officialCurriculum = isMen ? MEN_TOT_CURRICULUM : WOMEN_TOT_CURRICULUM;
 
     if (
-      !window.confirm(
-        `"${selectedCourseForCurriculum.name}" কোর্সের বর্তমান কারিকুলাম মুছে অফিশিয়াল পোস্টার সেশন তথ্য (${isMen ? "পুরুষ" : "মহিলা"} ব্যাচ) দিয়ে প্রতিস্থাপন করবেন?`
-      )
+      !(await confirm(
+        `"${selectedCourseForCurriculum.name}" কোর্সের বর্তমান কারিকুলাম মুছে অফিশিয়াল পোস্টার সেশন তথ্য (${isMen ? "পুরুষ" : "মহিলা"} ব্যাচ) দিয়ে প্রতিস্থাপন করবেন?`,
+        { tone: "warning", title: "কারিকুলাম প্রতিস্থাপন করবেন?", confirmLabel: "হ্যাঁ, প্রতিস্থাপন করুন" }
+      ))
     )
       return;
 
@@ -434,7 +438,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
 
   const handleDeleteModule = async (moduleIndex) => {
     if (!selectedCourseForCurriculum) return;
-    if (!window.confirm("আপনি কি এই মডিউলটি মুছে ফেলতে চান?")) return;
+    if (!(await confirm("আপনি কি এই মডিউলটি মুছে ফেলতে চান?", { tone: "danger", title: "মডিউল মুছে ফেলবেন?" }))) return;
     const updated = (selectedCourseForCurriculum.curriculum || []).filter((_, idx) => idx !== moduleIndex);
     await saveCurriculum(updated, "মডিউলটি মুছে ফেলা হয়েছে।");
   };
@@ -484,7 +488,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
 
   const handleDeleteResource = async (resourceIndex) => {
     if (!selectedCourseForCurriculum) return;
-    if (!window.confirm("আপনি কি এই স্টাডি ম্যাটেরিয়ালটি মুছে ফেলতে চান?")) return;
+    if (!(await confirm("আপনি কি এই স্টাডি ম্যাটেরিয়ালটি মুছে ফেলতে চান?", { tone: "danger", title: "স্টাডি ম্যাটেরিয়াল মুছে ফেলবেন?" }))) return;
     const updated = (selectedCourseForCurriculum.resources || []).filter((_, idx) => idx !== resourceIndex);
     await saveResources(updated, "স্টাডি ফাইলটি মুছে ফেলা হয়েছে।");
   };
@@ -511,6 +515,26 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
 
   return (
     <div className="space-y-8">
+      {confirmDialog}
+      {rosterFor && (
+        <EnrolmentManager
+          mode="course"
+          subject={rosterFor}
+          closedReason={
+            courseState(rosterFor) === "draft"
+              ? "ড্রাফট কোর্সে ভর্তি করা যায় না — আগে কোর্সটি প্রকাশ করুন।"
+              : courseState(rosterFor) === "archived"
+              ? "আর্কাইভড কোর্সে নতুন ভর্তি করা যায় না — আগে কোর্সটি রিস্টোর করুন।"
+              : ""
+          }
+          onClose={() => setRosterFor(null)}
+          onChanged={(count) =>
+            setBatches((prev) => prev.map((b) => (keyOf(b) === keyOf(rosterFor) && b.enrolledCount !== count ? { ...b, enrolledCount: count } : b)))
+          }
+          showToast={showToast}
+          confirm={confirm}
+        />
+      )}
       <AdminToast toast={toast} onClose={hideToast} />
       <DbErrorBanner message={loadError} isLight={isLight} onRetry={reload} retrying={reloading} />
 
@@ -969,12 +993,20 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
 
               {/* Footer Stats */}
               <div className={`pt-4 mt-4 border-t flex items-center justify-between text-xs ${isLight ? "border-slate-100 text-slate-600" : "border-slate-800 text-slate-400"}`}>
-                <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setRosterFor(batch)}
+                  title="এই কোর্সের ট্রেইনি তালিকা দেখুন ও ম্যানেজ করুন"
+                  className={`flex items-center gap-1.5 -mx-2 px-2 py-1 rounded-lg cursor-pointer transition-colors text-left ${
+                    isLight ? "hover:bg-amber-50" : "hover:bg-slate-800"
+                  }`}
+                >
                   <Users className="w-4 h-4 text-amber-500" />
                   <span>
                     নিবন্ধিত ট্রেইনি: <strong className={isLight ? "text-slate-900" : "text-white"}>{batch.enrolledCount || 0}</strong> / {batch.maxSeats ?? 0}
                   </span>
-                </div>
+                  <span className={`text-[10px] font-extrabold underline underline-offset-2 ${isLight ? "text-indigo-700" : "text-indigo-300"}`}>তালিকা</span>
+                </button>
 
                 <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${statusCls(batch.status, isLight)}`}>
                   {batch.status || "—"}

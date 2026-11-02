@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Search, Trash2, X, Plus, RefreshCw, Power, KeyRound } from "lucide-react";
+import { BookOpen, Search, Trash2, X, Plus, RefreshCw, Power, KeyRound } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
 import {
   AdminToast,
@@ -13,8 +13,10 @@ import {
   formatMoney,
   isWomenTrack,
   trackLabel,
+  useConfirm,
   useToast,
 } from "../../_shared/admin-ui";
+import EnrolmentManager from "../../_shared/EnrolmentManager";
 
 const EMPTY_FORM = {
   fullName: "",
@@ -54,7 +56,7 @@ function paymentConfirmText(user, next) {
  * Admin → TOT trainees (TotModel, collection "tots"): everyone who registers / pays.
  * Instructors and admin accounts are separate models with their own screens.
  */
-export default function AdminTotsClient({ initialTots, loadError: initialLoadError }) {
+export default function AdminTotsClient({ initialTots, courses = [], loadError: initialLoadError }) {
   const [users, setUsers] = useState(initialTots || []);
   const [loadError, setLoadError] = useState(initialLoadError);
   const [reloading, setReloading] = useState(false);
@@ -64,8 +66,10 @@ export default function AdminTotsClient({ initialTots, loadError: initialLoadErr
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [busyId, setBusyId] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [enrolFor, setEnrolFor] = useState(null); // trainee whose course enrolments are open
   const { isLight } = useAdminTheme();
   const { toast, showToast, hideToast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
 
   const [createForm, setCreateForm] = useState(EMPTY_FORM);
   const [creating, setCreating] = useState(false);
@@ -73,7 +77,7 @@ export default function AdminTotsClient({ initialTots, loadError: initialLoadErr
   const [createdInfo, setCreatedInfo] = useState(null); // { email, password } shown once
   const [resetInfo, setResetInfo] = useState(null); // { name, email, password } shown once
 
-  const replaceUser = (updated) => setUsers((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
+  const replaceUser = (updated) => setUsers((prev) => prev.map((u) => (u._id === updated._id ? { ...u, ...updated } : u)));
 
   const reload = async () => {
     setReloading(true);
@@ -129,40 +133,41 @@ export default function AdminTotsClient({ initialTots, loadError: initialLoadErr
     return data;
   };
 
-  const handleChangeRole = (user, nextRole) => {
+  const handleChangeRole = async (user, nextRole) => {
     if (nextRole === user.role) return;
     const from = ROLE_SHORT[user.role] || user.role;
     const to = ROLE_SHORT[nextRole] || nextRole;
-    if (!window.confirm(`"${user.fullName}"-এর রোল ${from} থেকে ${to} করবেন?`)) return;
+    if (!(await confirm(`"${user.fullName}"-এর রোল ${from} থেকে ${to} করবেন?`, { title: "রোল পরিবর্তন করবেন?", confirmLabel: "হ্যাঁ, পরিবর্তন করুন" }))) return;
     patchUser(user, { role: nextRole }, `রোল পরিবর্তন হয়েছে: ${to}`);
   };
 
-  const handleChangePayment = (user, next) => {
+  const handleChangePayment = async (user, next) => {
     if (next === user.paymentStatus) return;
-    if (!window.confirm(paymentConfirmText(user, next))) return;
+    if (!(await confirm(paymentConfirmText(user, next), { tone: next === "paid" ? "primary" : "warning", title: "পেমেন্ট স্ট্যাটাস পরিবর্তন করবেন?" }))) return;
     patchUser(user, { paymentStatus: next });
   };
 
-  const handleToggleActive = (user) => {
+  const handleToggleActive = async (user) => {
     const next = user.isActive === false;
     const text = next
       ? `"${user.fullName}"-এর অ্যাকাউন্ট আবার সক্রিয় করবেন?`
       : `"${user.fullName}"-এর অ্যাকাউন্ট নিষ্ক্রিয় করবেন? নিষ্ক্রিয় অ্যাকাউন্ট দিয়ে লগইন করা যাবে না।`;
-    if (!window.confirm(text)) return;
+    if (!(await confirm(text, { tone: next ? "primary" : "warning", title: next ? "অ্যাকাউন্ট সক্রিয় করবেন?" : "অ্যাকাউন্ট নিষ্ক্রিয় করবেন?", confirmLabel: next ? "হ্যাঁ, সক্রিয় করুন" : "হ্যাঁ, নিষ্ক্রিয় করুন" }))) return;
     patchUser(user, { isActive: next }, next ? "অ্যাকাউন্ট সক্রিয় করা হয়েছে।" : "অ্যাকাউন্ট নিষ্ক্রিয় করা হয়েছে।");
   };
 
   const handleResetPassword = async (user) => {
-    if (!window.confirm(`"${user.fullName}"-এর জন্য নতুন পাসওয়ার্ড তৈরি করবেন?\n\nপুরনো পাসওয়ার্ড আর কাজ করবে না।`)) return;
+    if (!(await confirm(`"${user.fullName}"-এর জন্য নতুন পাসওয়ার্ড তৈরি করবেন?\n\nপুরনো পাসওয়ার্ড আর কাজ করবে না।`, { tone: "warning", title: "নতুন পাসওয়ার্ড তৈরি করবেন?", confirmLabel: "হ্যাঁ, তৈরি করুন" }))) return;
     const data = await patchUser(user, { resetPassword: true }, "নতুন পাসওয়ার্ড তৈরি হয়েছে।");
     if (data?.generatedPassword) setResetInfo({ name: user.fullName, email: user.email, password: data.generatedPassword });
   };
 
   const handleDeleteUser = async (user) => {
     if (
-      !window.confirm(
-        `"${user.fullName}" (${user.email}) অ্যাকাউন্টটি স্থায়ীভাবে মুছে ফেলবেন?\n\nএর সাথে তার কোর্স এনরোলমেন্ট, মূল্যায়ন ও লগইন সেশন মুছে যাবে। পেমেন্ট রেকর্ড আর্থিক হিসাবের জন্য রাখা হবে।`
-      )
+      !(await confirm(
+        `"${user.fullName}" (${user.email}) অ্যাকাউন্টটি স্থায়ীভাবে মুছে ফেলবেন?\n\nএর সাথে তার কোর্স এনরোলমেন্ট, মূল্যায়ন ও লগইন সেশন মুছে যাবে। পেমেন্ট রেকর্ড আর্থিক হিসাবের জন্য রাখা হবে।`,
+        { tone: "danger", title: "ট্রেইনি অ্যাকাউন্ট মুছে ফেলবেন?" }
+      ))
     )
       return;
     setBusyId(user._id);
@@ -208,8 +213,161 @@ export default function AdminTotsClient({ initialTots, loadError: initialLoadErr
   }`;
   const labelCls = `font-bold block mb-1 ${isLight ? "text-slate-700" : "text-slate-400"}`;
 
+  const emptyText = users.length === 0 ? "এখনো কোনো ট্রেইনি নেই।" : "ফিল্টারের সাথে মেলে এমন কোনো ট্রেইনি পাওয়া যায়নি।";
+
+  // Cell renderers shared by the desktop table and the phone cards.
+  const trackBadge = (u) => (
+    <span
+      className={`inline-block text-[10px] font-extrabold px-2.5 py-1 rounded-full border shrink-0 ${
+        !u.track
+          ? isLight
+            ? "bg-slate-100 text-slate-600 border-slate-300"
+            : "bg-slate-800 text-slate-400 border-slate-700"
+          : !isWomenTrack(u.track)
+          ? isLight
+            ? "bg-blue-50 text-blue-800 border-blue-200"
+            : "bg-blue-500/20 text-blue-300 border-blue-500/30"
+          : isLight
+          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+          : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+      }`}
+    >
+      {trackLabel(u.track)}
+    </span>
+  );
+
+  const enrolButton = (u) => {
+    const n = u.enrolmentCount || 0;
+    return (
+      <button
+        type="button"
+        onClick={() => setEnrolFor(u)}
+        title="কোর্স এনরোলমেন্ট ম্যানেজ করুন"
+        className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border flex items-center gap-1 cursor-pointer transition-all whitespace-nowrap ${
+          n > 0
+            ? isLight
+              ? "bg-indigo-50 text-indigo-800 border-indigo-300 hover:bg-indigo-100"
+              : "bg-indigo-500/20 text-indigo-300 border-indigo-500/30 hover:bg-indigo-500/30"
+            : isLight
+            ? "bg-white text-slate-600 border-dashed border-slate-400 hover:bg-slate-50"
+            : "bg-transparent text-slate-400 border-dashed border-slate-600 hover:bg-slate-800"
+        }`}
+      >
+        <BookOpen className="w-3 h-3" />
+        {n > 0 ? `${n} টি কোর্স` : "ভর্তি করুন"}
+      </button>
+    );
+  };
+
+  const roleSelect = (u, busy) => (
+    <select value={u.role || "teacher"} disabled={busy} onChange={(e) => handleChangeRole(u, e.target.value)} aria-label={`${u.fullName}-এর রোল`} className={cellSelectCls}>
+      {TOT_ROLE_OPTIONS.map((r) => (
+        <option key={r.value} value={r.value}>
+          {ROLE_SHORT[r.value]}
+        </option>
+      ))}
+    </select>
+  );
+
+  const paymentSelect = (u, busy) => (
+    <select
+      value={u.paymentStatus || "pending"}
+      disabled={busy}
+      onChange={(e) => handleChangePayment(u, e.target.value)}
+      aria-label={`${u.fullName}-এর পেমেন্ট স্ট্যাটাস`}
+      className={`border rounded-full px-2.5 py-1 text-[10px] font-extrabold cursor-pointer outline-hidden disabled:opacity-50 disabled:cursor-not-allowed ${
+        u.paymentStatus === "paid" || u.paymentStatus === "free"
+          ? isLight
+            ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+            : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+          : u.paymentStatus === "failed"
+          ? isLight
+            ? "bg-rose-50 text-rose-800 border-rose-300"
+            : "bg-rose-500/20 text-rose-300 border-rose-500/30"
+          : isLight
+          ? "bg-amber-50 text-amber-900 border-amber-300"
+          : "bg-amber-500/20 text-amber-300 border-amber-500/30"
+      }`}
+    >
+      {Object.entries(PAYMENT_LABEL).map(([value, label]) => (
+        <option key={value} value={value}>
+          {label}
+        </option>
+      ))}
+    </select>
+  );
+
+  const activeToggle = (u, busy, active) => (
+    <button
+      type="button"
+      onClick={() => handleToggleActive(u)}
+      disabled={busy}
+      title={active ? "নিষ্ক্রিয় করুন" : "সক্রিয় করুন"}
+      className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border flex items-center gap-1 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+        active
+          ? isLight
+            ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+            : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/30"
+          : isLight
+          ? "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
+          : "bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700"
+      }`}
+    >
+      <Power className="w-3 h-3" />
+      {active ? "সক্রিয়" : "নিষ্ক্রিয়"}
+    </button>
+  );
+
+  const rowActions = (u, busy) => (
+    <div className="flex items-center justify-end gap-2">
+      <Link
+        href={`/id-card?user=${encodeURIComponent(u._id)}`}
+        target="_blank"
+        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
+          isLight ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700 shadow-2xs" : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200"
+        }`}
+      >
+        আইডি
+      </Link>
+      <button
+        type="button"
+        onClick={() => handleResetPassword(u)}
+        disabled={busy}
+        title="নতুন পাসওয়ার্ড তৈরি করুন"
+        className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+          isLight ? "text-amber-700 hover:bg-amber-50 border border-transparent hover:border-amber-200" : "text-amber-400 hover:bg-amber-950/40"
+        }`}
+      >
+        <KeyRound className="w-3.5 h-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => handleDeleteUser(u)}
+        disabled={busy}
+        className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+          isLight ? "text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200" : "text-rose-400 hover:bg-rose-950/40"
+        }`}
+        title="মুছে ফেলুন"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
+      {confirmDialog}
+      {enrolFor && (
+        <EnrolmentManager
+          mode="trainee"
+          subject={enrolFor}
+          courses={courses}
+          onClose={() => setEnrolFor(null)}
+          onChanged={(count) => setUsers((prev) => prev.map((u) => (u._id === enrolFor._id && u.enrolmentCount !== count ? { ...u, enrolmentCount: count } : u)))}
+          showToast={showToast}
+          confirm={confirm}
+        />
+      )}
       <AdminToast toast={toast} onClose={hideToast} />
       <DbErrorBanner message={loadError} isLight={isLight} onRetry={reload} retrying={reloading} />
 
@@ -284,13 +442,13 @@ export default function AdminTotsClient({ initialTots, loadError: initialLoadErr
         <Search className={`w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 ${isLight ? "text-slate-400" : "text-slate-500"}`} />
       </div>
 
-      {/* Table Box */}
+      {/* Table (≥ md) and cards (< md) */}
       <div
         className={`rounded-3xl border overflow-hidden transition-all ${
           isLight ? "bg-white border-slate-200 shadow-sm" : "bg-slate-900 border-slate-800 shadow-2xl"
         }`}
       >
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className={`w-full text-left text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>
             <thead
               className={`font-bold border-b transition-colors ${
@@ -301,6 +459,7 @@ export default function AdminTotsClient({ initialTots, loadError: initialLoadErr
                 <th className="p-4">নাম ও আইডি</th>
                 <th className="p-4">যোগাযোগ</th>
                 <th className="p-4">ট্র্যাক / ব্যাচ</th>
+                <th className="p-4">কোর্স</th>
                 <th className="p-4">রোল</th>
                 <th className="p-4">পেমেন্ট স্ট্যাটাস</th>
                 <th className="p-4">অ্যাকাউন্ট</th>
@@ -310,8 +469,8 @@ export default function AdminTotsClient({ initialTots, loadError: initialLoadErr
             <tbody className={`divide-y ${isLight ? "divide-slate-200" : "divide-slate-800/60"}`}>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500 font-medium">
-                    {users.length === 0 ? "এখনো কোনো ট্রেইনি নেই।" : "ফিল্টারের সাথে মেলে এমন কোনো ট্রেইনি পাওয়া যায়নি।"}
+                  <td colSpan={8} className="p-8 text-center text-slate-500 font-medium">
+                    {emptyText}
                   </td>
                 </tr>
               ) : (
@@ -324,9 +483,7 @@ export default function AdminTotsClient({ initialTots, loadError: initialLoadErr
                       className={`transition-colors ${isLight ? "hover:bg-slate-50/80" : "hover:bg-slate-800/40"} ${active ? "" : "opacity-70"}`}
                     >
                       <td className="p-4">
-                        <div className={`font-bold text-sm ${isLight ? "text-slate-900" : "text-white"}`}>
-                          {u.fullName}
-                        </div>
+                        <div className={`font-bold text-sm ${isLight ? "text-slate-900" : "text-white"}`}>{u.fullName}</div>
                         <div className={`text-[11px] font-mono mt-0.5 ${isLight ? "text-amber-700 font-semibold" : "text-amber-400"}`}>
                           {u.tranId || "—"}
                         </div>
@@ -337,67 +494,12 @@ export default function AdminTotsClient({ initialTots, loadError: initialLoadErr
                         <div className={`text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>{u.email}</div>
                       </td>
 
-                      <td className="p-4">
-                        <span
-                          className={`inline-block text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${
-                            !u.track
-                              ? isLight
-                                ? "bg-slate-100 text-slate-600 border-slate-300"
-                                : "bg-slate-800 text-slate-400 border-slate-700"
-                              : !isWomenTrack(u.track)
-                              ? isLight
-                                ? "bg-blue-50 text-blue-800 border-blue-200"
-                                : "bg-blue-500/20 text-blue-300 border-blue-500/30"
-                              : isLight
-                              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                              : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                          }`}
-                        >
-                          {trackLabel(u.track)}
-                        </span>
-                      </td>
-
-                      <td className="p-4">
-                        <select
-                          value={u.role || "teacher"}
-                          disabled={busy}
-                          onChange={(e) => handleChangeRole(u, e.target.value)}
-                          className={cellSelectCls}
-                        >
-                          {TOT_ROLE_OPTIONS.map((r) => (
-                            <option key={r.value} value={r.value}>
-                              {ROLE_SHORT[r.value]}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-
+                      <td className="p-4">{trackBadge(u)}</td>
+                      <td className="p-4">{enrolButton(u)}</td>
+                      <td className="p-4">{roleSelect(u, busy)}</td>
                       <td className="p-4">
                         <div className="flex flex-col items-start gap-1">
-                          <select
-                            value={u.paymentStatus || "pending"}
-                            disabled={busy}
-                            onChange={(e) => handleChangePayment(u, e.target.value)}
-                            className={`border rounded-full px-2.5 py-1 text-[10px] font-extrabold cursor-pointer outline-hidden disabled:opacity-50 disabled:cursor-not-allowed ${
-                              u.paymentStatus === "paid" || u.paymentStatus === "free"
-                                ? isLight
-                                  ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                                  : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                                : u.paymentStatus === "failed"
-                                ? isLight
-                                  ? "bg-rose-50 text-rose-800 border-rose-300"
-                                  : "bg-rose-500/20 text-rose-300 border-rose-500/30"
-                                : isLight
-                                ? "bg-amber-50 text-amber-900 border-amber-300"
-                                : "bg-amber-500/20 text-amber-300 border-amber-500/30"
-                            }`}
-                          >
-                            {Object.entries(PAYMENT_LABEL).map(([value, label]) => (
-                              <option key={value} value={value}>
-                                {label}
-                              </option>
-                            ))}
-                          </select>
+                          {paymentSelect(u, busy)}
                           {u.paymentStatus === "paid" && (
                             <span className={`text-[10px] font-mono font-bold ${isLight ? "text-emerald-700" : "text-emerald-400"}`}>
                               পরিশোধিত: {formatMoney(u.paidAmount)}
@@ -405,64 +507,8 @@ export default function AdminTotsClient({ initialTots, loadError: initialLoadErr
                           )}
                         </div>
                       </td>
-
-                      <td className="p-4">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleActive(u)}
-                          disabled={busy}
-                          title={active ? "নিষ্ক্রিয় করুন" : "সক্রিয় করুন"}
-                          className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border flex items-center gap-1 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                            active
-                              ? isLight
-                                ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
-                                : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/30"
-                              : isLight
-                              ? "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
-                              : "bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700"
-                          }`}
-                        >
-                          <Power className="w-3 h-3" />
-                          {active ? "সক্রিয়" : "নিষ্ক্রিয়"}
-                        </button>
-                      </td>
-
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link
-                            href={`/id-card?user=${encodeURIComponent(u._id)}`}
-                            target="_blank"
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
-                              isLight
-                                ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700 shadow-2xs"
-                                : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200"
-                            }`}
-                          >
-                            আইডি
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => handleResetPassword(u)}
-                            disabled={busy}
-                            title="নতুন পাসওয়ার্ড তৈরি করুন"
-                            className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                              isLight ? "text-amber-700 hover:bg-amber-50 border border-transparent hover:border-amber-200" : "text-amber-400 hover:bg-amber-950/40"
-                            }`}
-                          >
-                            <KeyRound className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(u)}
-                            disabled={busy}
-                            className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                              isLight ? "text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200" : "text-rose-400 hover:bg-rose-950/40"
-                            }`}
-                            title="মুছে ফেলুন"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
+                      <td className="p-4">{activeToggle(u, busy, active)}</td>
+                      <td className="p-4 text-right">{rowActions(u, busy)}</td>
                     </tr>
                   );
                 })
@@ -470,6 +516,50 @@ export default function AdminTotsClient({ initialTots, loadError: initialLoadErr
             </tbody>
           </table>
         </div>
+
+        {/* Phone layout: one card per trainee, every action reachable without sideways scrolling */}
+        <ul className={`md:hidden divide-y ${isLight ? "divide-slate-200" : "divide-slate-800/60"}`}>
+          {filtered.length === 0 ? (
+            <li className="p-8 text-center text-slate-500 font-medium text-xs">{emptyText}</li>
+          ) : (
+            filtered.map((u) => {
+              const busy = busyId === u._id;
+              const active = u.isActive !== false;
+              return (
+                <li key={u._id} className={`p-4 space-y-3 ${active ? "" : "opacity-70"}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className={`font-black text-sm wrap-break-word ${isLight ? "text-slate-900" : "text-white"}`}>{u.fullName}</div>
+                      <div className={`text-[11px] font-mono mt-0.5 break-all ${isLight ? "text-amber-700 font-semibold" : "text-amber-400"}`}>{u.tranId || "—"}</div>
+                    </div>
+                    {trackBadge(u)}
+                  </div>
+
+                  <div className={`text-[11px] space-y-0.5 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                    {u.phone && <div className={`font-semibold ${isLight ? "text-slate-800" : "text-slate-200"}`}>{u.phone}</div>}
+                    <div className="break-all">{u.email}</div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {roleSelect(u, busy)}
+                    {paymentSelect(u, busy)}
+                  </div>
+                  {u.paymentStatus === "paid" && (
+                    <div className={`text-[10px] font-mono font-bold ${isLight ? "text-emerald-700" : "text-emerald-400"}`}>পরিশোধিত: {formatMoney(u.paidAmount)}</div>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      {activeToggle(u, busy, active)}
+                      {enrolButton(u)}
+                    </div>
+                    {rowActions(u, busy)}
+                  </div>
+                </li>
+              );
+            })
+          )}
+        </ul>
       </div>
 
       {/* Create User / Admin Modal */}

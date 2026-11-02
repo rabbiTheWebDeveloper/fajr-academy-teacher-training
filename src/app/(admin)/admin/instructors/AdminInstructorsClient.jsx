@@ -30,6 +30,7 @@ import {
   callApi,
   isWomenTrack,
   trackLabel,
+  useConfirm,
   useToast,
 } from "../../_shared/admin-ui";
 
@@ -81,6 +82,7 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
   const [resetInfo, setResetInfo] = useState(null); // { name, email, password } shown once
   const { isLight } = useAdminTheme();
   const { toast, showToast, hideToast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
 
   const [formData, setFormData] = useState(EMPTY_FORM);
 
@@ -167,9 +169,10 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
   const handleToggleActive = async (inst) => {
     const next = inst.isActive === false;
     if (
-      !window.confirm(
-        next ? `"${inst.fullName}"-এর অ্যাকাউন্ট আবার সক্রিয় করবেন?` : `"${inst.fullName}"-এর অ্যাকাউন্ট নিষ্ক্রিয় করবেন? নিষ্ক্রিয় অবস্থায় লগইন করা যাবে না।`
-      )
+      !(await confirm(
+        next ? `"${inst.fullName}"-এর অ্যাকাউন্ট আবার সক্রিয় করবেন?` : `"${inst.fullName}"-এর অ্যাকাউন্ট নিষ্ক্রিয় করবেন? নিষ্ক্রিয় অবস্থায় লগইন করা যাবে না।`,
+        { tone: next ? "primary" : "warning", title: next ? "অ্যাকাউন্ট সক্রিয় করবেন?" : "অ্যাকাউন্ট নিষ্ক্রিয় করবেন?", confirmLabel: next ? "হ্যাঁ, সক্রিয় করুন" : "হ্যাঁ, নিষ্ক্রিয় করুন" }
+      ))
     )
       return;
     setBusyId(inst._id);
@@ -188,7 +191,7 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
 
   // New password for an instructor (shown once)
   const handleResetPassword = async (inst) => {
-    if (!window.confirm(`"${inst.fullName}"-এর জন্য নতুন পাসওয়ার্ড তৈরি করবেন?\n\nপুরনো পাসওয়ার্ড আর কাজ করবে না।`)) return;
+    if (!(await confirm(`"${inst.fullName}"-এর জন্য নতুন পাসওয়ার্ড তৈরি করবেন?\n\nপুরনো পাসওয়ার্ড আর কাজ করবে না।`, { tone: "warning", title: "নতুন পাসওয়ার্ড তৈরি করবেন?", confirmLabel: "হ্যাঁ, তৈরি করুন" }))) return;
     setBusyId(inst._id);
     const { ok, data, message } = await callApi("/api/admin/instructors", {
       method: "PATCH",
@@ -207,9 +210,10 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
   // Delete Instructor
   const handleDeleteInstructor = async (inst) => {
     if (
-      !window.confirm(
-        `"${inst.fullName}"-এর ইনস্ট্রাক্টর অ্যাকাউন্টটি স্থায়ীভাবে মুছে ফেলবেন?\n\nতাঁর দেওয়া মূল্যায়নগুলো অক্ষত থাকবে। শুধু সাময়িকভাবে বন্ধ করতে চাইলে "নিষ্ক্রিয়" ব্যবহার করুন।`
-      )
+      !(await confirm(
+        `"${inst.fullName}"-এর ইনস্ট্রাক্টর অ্যাকাউন্টটি স্থায়ীভাবে মুছে ফেলবেন?\n\nতাঁর দেওয়া মূল্যায়নগুলো অক্ষত থাকবে। শুধু সাময়িকভাবে বন্ধ করতে চাইলে "নিষ্ক্রিয়" ব্যবহার করুন।`,
+        { tone: "danger", title: "ইনস্ট্রাক্টর মুছে ফেলবেন?" }
+      ))
     )
       return;
 
@@ -243,6 +247,7 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
 
   return (
     <div className="space-y-6">
+      {confirmDialog}
       <AdminToast toast={toast} onClose={hideToast} />
       <DbErrorBanner message={loadError} isLight={isLight} onRetry={reload} retrying={reloading} />
 

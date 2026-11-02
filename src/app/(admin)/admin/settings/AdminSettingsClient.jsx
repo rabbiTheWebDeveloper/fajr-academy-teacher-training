@@ -20,7 +20,7 @@ import {
   Info,
 } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
-import { DbErrorBanner, callApi } from "../../_shared/admin-ui";
+import { DbErrorBanner, callApi, useConfirm } from "../../_shared/admin-ui";
 
 /** Exactly the keys PUT /api/admin/settings accepts (gateway credentials are env-only). */
 const EDITABLE = [
@@ -66,6 +66,7 @@ export default function AdminSettingsClient({ initialSettings, isDefault, gatewa
   const [saveSuccess, setSaveSuccess] = useState(null);
   const [saveError, setSaveError] = useState(null);
   const [copiedField, setCopiedField] = useState(null);
+  const { confirm, confirmDialog } = useConfirm();
   const { theme, setTheme, isLight } = useAdminTheme();
 
   const handleChange = (field, val) => {
@@ -124,7 +125,7 @@ export default function AdminSettingsClient({ initialSettings, isDefault, gatewa
   };
 
   const handleResetDefaults = async () => {
-    if (!window.confirm("আপনি কি নিশ্চিত যে সমস্ত সেটিংস ডিফল্ট মানে রিসেট করতে চান? বর্তমান সব পরিবর্তন মুছে যাবে।")) return;
+    if (!(await confirm("আপনি কি নিশ্চিত যে সমস্ত সেটিংস ডিফল্ট মানে রিসেট করতে চান? বর্তমান সব পরিবর্তন মুছে যাবে।", { tone: "danger", title: "সেটিংস ডিফল্টে রিসেট করবেন?", confirmLabel: "হ্যাঁ, রিসেট করুন" }))) return;
 
     setSaving(true);
     const { ok, data, message } = await callApi("/api/admin/settings", { method: "POST", body: { action: "reset" } });
@@ -168,6 +169,7 @@ export default function AdminSettingsClient({ initialSettings, isDefault, gatewa
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
+      {confirmDialog}
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>

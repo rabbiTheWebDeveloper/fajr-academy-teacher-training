@@ -37,6 +37,7 @@ import {
   formatMoney,
   isWomenTrack,
   trackLabel,
+  useConfirm,
   useToast,
 } from "../_shared/admin-ui";
 
@@ -61,6 +62,7 @@ export default function AdminDashboardClient({ stats, loadError }) {
   const [verifyingId, setVerifyingId] = useState(null);
   const { isLight } = useAdminTheme();
   const { toast, showToast, hideToast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
 
   // Announcement modal & state
   const [showNoticeModal, setShowNoticeModal] = useState(false);
@@ -83,9 +85,10 @@ export default function AdminDashboardClient({ stats, loadError }) {
 
   const handleVerifyPayment = async (payment) => {
     if (
-      !window.confirm(
-        `"${payment.userName || payment.userEmail}"-এর ${formatMoney(payment.amount, payment.currency)} পেমেন্টটি VALID হিসেবে যাচাই করবেন?\n\nএতে ট্রেইনির অ্যাকাউন্ট ও কোর্স এনরোলমেন্ট সক্রিয় হবে।`
-      )
+      !(await confirm(
+        `"${payment.userName || payment.userEmail}"-এর ${formatMoney(payment.amount, payment.currency)} পেমেন্টটি VALID হিসেবে যাচাই করবেন?\n\nএতে ট্রেইনির অ্যাকাউন্ট ও কোর্স এনরোলমেন্ট সক্রিয় হবে।`,
+        { title: "পেমেন্ট যাচাই করবেন?", confirmLabel: "হ্যাঁ, যাচাই করুন" }
+      ))
     )
       return;
     setVerifyingId(payment._id);
@@ -167,7 +170,7 @@ export default function AdminDashboardClient({ stats, loadError }) {
   };
 
   const handleDeleteNotice = async (notice) => {
-    if (!window.confirm(`"${notice.title}" নোটিশটি স্থায়ীভাবে মুছে ফেলবেন? ট্রেইনি ও শিক্ষকদের ফিড থেকেও এটি সরে যাবে।`)) return;
+    if (!(await confirm(`"${notice.title}" নোটিশটি স্থায়ীভাবে মুছে ফেলবেন? ট্রেইনি ও শিক্ষকদের ফিড থেকেও এটি সরে যাবে।`, { tone: "danger", title: "নোটিশ মুছে ফেলবেন?" }))) return;
     setBusyNoticeId(notice._id);
     const { ok, message } = await callApi(`/api/admin/announcements?id=${encodeURIComponent(notice._id)}`, { method: "DELETE" });
     setBusyNoticeId(null);
@@ -190,6 +193,7 @@ export default function AdminDashboardClient({ stats, loadError }) {
 
   return (
     <div className="space-y-8">
+      {confirmDialog}
       <AdminToast toast={toast} onClose={hideToast} />
 
       <DbErrorBanner message={loadError} isLight={isLight} onRetry={refresh} retrying={isRefreshing} />
@@ -300,21 +304,25 @@ export default function AdminDashboardClient({ stats, loadError }) {
         </div>
 
         {/* KPI 3: Pending */}
-        <div className={`p-5 rounded-3xl relative overflow-hidden border transition-all ${kpiBox}`}>
+        <Link
+          href="/admin/payments"
+          title="পেমেন্ট ভেরিফিকেশন পেজে যান"
+          className={`p-5 rounded-3xl relative overflow-hidden border transition-all block hover:-translate-y-0.5 ${kpiBox}`}
+        >
           <div className="flex items-center justify-between mb-2">
-            <span className={`text-xs font-bold ${isLight ? "text-slate-600" : "text-slate-400"}`}>পেন্ডিং আবেদন</span>
+            <span className={`text-xs font-bold ${isLight ? "text-slate-600" : "text-slate-400"}`}>যাচাইয়ের অপেক্ষায়</span>
             <div className={`p-2 rounded-xl ${isLight ? "bg-amber-100 text-amber-700" : "bg-amber-500/20 text-amber-400"}`}>
               <Clock className="w-4 h-4" />
             </div>
           </div>
           <div className={`text-2xl sm:text-3xl font-black font-mono ${isLight ? "text-amber-700" : "text-amber-400"}`}>
-            {stats.pendingTrainees}{" "}
-            <span className={`text-xs font-sans font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>জন</span>
+            {stats.pendingPayments}{" "}
+            <span className={`text-xs font-sans font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>টি পেমেন্ট</span>
           </div>
           <div className={`mt-2 text-[11px] font-bold ${isLight ? "text-amber-800" : "text-amber-300/80"}`}>
-            অপেক্ষমান পেমেন্ট রেকর্ড: {stats.pendingPayments} টি
+            অ্যাকাউন্টে পেমেন্ট বাকি: {stats.pendingTrainees} জন ট্রেইনি
           </div>
-        </div>
+        </Link>
 
         {/* KPI 4: Instructors */}
         <Link

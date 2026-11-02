@@ -17,7 +17,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
-import { AdminToast, DbErrorBanner, callApi, formatDate, useToast } from "../../_shared/admin-ui";
+import { AdminToast, DbErrorBanner, callApi, formatDate, useConfirm, useToast } from "../../_shared/admin-ui";
 
 /** Must match calculateGradeAndStatus in src/model/evaluation-model.js. */
 const STATUS_META = {
@@ -101,6 +101,7 @@ export default function AdminEvaluationsClient({ initialEvaluations = [], loadEr
   const [selectedEvaluation, setSelectedEvaluation] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const { toast, showToast, hideToast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
 
   // Derived from the real list, so deletes and reloads are always reflected exactly.
   const stats = computeStats(evaluations);
@@ -129,9 +130,10 @@ export default function AdminEvaluationsClient({ initialEvaluations = [], loadEr
 
   const handleDelete = async (item) => {
     if (
-      !window.confirm(
-        `"${item.traineeName}"-এর মূল্যায়ন রেকর্ডটি স্থায়ীভাবে মুছে ফেলবেন?\n\nএটি ট্রেইনির রেজাল্টকে আন-ইভ্যালুয়েটেড অবস্থায় ফিরিয়ে দেবে।`
-      )
+      !(await confirm(
+        `"${item.traineeName}"-এর মূল্যায়ন রেকর্ডটি স্থায়ীভাবে মুছে ফেলবেন?\n\nএটি ট্রেইনির রেজাল্টকে আন-ইভ্যালুয়েটেড অবস্থায় ফিরিয়ে দেবে।`,
+        { tone: "danger", title: "মূল্যায়ন মুছে ফেলবেন?" }
+      ))
     )
       return;
 
@@ -202,8 +204,76 @@ export default function AdminEvaluationsClient({ initialEvaluations = [], loadEr
     isLight ? "bg-slate-50 border-slate-300 text-slate-800" : "bg-slate-900 border-slate-700 text-slate-200"
   }`;
 
+  const emptyText = evaluations.length === 0 ? "এখনো কোনো মূল্যায়ন রেকর্ড নেই।" : "ফিল্টারের সাথে মেলে এমন কোনো মূল্যায়ন পাওয়া যায়নি।";
+
+  // Cell renderers shared by the desktop table and the phone cards.
+  const traineeBlock = (item) => (
+    <>
+      <div className={`font-bold text-sm wrap-break-word ${isLight ? "text-slate-900" : "text-white"}`}>{item.traineeName || "—"}</div>
+      <div className="text-xs text-slate-400 break-all">{item.traineeEmail || "—"}</div>
+    </>
+  );
+
+  const trackBadge = (item) => (
+    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#B8901F] border border-[#D4AF37]/30 shrink-0">{item.track || "—"}</span>
+  );
+
+  const rubricBlock = (item) => (
+    <div className={`grid grid-cols-2 gap-x-2 gap-y-0.5 text-[11px] font-mono ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+      <span>
+        তাজবীদ: <strong className="text-amber-500">{item.scores?.makhrajTajweed ?? 0}</strong>
+      </span>
+      <span>
+        পেডাগজি: <strong className="text-emerald-500">{item.scores?.childPsychologyPedagogy ?? 0}</strong>
+      </span>
+      <span>
+        টুলস: <strong className="text-blue-500">{item.scores?.digitalClassroomTools ?? 0}</strong>
+      </span>
+      <span>
+        ডেমো: <strong className="text-purple-500">{item.scores?.microTeachingDemo ?? 0}</strong>
+      </span>
+    </div>
+  );
+
+  const scoreBlock = (item) => (
+    <div className="flex items-center gap-2">
+      <span className="text-base font-black text-[#C59B27]">{item.totalScore ?? 0}</span>
+      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${GRADE_CLS[item.grade] || "bg-slate-500/20 text-slate-300 border-slate-500/30"}`}>
+        {item.grade || "—"}
+      </span>
+    </div>
+  );
+
+  const evaluatorBlock = (item) => (
+    <>
+      <div>{item.instructorName || "—"}</div>
+      <div className="text-[10px] text-slate-500">{formatDate(item.evaluatedAt || item.createdAt)}</div>
+    </>
+  );
+
+  const rowActions = (item) => (
+    <div className="flex items-center justify-end gap-1.5">
+      <button
+        onClick={() => setSelectedEvaluation(item)}
+        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-[#D4AF37] transition-colors cursor-pointer"
+        title="বিস্তারিত স্কোরকার্ড দেখুন"
+      >
+        <Eye className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => handleDelete(item)}
+        disabled={deletingId === item._id}
+        className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 transition-colors disabled:opacity-50 cursor-pointer"
+        title="মূল্যায়ন রেকর্ড মুছুন"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  );
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-16">
+      {confirmDialog}
       <AdminToast toast={toast} onClose={hideToast} />
       <DbErrorBanner message={loadError} isLight={isLight} onRetry={reload} retrying={reloading} />
 
@@ -351,9 +421,9 @@ export default function AdminEvaluationsClient({ initialEvaluations = [], loadEr
         </div>
       </div>
 
-      {/* Evaluations Table */}
+      {/* Evaluations table (≥ md) and cards (< md) */}
       <div className={`rounded-2xl border shadow-xl overflow-hidden ${isLight ? "bg-white border-slate-200" : "bg-[#051329] border-slate-800"}`}>
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs sm:text-sm">
             <thead
               className={`border-b text-[11px] font-bold uppercase tracking-wider ${
@@ -374,88 +444,52 @@ export default function AdminEvaluationsClient({ initialEvaluations = [], loadEr
               {filteredEvaluations.length > 0 ? (
                 filteredEvaluations.map((item) => (
                   <tr key={item._id} className={`transition-colors ${isLight ? "hover:bg-slate-50/80" : "hover:bg-slate-800/40"}`}>
-                    <td className="py-3.5 px-4">
-                      <div className={`font-bold text-sm ${isLight ? "text-slate-900" : "text-white"}`}>{item.traineeName || "—"}</div>
-                      <div className="text-xs text-slate-400">{item.traineeEmail || "—"}</div>
-                    </td>
-
-                    <td className="py-3.5 px-3">
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#B8901F] border border-[#D4AF37]/30">
-                        {item.track || "—"}
-                      </span>
-                    </td>
-
-                    <td className="py-3.5 px-3">
-                      <div className={`grid grid-cols-2 gap-x-2 gap-y-0.5 text-[11px] font-mono ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-                        <span>
-                          তাজবীদ: <strong className="text-amber-500">{item.scores?.makhrajTajweed ?? 0}</strong>
-                        </span>
-                        <span>
-                          পেডাগজি: <strong className="text-emerald-500">{item.scores?.childPsychologyPedagogy ?? 0}</strong>
-                        </span>
-                        <span>
-                          টুলস: <strong className="text-blue-500">{item.scores?.digitalClassroomTools ?? 0}</strong>
-                        </span>
-                        <span>
-                          ডেমো: <strong className="text-purple-500">{item.scores?.microTeachingDemo ?? 0}</strong>
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="py-3.5 px-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-base font-black text-[#C59B27]">{item.totalScore ?? 0}</span>
-                        <span
-                          className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${
-                            GRADE_CLS[item.grade] || "bg-slate-500/20 text-slate-300 border-slate-500/30"
-                          }`}
-                        >
-                          {item.grade || "—"}
-                        </span>
-                      </div>
-                    </td>
-
+                    <td className="py-3.5 px-4">{traineeBlock(item)}</td>
+                    <td className="py-3.5 px-3">{trackBadge(item)}</td>
+                    <td className="py-3.5 px-3">{rubricBlock(item)}</td>
+                    <td className="py-3.5 px-3">{scoreBlock(item)}</td>
                     <td className="py-3.5 px-3">
                       <StatusBadge status={item.qualificationStatus} />
                     </td>
-
-                    <td className={`py-3.5 px-3 text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-                      <div>{item.instructorName || "—"}</div>
-                      <div className="text-[10px] text-slate-500">{formatDate(item.evaluatedAt || item.createdAt)}</div>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => setSelectedEvaluation(item)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-[#D4AF37] transition-colors cursor-pointer"
-                          title="বিস্তারিত স্কোরকার্ড দেখুন"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-
-                        <button
-                          onClick={() => handleDelete(item)}
-                          disabled={deletingId === item._id}
-                          className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 transition-colors disabled:opacity-50 cursor-pointer"
-                          title="মূল্যায়ন রেকর্ড মুছুন"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                    <td className={`py-3.5 px-3 text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>{evaluatorBlock(item)}</td>
+                    <td className="py-3.5 px-4 text-right">{rowActions(item)}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400 text-sm">
-                    {evaluations.length === 0 ? "এখনো কোনো মূল্যায়ন রেকর্ড নেই।" : "ফিল্টারের সাথে মেলে এমন কোনো মূল্যায়ন পাওয়া যায়নি।"}
+                    {emptyText}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Phone layout: one scorecard per trainee */}
+        <ul className={`md:hidden divide-y ${isLight ? "divide-slate-200" : "divide-slate-800/60"}`}>
+          {filteredEvaluations.length === 0 ? (
+            <li className="py-10 px-4 text-center text-slate-400 text-xs">{emptyText}</li>
+          ) : (
+            filteredEvaluations.map((item) => (
+              <li key={item._id} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">{traineeBlock(item)}</div>
+                  {trackBadge(item)}
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  {scoreBlock(item)}
+                  <StatusBadge status={item.qualificationStatus} />
+                </div>
+                {rubricBlock(item)}
+                <div className="flex items-center justify-between gap-3">
+                  <div className={`text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>{evaluatorBlock(item)}</div>
+                  {rowActions(item)}
+                </div>
+              </li>
+            ))
+          )}
+        </ul>
       </div>
 
       {/* Inspect Modal */}

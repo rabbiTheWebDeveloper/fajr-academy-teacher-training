@@ -12,7 +12,7 @@ import { generatePassword, MIN_PASSWORD_LENGTH } from "@/lib/password";
 import { isObjectId, searchFilter, trackFilter } from "@/lib/query-helpers";
 import { phoneVariants } from "@/lib/phone";
 import { courseIdForUserTrack, getPriceForTrack } from "@/service/course-service";
-import { enrollUserInCourse } from "@/service/participant-service";
+import { enrollUserInCourse, withEnrolmentCounts } from "@/service/participant-service";
 import { newTranId, provisionForPayment, revokeForPayment } from "@/service/payment-service";
 import { emailInUse, emailTakenMessage, phoneInUse, phoneTakenMessage } from "@/service/account-service";
 
@@ -54,7 +54,7 @@ export async function GET(request) {
       .sort({ createdAt: -1 })
       .select(SAFE_ACCOUNT_SELECT)
       .lean();
-    return NextResponse.json({ success: true, count: tots.length, tots: plain(tots) });
+    return NextResponse.json({ success: true, count: tots.length, tots: plain(await withEnrolmentCounts(tots)) });
   } catch (error) {
     return serverError(error, "Admin TOTs GET");
   }

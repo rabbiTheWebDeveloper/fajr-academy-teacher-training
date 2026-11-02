@@ -11,6 +11,7 @@ import {
   formatDate,
   formatMoney,
   trackLabel,
+  useConfirm,
   useToast,
 } from "../../_shared/admin-ui";
 
@@ -73,6 +74,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
   const [busyId, setBusyId] = useState(null);
   const { isLight } = useAdminTheme();
   const { toast, showToast, hideToast } = useToast();
+  const { confirm, confirmDialog } = useConfirm();
 
   // Manual payment modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -120,7 +122,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
     } else {
       text = `পেমেন্ট স্ট্যাটাস ${p.status} থেকে ${nextStatus} করবেন?`;
     }
-    if (!window.confirm(text)) return;
+    if (!(await confirm(text, { tone: p.status === "VALID" && nextStatus !== "VALID" ? "warning" : "primary", title: nextStatus === "VALID" ? "পেমেন্ট যাচাই করবেন?" : "স্ট্যাটাস পরিবর্তন করবেন?", confirmLabel: nextStatus === "VALID" ? "হ্যাঁ, যাচাই করুন" : "হ্যাঁ, পরিবর্তন করুন" }))) return;
 
     setBusyId(p._id);
     const { ok, data, message } = await callApi("/api/admin/payments", {
@@ -141,7 +143,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
       p.status === "VALID"
         ? "\n\n⚠ এটি একটি যাচাইকৃত পেমেন্ট — মুছে ফেললে এই পেমেন্ট থেকে পাওয়া কোর্স এনরোলমেন্ট বাতিল হবে।"
         : "";
-    if (!window.confirm(`TrxID ${p.tranId} পেমেন্ট রেকর্ডটি স্থায়ীভাবে মুছে ফেলবেন?${extra}`)) return;
+    if (!(await confirm(`TrxID ${p.tranId} পেমেন্ট রেকর্ডটি স্থায়ীভাবে মুছে ফেলবেন?${extra}`, { tone: "danger", title: "পেমেন্ট রেকর্ড মুছে ফেলবেন?" }))) return;
 
     setBusyId(p._id);
     const { ok, message } = await callApi(`/api/admin/payments?id=${encodeURIComponent(p._id)}`, { method: "DELETE" });
@@ -195,7 +197,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
     const text = `${refundTarget.userName || refundTarget.userEmail}-কে ${formatMoney(amount || refundTarget.amount, refundTarget.currency)} রিফান্ড করবেন?\n\nঅনুরোধটি সরাসরি SSLCommerz গেটওয়েতে যাবে এবং ফেরত নেওয়া যাবে না।${
       full ? "\n⚠ সম্পূর্ণ রিফান্ড হলে পেমেন্টটি REFUNDED হবে এবং ট্রেইনির কোর্স এনরোলমেন্ট বাতিল হবে।" : ""
     }`;
-    if (!window.confirm(text)) return;
+    if (!(await confirm(text, { tone: "danger", title: "রিফান্ড করবেন?", confirmLabel: "হ্যাঁ, রিফান্ড করুন" }))) return;
 
     setRefunding(true);
     const { ok, message } = await callApi("/api/payment/sslcommerz/refund", {
@@ -268,8 +270,164 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
   }`;
   const smallBtn = `px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1`;
 
+  const emptyText = payments.length === 0 ? "কোনো পেমেন্ট রেকর্ড নেই" : "ফিল্টারের সাথে মেলে এমন কোনো পেমেন্ট পাওয়া যায়নি";
+  const subtle = isLight ? "text-slate-500" : "text-slate-400";
+
+  // Cell renderers shared by the desktop table and the phone cards.
+  const payerBlock = (p) => (
+    <>
+      <div className={`font-bold wrap-break-word ${isLight ? "text-slate-900" : "text-white"}`}>{p.userName || "—"}</div>
+      <div className={`text-[11px] font-mono break-all ${subtle}`}>{p.userEmail}</div>
+      {p.userPhone && <div className={`text-[11px] font-mono ${subtle}`}>{p.userPhone}</div>}
+    </>
+  );
+
+  const txBlock = (p) => (
+    <>
+      <span className={`font-mono font-bold block break-all ${isLight ? "text-amber-700" : "text-[#D4AF37]"}`}>{p.tranId}</span>
+      <div className="flex flex-wrap items-center gap-1">
+        <span
+          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+            isLight ? "bg-indigo-50 text-indigo-800 border-indigo-200" : "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+          }`}
+        >
+          {PURPOSE_LABEL[p.purpose] || p.purpose || "—"}
+        </span>
+        <span className={`text-[10px] font-mono font-bold ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+          {p.courseId || "—"} • {trackLabel(p.track)}
+        </span>
+      </div>
+      {p.notes && (
+        <div className="text-[10px] italic max-w-[220px] truncate text-slate-500" title={p.notes}>
+          {p.notes}
+        </div>
+      )}
+    </>
+  );
+
+  const methodBlock = (p) => (
+    <>
+      <span
+        className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+          isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-300 border-slate-700"
+        }`}
+      >
+        {p.cardType || p.paymentMethod || "—"}
+      </span>
+      <div className="text-[10px] font-mono mt-1 text-slate-500">{p.paymentGateway || "—"}</div>
+    </>
+  );
+
+  const amountBlock = (p) => (
+    <>
+      <div className={`font-bold font-mono text-sm ${isLight ? "text-emerald-700" : "text-emerald-400"}`}>{formatMoney(p.amount, p.currency)}</div>
+      {p.refund?.refId && (
+        <div className={`text-[10px] font-bold mt-0.5 ${isLight ? "text-rose-700" : "text-rose-400"}`}>
+          রিফান্ড {formatMoney(p.refund.amount, p.currency)} • {p.refund.status || "—"}
+        </div>
+      )}
+    </>
+  );
+
+  const dateBlock = (p) => (
+    <>
+      <div>{formatDate(p.createdAt, true)}</div>
+      {p.finalizedAt && <div className="text-[10px] mt-0.5">যাচাই: {formatDate(p.finalizedAt, true)}</div>}
+    </>
+  );
+
+  const statusBlock = (p, busy) => (
+    <>
+      <span className={`inline-block text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${statusBadgeCls(p.status, isLight)}`}>{p.status}</span>
+      {p.verifiedBy && (
+        <div className="text-[10px] font-mono max-w-[180px] truncate text-slate-500" title={p.verifiedBy}>
+          যাচাইকারী: {p.verifiedBy}
+        </div>
+      )}
+      {p.status !== "REFUNDED" && (
+        <select
+          value=""
+          disabled={busy}
+          onChange={(e) => handleUpdateStatus(p, e.target.value)}
+          aria-label={`${p.tranId}-এর স্ট্যাটাস পরিবর্তন`}
+          className={`block border rounded-lg px-2 py-1 text-[10px] font-bold cursor-pointer outline-hidden disabled:opacity-50 ${
+            isLight ? "bg-white border-slate-300 text-slate-700" : "bg-slate-950 border-slate-800 text-slate-300"
+          }`}
+        >
+          <option value="">স্ট্যাটাস পরিবর্তন…</option>
+          {SETTABLE_STATUSES.filter((st) => st !== p.status).map((st) => (
+            <option key={st} value={st}>
+              {STATUS_LABEL[st]}
+            </option>
+          ))}
+        </select>
+      )}
+    </>
+  );
+
+  const actionButtons = (p, busy) => {
+    const canRefund = p.status === "VALID" && p.paymentGateway === "sslcommerz" && !p.refund?.refId;
+    return (
+      <div className="flex items-center justify-end gap-1.5 flex-wrap">
+        {p.status !== "VALID" && p.status !== "REFUNDED" && (
+          <button
+            onClick={() => handleUpdateStatus(p, "VALID")}
+            disabled={busy}
+            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+          >
+            ✓ অনুমোদন দিন
+          </button>
+        )}
+        {p.status === "VALID" && (
+          <button
+            onClick={() => handleUpdateStatus(p, "PENDING")}
+            disabled={busy}
+            title="আন-ভেরিফাই: এনরোলমেন্ট বাতিল হবে"
+            className={`${smallBtn} ${
+              isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300" : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+            }`}
+          >
+            <Undo2 className="w-3 h-3" /> আন-ভেরিফাই
+          </button>
+        )}
+        {canRefund && (
+          <button
+            onClick={() => openRefund(p)}
+            disabled={busy}
+            className={`${smallBtn} ${
+              isLight ? "bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300" : "bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border-rose-500/30"
+            }`}
+          >
+            <RotateCcw className="w-3 h-3" /> রিফান্ড
+          </button>
+        )}
+        {p.refund?.refId && (
+          <button
+            onClick={() => handleRefundStatus(p)}
+            disabled={busy}
+            title={`Refund ref: ${p.refund.refId}`}
+            className={`${smallBtn} ${
+              isLight ? "bg-white hover:bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700"
+            }`}
+          >
+            <RefreshCw className={`w-3 h-3 ${busy ? "animate-spin" : ""}`} /> রিফান্ড স্ট্যাটাস
+          </button>
+        )}
+        <button
+          onClick={() => handleDelete(p)}
+          disabled={busy}
+          className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-500 transition-colors cursor-pointer disabled:opacity-50"
+          title="রেকর্ড মুছুন"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
+      {confirmDialog}
       <AdminToast toast={toast} onClose={hideToast} />
       <DbErrorBanner message={loadError} isLight={isLight} onRetry={() => reload()} retrying={reloading} />
 
@@ -383,13 +541,13 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
         </button>
       </form>
 
-      {/* Payments Table */}
+      {/* Payments table (≥ md) and cards (< md) */}
       <div
         className={`rounded-3xl border overflow-hidden transition-all ${
           isLight ? "bg-white border-slate-200 shadow-sm" : "bg-slate-900 border-slate-800 shadow-2xl"
         }`}
       >
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr
@@ -410,155 +568,21 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-400 font-semibold">
-                    {payments.length === 0 ? "কোনো পেমেন্ট রেকর্ড নেই" : "ফিল্টারের সাথে মেলে এমন কোনো পেমেন্ট পাওয়া যায়নি"}
+                    {emptyText}
                   </td>
                 </tr>
               ) : (
                 filtered.map((p) => {
                   const busy = busyId === p._id;
-                  const canRefund = p.status === "VALID" && p.paymentGateway === "sslcommerz" && !p.refund?.refId;
                   return (
                     <tr key={p._id} className={`transition-colors ${isLight ? "hover:bg-slate-50/80" : "hover:bg-slate-800/40"}`}>
-                      <td className="p-4">
-                        <div className={`font-bold ${isLight ? "text-slate-900" : "text-white"}`}>{p.userName || "—"}</div>
-                        <div className={`text-[11px] font-mono ${isLight ? "text-slate-500" : "text-slate-400"}`}>{p.userEmail}</div>
-                        {p.userPhone && (
-                          <div className={`text-[11px] font-mono ${isLight ? "text-slate-500" : "text-slate-400"}`}>{p.userPhone}</div>
-                        )}
-                      </td>
-
-                      <td className="p-4 space-y-1">
-                        <span className={`font-mono font-bold block ${isLight ? "text-amber-700" : "text-[#D4AF37]"}`}>{p.tranId}</span>
-                        <div className="flex flex-wrap items-center gap-1">
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                              isLight ? "bg-indigo-50 text-indigo-800 border-indigo-200" : "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
-                            }`}
-                          >
-                            {PURPOSE_LABEL[p.purpose] || p.purpose || "—"}
-                          </span>
-                          <span className={`text-[10px] font-mono font-bold ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                            {p.courseId || "—"} • {trackLabel(p.track)}
-                          </span>
-                        </div>
-                        {p.notes && (
-                          <div className={`text-[10px] italic max-w-[220px] truncate ${isLight ? "text-slate-500" : "text-slate-500"}`} title={p.notes}>
-                            {p.notes}
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="p-4">
-                        <span
-                          className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
-                            isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-300 border-slate-700"
-                          }`}
-                        >
-                          {p.cardType || p.paymentMethod || "—"}
-                        </span>
-                        <div className={`text-[10px] font-mono mt-1 ${isLight ? "text-slate-500" : "text-slate-500"}`}>{p.paymentGateway || "—"}</div>
-                      </td>
-
-                      <td className="p-4">
-                        <div className={`font-bold font-mono text-sm ${isLight ? "text-emerald-700" : "text-emerald-400"}`}>
-                          {formatMoney(p.amount, p.currency)}
-                        </div>
-                        {p.refund?.refId && (
-                          <div className={`text-[10px] font-bold mt-0.5 ${isLight ? "text-rose-700" : "text-rose-400"}`}>
-                            রিফান্ড {formatMoney(p.refund.amount, p.currency)} • {p.refund.status || "—"}
-                          </div>
-                        )}
-                      </td>
-
-                      <td className={`p-4 text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                        <div>{formatDate(p.createdAt, true)}</div>
-                        {p.finalizedAt && <div className="text-[10px] mt-0.5">যাচাই: {formatDate(p.finalizedAt, true)}</div>}
-                      </td>
-
-                      <td className="p-4 space-y-1.5">
-                        <span className={`inline-block text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${statusBadgeCls(p.status, isLight)}`}>
-                          {p.status}
-                        </span>
-                        {p.verifiedBy && (
-                          <div className={`text-[10px] font-mono max-w-[180px] truncate ${isLight ? "text-slate-500" : "text-slate-500"}`} title={p.verifiedBy}>
-                            যাচাইকারী: {p.verifiedBy}
-                          </div>
-                        )}
-                        {p.status !== "REFUNDED" && (
-                          <select
-                            value=""
-                            disabled={busy}
-                            onChange={(e) => handleUpdateStatus(p, e.target.value)}
-                            className={`block border rounded-lg px-2 py-1 text-[10px] font-bold cursor-pointer outline-hidden disabled:opacity-50 ${
-                              isLight ? "bg-white border-slate-300 text-slate-700" : "bg-slate-950 border-slate-800 text-slate-300"
-                            }`}
-                          >
-                            <option value="">স্ট্যাটাস পরিবর্তন…</option>
-                            {SETTABLE_STATUSES.filter((s) => s !== p.status).map((s) => (
-                              <option key={s} value={s}>
-                                {STATUS_LABEL[s]}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </td>
-
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                          {p.status !== "VALID" && p.status !== "REFUNDED" && (
-                            <button
-                              onClick={() => handleUpdateStatus(p, "VALID")}
-                              disabled={busy}
-                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
-                            >
-                              ✓ অনুমোদন দিন
-                            </button>
-                          )}
-                          {p.status === "VALID" && (
-                            <button
-                              onClick={() => handleUpdateStatus(p, "PENDING")}
-                              disabled={busy}
-                              title="আন-ভেরিফাই: এনরোলমেন্ট বাতিল হবে"
-                              className={`${smallBtn} ${
-                                isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300" : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
-                              }`}
-                            >
-                              <Undo2 className="w-3 h-3" /> আন-ভেরিফাই
-                            </button>
-                          )}
-                          {canRefund && (
-                            <button
-                              onClick={() => openRefund(p)}
-                              disabled={busy}
-                              className={`${smallBtn} ${
-                                isLight ? "bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300" : "bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border-rose-500/30"
-                              }`}
-                            >
-                              <RotateCcw className="w-3 h-3" /> রিফান্ড
-                            </button>
-                          )}
-                          {p.refund?.refId && (
-                            <button
-                              onClick={() => handleRefundStatus(p)}
-                              disabled={busy}
-                              title={`Refund ref: ${p.refund.refId}`}
-                              className={`${smallBtn} ${
-                                isLight ? "bg-white hover:bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700"
-                              }`}
-                            >
-                              <RefreshCw className={`w-3 h-3 ${busy ? "animate-spin" : ""}`} /> রিফান্ড স্ট্যাটাস
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleDelete(p)}
-                            disabled={busy}
-                            className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-500 transition-colors cursor-pointer disabled:opacity-50"
-                            title="রেকর্ড মুছুন"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
+                      <td className="p-4">{payerBlock(p)}</td>
+                      <td className="p-4 space-y-1">{txBlock(p)}</td>
+                      <td className="p-4">{methodBlock(p)}</td>
+                      <td className="p-4">{amountBlock(p)}</td>
+                      <td className={`p-4 text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>{dateBlock(p)}</td>
+                      <td className="p-4 space-y-1.5">{statusBlock(p, busy)}</td>
+                      <td className="p-4 text-right">{actionButtons(p, busy)}</td>
                     </tr>
                   );
                 })
@@ -566,6 +590,32 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
             </tbody>
           </table>
         </div>
+
+        {/* Phone layout: one card per transaction */}
+        <ul className={`md:hidden divide-y ${isLight ? "divide-slate-100" : "divide-slate-800/60"}`}>
+          {filtered.length === 0 ? (
+            <li className="p-8 text-center text-slate-400 font-semibold text-xs">{emptyText}</li>
+          ) : (
+            filtered.map((p) => {
+              const busy = busyId === p._id;
+              return (
+                <li key={p._id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">{payerBlock(p)}</div>
+                    <div className="text-right shrink-0">{amountBlock(p)}</div>
+                  </div>
+                  <div className="space-y-1">{txBlock(p)}</div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>{methodBlock(p)}</div>
+                    <div className={`text-[11px] text-right ${isLight ? "text-slate-600" : "text-slate-400"}`}>{dateBlock(p)}</div>
+                  </div>
+                  <div className="space-y-1.5">{statusBlock(p, busy)}</div>
+                  {actionButtons(p, busy)}
+                </li>
+              );
+            })
+          )}
+        </ul>
       </div>
 
       {/* Manual Offline Payment Modal */}

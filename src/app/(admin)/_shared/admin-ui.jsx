@@ -5,8 +5,9 @@
  * `message`, a toast, the DB-error banner and the one-time password box.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, CheckCircle2, Copy, Check, KeyRound, RefreshCw, DatabaseZap, X } from "lucide-react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
+import { AlertCircle, AlertTriangle, CheckCircle2, Copy, Check, KeyRound, RefreshCw, DatabaseZap, ShieldQuestion, Trash2, X } from "lucide-react";
+import { useAdminTheme } from "../AdminThemeContext";
 
 export const NETWORK_ERROR = "সার্ভারের সাথে সংযোগ করা যায়নি। ইন্টারনেট সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।";
 export const DB_ERROR = "ডাটাবেজের সাথে সংযোগ করা যায়নি। দেখানো তথ্য অসম্পূর্ণ হতে পারে — কিছুক্ষণ পর পেজটি রিফ্রেশ করুন।";
@@ -193,6 +194,188 @@ export function GeneratedPasswordBox({ password, email, isLight, onDone }) {
       )}
     </div>
   );
+}
+
+/* ------------------------------ confirm dialog ------------------------------ */
+
+const CONFIRM_TONES = {
+  danger: {
+    title: "এই কাজটি ফেরানো যাবে না",
+    confirmLabel: "হ্যাঁ, মুছে ফেলুন",
+    Icon: Trash2,
+    ring: "bg-rose-500/15 text-rose-500",
+    btn: "bg-rose-600 hover:bg-rose-500 text-white focus-visible:outline-rose-400",
+  },
+  warning: {
+    title: "নিশ্চিত করুন",
+    confirmLabel: "হ্যাঁ, এগিয়ে যান",
+    Icon: AlertTriangle,
+    ring: "bg-amber-500/15 text-amber-500",
+    btn: "bg-amber-500 hover:bg-amber-400 text-slate-950 focus-visible:outline-amber-300",
+  },
+  primary: {
+    title: "নিশ্চিত করুন",
+    confirmLabel: "হ্যাঁ, নিশ্চিত করুন",
+    Icon: ShieldQuestion,
+    ring: "bg-indigo-500/15 text-indigo-500",
+    btn: "bg-indigo-600 hover:bg-indigo-500 text-white focus-visible:outline-indigo-400",
+  },
+};
+
+/** Paragraphs split on blank lines; a paragraph starting with ⚠ is shown as a highlighted warning. */
+function splitMessage(message) {
+  return String(message || "")
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => (p.startsWith("⚠") ? { warn: true, text: p.replace(/^⚠\s*/, "") } : { warn: false, text: p }));
+}
+
+function ConfirmDialog({ request, onAnswer }) {
+  const { isLight } = useAdminTheme();
+  const titleId = useId();
+  const bodyId = useId();
+  const cancelRef = useRef(null);
+  const confirmRef = useRef(null);
+  const tone = CONFIRM_TONES[request.tone] || CONFIRM_TONES.primary;
+  const { Icon } = tone;
+
+  // Focus the safe choice first for destructive actions; restore focus to the trigger when closing.
+  useEffect(() => {
+    const previous = document.activeElement;
+    (request.tone === "danger" ? cancelRef : confirmRef).current?.focus();
+    return () => {
+      if (previous && typeof previous.focus === "function" && document.contains(previous)) previous.focus();
+    };
+  }, [request.tone]);
+
+  const onKeyDown = (e) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      onAnswer(false);
+    } else if (e.key === "Tab") {
+      // keep focus inside the dialog
+      const first = cancelRef.current;
+      const last = confirmRef.current;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first?.focus();
+      }
+    }
+  };
+
+  const parts = splitMessage(request.message);
+
+  return (
+    <div
+      className="fixed inset-0 z-70 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+      onMouseDown={(e) => e.target === e.currentTarget && onAnswer(false)}
+      onKeyDown={onKeyDown}
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={bodyId}
+        className={`w-full max-w-md rounded-3xl border shadow-2xl p-6 space-y-4 ${
+          isLight ? "bg-white border-slate-200 text-slate-800" : "bg-slate-900 border-slate-700 text-slate-100"
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          <span className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${tone.ring}`}>
+            <Icon className="w-5 h-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 id={titleId} className={`text-base font-black leading-snug ${isLight ? "text-slate-900" : "text-white"}`}>
+              {request.title || tone.title}
+            </h2>
+          </div>
+        </div>
+
+        <div id={bodyId} className="space-y-2.5 text-xs leading-relaxed">
+          {parts.map((p, i) =>
+            p.warn ? (
+              <div
+                key={i}
+                className={`flex items-start gap-2 p-3 rounded-xl border font-semibold ${
+                  isLight ? "bg-amber-50 border-amber-300 text-amber-900" : "bg-amber-500/10 border-amber-500/40 text-amber-100"
+                }`}
+              >
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px text-amber-500" />
+                <span className="whitespace-pre-line">{p.text}</span>
+              </div>
+            ) : (
+              <p key={i} className={`whitespace-pre-line wrap-break-word ${i === 0 ? "font-bold" : "font-medium"} ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                {p.text}
+              </p>
+            )
+          )}
+        </div>
+
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
+          <button
+            ref={cancelRef}
+            type="button"
+            onClick={() => onAnswer(false)}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold border cursor-pointer ${
+              isLight ? "bg-white border-slate-300 text-slate-700 hover:bg-slate-50" : "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700"
+            }`}
+          >
+            {request.cancelLabel || "বাতিল"}
+          </button>
+          <button
+            ref={confirmRef}
+            type="button"
+            onClick={() => onAnswer(true)}
+            className={`px-4 py-2.5 rounded-xl text-xs font-black cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 ${tone.btn}`}
+          >
+            {request.confirmLabel || tone.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * In-app replacement for window.confirm.
+ *   const { confirm, confirmDialog } = useConfirm();
+ *   if (!(await confirm("…?", { tone: "danger", confirmLabel: "মুছে ফেলুন" }))) return;
+ *   …render {confirmDialog} once in the page.
+ * tone: "primary" (default) | "warning" | "danger". Resolves true/false; never rejects.
+ */
+export function useConfirm() {
+  const [request, setRequest] = useState(null);
+  const resolver = useRef(null);
+
+  const settle = useCallback((answer) => {
+    const done = resolver.current;
+    resolver.current = null;
+    setRequest(null);
+    if (done) done(answer);
+  }, []);
+
+  const confirm = useCallback((message, options = {}) => {
+    // A second question replaces an unanswered first one (treated as "no").
+    if (resolver.current) resolver.current(false);
+    return new Promise((resolve) => {
+      resolver.current = resolve;
+      setRequest({ message, ...options });
+    });
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (resolver.current) resolver.current(false);
+    },
+    []
+  );
+
+  const confirmDialog = request ? <ConfirmDialog request={request} onAnswer={settle} /> : null;
+  return { confirm, confirmDialog };
 }
 
 /* ---------------------------- formatting helpers ---------------------------- */
