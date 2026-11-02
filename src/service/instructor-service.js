@@ -3,6 +3,7 @@ import { TotModel } from "@/model/tot-model";
 import { CourseModel } from "@/model/course-model";
 import { EvaluationModel } from "@/model/evaluation-model";
 import { NoticeModel } from "@/model/notice-model";
+import { OPERATING_COURSE_FILTER } from "@/lib/course-state";
 
 /**
  * Instructor dashboard numbers, all computed from the database.
@@ -29,7 +30,8 @@ export async function getInstructorStats() {
         },
       },
     ]),
-    CourseModel.find({ isPublished: true }).select("courseId curriculum resources").lean(),
+    // Published + unpublished (running) batches; drafts and archives are not counted.
+    CourseModel.find(OPERATING_COURSE_FILTER).select("courseId curriculum resources").lean(),
     NoticeModel.countDocuments(),
   ]);
 

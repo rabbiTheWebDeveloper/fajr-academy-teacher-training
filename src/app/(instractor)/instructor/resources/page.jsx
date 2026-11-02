@@ -18,7 +18,7 @@ export default async function InstructorResourcesPage() {
     // Same data as GET /api/instructor/resources: every course with its own resources.
     await ensureDefaultCourses();
     const docs = await CourseModel.find({})
-      .select("courseId name track isPublished resources")
+      .select("courseId name track isPublished publishState resources")
       .sort({ createdAt: 1 })
       .lean();
     courses = toPlain(docs);

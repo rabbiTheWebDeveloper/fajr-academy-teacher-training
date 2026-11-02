@@ -20,10 +20,19 @@ import {
   RotateCcw,
   RefreshCw,
   EyeOff,
+  Archive,
+  ArchiveRestore,
+  Copy,
+  Globe,
+  FilePen,
+  Rocket,
+  Search,
+  Info,
 } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
 import { WOMEN_TOT_CURRICULUM, MEN_TOT_CURRICULUM } from "@/constant/course-defaults";
-import { AdminToast, DbErrorBanner, callApi, formatMoney, useToast } from "../../_shared/admin-ui";
+import { COURSE_STATE_LABEL, courseState } from "@/lib/course-state";
+import { AdminToast, DbErrorBanner, callApi, formatDate, formatMoney, useToast } from "../../_shared/admin-ui";
 
 /** Fields edited on the course card. Curriculum/resources are saved separately so a stale card can never overwrite them. */
 const CARD_FIELDS = [
@@ -42,7 +51,6 @@ const CARD_FIELDS = [
   "instructor",
   "maxSeats",
   "status",
-  "isPublished",
   "videoUrl",
 ];
 const NUMERIC_FIELDS = ["fee", "regularFee", "maxSeats"];
@@ -98,8 +106,90 @@ const EMPTY_COURSE = {
   instructor: "",
   maxSeats: 60,
   status: "Active & Enrolling",
-  isPublished: true,
+  publishState: "draft",
 };
+
+/** Publishing lifecycle (src/lib/course-state.js): what each state means for visitors and trainees. */
+const STATE_META = {
+  published: { icon: Globe, hint: "ওয়েবসাইটে দেখা যাচ্ছে • নতুন ভর্তি নেওয়া যাচ্ছে" },
+  draft: { icon: FilePen, hint: "শুধু অ্যাডমিন দেখতে পাচ্ছেন — প্রস্তুতি চলছে" },
+  unpublished: { icon: EyeOff, hint: "ওয়েবসাইটে লুকানো • নতুন ভর্তি বন্ধ • ভর্তি থাকা ট্রেইনিরা ক্লাস পাচ্ছেন" },
+  archived: { icon: Archive, hint: "শেষ হওয়া ব্যাচ — ইতিহাস হিসেবে সংরক্ষিত, নতুন ভর্তি বন্ধ" },
+};
+const FILTER_TABS = [
+  { key: "all", label: "সব", title: "All (আর্কাইভ ছাড়া)" },
+  { key: "published", label: COURSE_STATE_LABEL.published, title: "Published" },
+  { key: "draft", label: COURSE_STATE_LABEL.draft, title: "Draft" },
+  { key: "unpublished", label: COURSE_STATE_LABEL.unpublished, title: "Unpublished" },
+  { key: "archived", label: COURSE_STATE_LABEL.archived, title: "Archived" },
+];
+const EMPTY_TAB_TEXT = {
+  all: "কোনো কোর্স নেই। “নতুন কোর্স তৈরি” বাটনে ক্লিক করে যোগ করুন।",
+  published: "কোনো প্রকাশিত কোর্স নেই।",
+  draft: "কোনো ড্রাফট কোর্স নেই। নতুন কোর্স তৈরি করুন বা কোনো কোর্স “ডুপ্লিকেট” করুন।",
+  unpublished: "কোনো আনপাবলিশড কোর্স নেই।",
+  archived: "কোনো আর্কাইভ করা কোর্স নেই।",
+};
+
+function stateCls(state, isLight) {
+  switch (state) {
+    case "draft":
+      return isLight ? "bg-amber-50 text-amber-900 border-amber-300 border-dashed" : "bg-amber-500/10 text-amber-300 border-amber-500/40 border-dashed";
+    case "unpublished":
+      return isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-300 border-slate-700";
+    case "archived":
+      return isLight ? "bg-violet-50 text-violet-800 border-violet-300" : "bg-violet-500/15 text-violet-300 border-violet-500/30";
+    default:
+      return isLight ? "bg-emerald-50 text-emerald-800 border-emerald-300" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
+  }
+}
+
+/** Buttons on a course card for its current state. A draft move needs a course with no enrolments. */
+function stateActions(state, enrolled) {
+  const archive = { to: "archived", label: "আর্কাইভ", title: "Archive — শেষ হওয়া ব্যাচ ইতিহাসে রাখুন", icon: Archive, tone: "muted" };
+  const toDraft = { to: "draft", label: "ড্রাফটে নিন", title: "Draft — আবার প্রস্তুতির অবস্থায় নিন", icon: FilePen, tone: "muted" };
+  switch (state) {
+    case "draft":
+      return [{ to: "published", label: "প্রকাশ করুন", title: "Publish — ওয়েবসাইটে দেখান ও ভর্তি নিন", icon: Rocket, tone: "primary" }, archive];
+    case "published":
+      return [
+        { to: "unpublished", label: "আনপাবলিশ", title: "Unpublish — ওয়েবসাইট থেকে সরান ও নতুন ভর্তি বন্ধ করুন", icon: EyeOff, tone: "warn" },
+        archive,
+        ...(enrolled === 0 ? [toDraft] : []),
+      ];
+    case "unpublished":
+      return [
+        { to: "published", label: "আবার প্রকাশ করুন", title: "Publish", icon: Globe, tone: "primary" },
+        archive,
+        ...(enrolled === 0 ? [toDraft] : []),
+      ];
+    default:
+      return [{ to: "unpublished", label: "রিস্টোর", title: "Restore — আনপাবলিশড অবস্থায় ফিরিয়ে আনুন", icon: ArchiveRestore, tone: "primary" }];
+  }
+}
+
+function actionCls(tone, isLight) {
+  if (tone === "primary") return "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 border-amber-600 font-black shadow-sm shadow-amber-500/20";
+  if (tone === "warn") return isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300" : "bg-slate-800 hover:bg-slate-700 text-slate-100 border-slate-700";
+  return isLight ? "bg-white hover:bg-slate-50 text-slate-700 border-slate-300" : "bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700";
+}
+
+function confirmText(batch, to) {
+  const enrolled = batch.enrolledCount || 0;
+  const keep = enrolled > 0 ? `\n\nভর্তি থাকা ${enrolled} জন ট্রেইনি আগের মতোই ক্লাস ও স্টাডি ম্যাটেরিয়াল পাবেন।` : "";
+  switch (to) {
+    case "published":
+      return `"${batch.name}" প্রকাশ করবেন?\n\nকোর্সটি ওয়েবসাইটে দেখা যাবে এবং নতুন ভর্তি নেওয়া যাবে।`;
+    case "unpublished":
+      return `"${batch.name}" আনপাবলিশ করবেন?\n\nওয়েবসাইট থেকে সরে যাবে ও নতুন ভর্তি বন্ধ হবে।${keep}`;
+    case "archived":
+      return `"${batch.name}" আর্কাইভ করবেন?\n\nশেষ হওয়া ব্যাচ হিসেবে ইতিহাসে থাকবে; ওয়েবসাইটে দেখা যাবে না ও নতুন ভর্তি বন্ধ হবে। পরে “রিস্টোর” করা যাবে।${keep}`;
+    case "draft":
+      return `"${batch.name}" ড্রাফটে নেবেন?\n\nকোর্সটি ওয়েবসাইট থেকে সরে যাবে; শুধু অ্যাডমিন দেখতে পাবেন।`;
+    default:
+      return `"${batch.name}"-এর অবস্থা পরিবর্তন করবেন?`;
+  }
+}
 
 function statusCls(status, isLight) {
   if (status === "Closed") return isLight ? "bg-rose-50 text-rose-800 border-rose-300" : "bg-rose-500/20 text-rose-300 border-rose-500/30";
@@ -126,6 +216,14 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
   const [newModule, setNewModule] = useState(emptyModule(1));
   const [newResource, setNewResource] = useState(EMPTY_RESOURCE);
   const [newCourse, setNewCourse] = useState(EMPTY_COURSE);
+
+  // Publishing lifecycle: filter tabs, search, in-flight state change, duplicate dialog
+  const [stateFilter, setStateFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [busyKey, setBusyKey] = useState(null);
+  const [highlightKey, setHighlightKey] = useState(null);
+  const [dupSource, setDupSource] = useState(null);
+  const [dupForm, setDupForm] = useState({ name: "", newCourseId: "" });
 
   const reload = async () => {
     setReloading(true);
@@ -201,19 +299,76 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
       showToast(message, "error");
       return;
     }
-    if (data.course) setBatches((prev) => [...prev, data.course]);
+    if (data.course) {
+      setBatches((prev) => [...prev, data.course]);
+      setStateFilter("all");
+      flashCard(keyOf(data.course));
+    }
     showToast(message || "নতুন কোর্স সফলভাবে তৈরি হয়েছে!");
     setShowAddModal(false);
     setNewCourse(EMPTY_COURSE);
   };
 
+  /** Briefly ring a card so a new/changed course is easy to spot. */
+  const flashCard = (key) => {
+    setHighlightKey(key);
+    setTimeout(() => setHighlightKey((cur) => (cur === key ? null : cur)), 4000);
+  };
+
+  /** Publish / unpublish / archive / restore / move to draft — the server checks the rules. */
+  const changeState = async (batch, to) => {
+    if (!window.confirm(confirmText(batch, to))) return;
+    setBusyKey(keyOf(batch));
+    const { ok, data, message } = await callApi("/api/admin/courses", {
+      method: "PATCH",
+      body: { _id: batch._id, courseId: batch.courseId, publishState: to },
+    });
+    setBusyKey(null);
+    if (!ok) {
+      showToast(message, "error");
+      return;
+    }
+    const saved = data.course;
+    setBatches((prev) => prev.map((b) => (keyOf(b) === keyOf(batch) ? saved : b)));
+    setSelectedCourseForCurriculum((prev) => (prev && keyOf(prev) === keyOf(batch) ? saved : prev));
+    // Follow the course to its new tab (unless the "all" tab still shows it).
+    if (stateFilter !== "all" || to === "archived") setStateFilter(to);
+    flashCard(keyOf(saved));
+    showToast(message);
+  };
+
+  const openDuplicate = (batch) => {
+    setDupSource(batch);
+    setDupForm({ name: `${batch.name} (কপি)`, newCourseId: "" });
+  };
+
+  const handleDuplicate = async (e) => {
+    e.preventDefault();
+    if (!dupSource) return;
+    setSaving(true);
+    const { ok, data, message } = await callApi("/api/admin/courses/duplicate", {
+      method: "POST",
+      body: { _id: dupSource._id, courseId: dupSource.courseId, name: dupForm.name, newCourseId: dupForm.newCourseId },
+    });
+    setSaving(false);
+    if (!ok) {
+      showToast(message, "error");
+      return;
+    }
+    setBatches((prev) => [...prev, data.course]);
+    setDupSource(null);
+    setStateFilter("draft");
+    flashCard(keyOf(data.course));
+    showToast(message);
+  };
+
   const handleDeleteCourse = async (batch) => {
-    if (!window.confirm(`আপনি কি নিশ্চিত যে "${batch.name}" কোর্সটি স্থায়ীভাবে মুছে ফেলতে চান?`)) return;
+    if (!window.confirm(`আপনি কি নিশ্চিত যে "${batch.name}" কোর্সটি স্থায়ীভাবে মুছে ফেলতে চান?\n\nশেষ হওয়া ব্যাচ ইতিহাসে রাখতে চাইলে মুছে না ফেলে “আর্কাইভ” করুন।`)) return;
 
     const query = batch._id ? `id=${encodeURIComponent(batch._id)}` : `courseId=${encodeURIComponent(batch.courseId)}`;
-    const { ok, message, status } = await callApi(`/api/admin/courses?${query}`, { method: "DELETE" });
+    const { ok, message } = await callApi(`/api/admin/courses?${query}`, { method: "DELETE" });
     if (!ok) {
-      showToast(status === 409 ? `${message} (কার্ডের "এডিট" থেকে স্ট্যাটাস Closed বা আনপাবলিশ করতে পারেন।)` : message, "error");
+      showToast(message, "error");
       return;
     }
     setBatches((prev) => prev.filter((b) => keyOf(b) !== keyOf(batch)));
@@ -334,6 +489,21 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
     await saveResources(updated, "স্টাডি ফাইলটি মুছে ফেলা হয়েছে।");
   };
 
+  // Tab counts and the visible list ("all" hides archived courses; they have their own tab)
+  const counts = { all: 0, published: 0, draft: 0, unpublished: 0, archived: 0 };
+  for (const b of batches) {
+    const s = courseState(b);
+    counts[s] += 1;
+    if (s !== "archived") counts.all += 1;
+  }
+  const q = search.trim().toLowerCase();
+  const visibleBatches = batches.filter((b) => {
+    const s = courseState(b);
+    const inTab = stateFilter === "all" ? s !== "archived" : s === stateFilter;
+    const inSearch = !q || [b.name, b.courseId, b.tag, b.instructor].some((v) => String(v || "").toLowerCase().includes(q));
+    return inTab && inSearch;
+  });
+
   const editInput = `w-full px-3 py-1.5 rounded-xl border text-xs font-medium outline-hidden ${
     isLight ? "bg-white border-slate-300 text-slate-900" : "bg-slate-950 border-slate-700 text-white focus:border-amber-500"
   }`;
@@ -384,28 +554,88 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
         </div>
       </div>
 
-      {batches.length === 0 && !loadError && (
+      {/* State filter tabs + search */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div
+          role="tablist"
+          aria-label="কোর্সের অবস্থা অনুযায়ী ফিল্টার"
+          className={`flex items-center gap-1 p-1 rounded-2xl border overflow-x-auto max-w-full ${
+            isLight ? "bg-slate-100 border-slate-300" : "bg-slate-950 border-slate-800"
+          }`}
+        >
+          {FILTER_TABS.map((tab) => {
+            const active = stateFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                title={tab.title}
+                onClick={() => setStateFilter(tab.key)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer ${
+                  active
+                    ? "bg-amber-500 text-slate-950 shadow-md font-black"
+                    : isLight
+                    ? "text-slate-700 hover:text-slate-950 hover:bg-white/70"
+                    : "text-slate-400 hover:text-white hover:bg-slate-900"
+                }`}
+              >
+                {tab.label}
+                <span
+                  className={`text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded-full ${
+                    active ? "bg-slate-950/15 text-slate-950" : isLight ? "bg-white text-slate-700 border border-slate-300" : "bg-slate-800 text-slate-300"
+                  }`}
+                >
+                  {counts[tab.key]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative w-full lg:w-72">
+          <Search className={`w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 ${isLight ? "text-slate-400" : "text-slate-500"}`} />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="নাম, আইডি বা ট্রেইনার খুঁজুন..."
+            aria-label="কোর্স খুঁজুন"
+            className={`w-full pl-10 pr-3 py-2.5 rounded-xl border text-xs font-medium outline-hidden ${
+              isLight ? "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-amber-500" : "bg-slate-900 border-slate-800 text-white placeholder-slate-500 focus:border-amber-500"
+            }`}
+          />
+        </div>
+      </div>
+
+      {visibleBatches.length === 0 && !loadError && (
         <div className={`text-center py-10 text-xs rounded-3xl border ${isLight ? "bg-white border-slate-200 text-slate-500" : "bg-slate-900 border-slate-800 text-slate-400"}`}>
-          কোনো কোর্স নেই। &apos;নতুন কোর্স তৈরি&apos; বাটনে ক্লিক করে যোগ করুন।
+          {q ? "খোঁজের সাথে মেলে এমন কোনো কোর্স নেই।" : EMPTY_TAB_TEXT[stateFilter]}
         </div>
       )}
 
       {/* Course Batches Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {batches.map((batch) => {
+        {visibleBatches.map((batch) => {
           const batchKey = keyOf(batch);
           const isEditing = editingId === batchKey && draft;
           const view = isEditing ? draft : batch;
           const isMen = batch.track === "men";
           const curriculumCount = batch.curriculum?.length || 0;
           const resourcesCount = batch.resources?.length || 0;
+          const state = courseState(batch);
+          const StateIcon = STATE_META[state].icon;
+          const working = busyKey === batchKey;
 
           return (
             <div
               key={batchKey}
               className={`rounded-3xl p-6 border space-y-5 relative overflow-hidden flex flex-col justify-between transition-all ${
                 isLight ? "bg-white border-slate-200 shadow-sm hover:shadow-md" : "bg-slate-900 border-slate-800 shadow-2xl"
-              }`}
+              } ${state === "draft" ? (isLight ? "border-dashed border-amber-400" : "border-dashed border-amber-500/50") : ""} ${
+                state === "archived" ? "opacity-80" : ""
+              } ${highlightKey === batchKey ? "ring-2 ring-amber-500 ring-offset-2 ring-offset-transparent" : ""}`}
             >
               <div>
                 {/* Card Top Pill & Actions */}
@@ -424,13 +654,20 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                     >
                       {batch.tag || "কোর্স ব্যাচ"}
                     </span>
-                    {batch.isPublished === false && (
+                    <span
+                      title={STATE_META[state].hint}
+                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1 ${stateCls(state, isLight)}`}
+                    >
+                      <StateIcon className="w-3 h-3" /> {COURSE_STATE_LABEL[state]}
+                    </span>
+                    {batch.duplicatedFrom && (
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
-                          isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-300 border-slate-700"
+                        title={`${batch.duplicatedFrom} থেকে কপি করা`}
+                        className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                          isLight ? "bg-white text-slate-500 border-slate-300" : "bg-slate-950 text-slate-400 border-slate-700"
                         }`}
                       >
-                        <EyeOff className="w-3 h-3" /> অপ্রকাশিত
+                        <Copy className="w-3 h-3" /> {batch.duplicatedFrom}
                       </span>
                     )}
                   </div>
@@ -656,15 +893,13 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                           />
                         </div>
                         <div>
-                          <label className={labelCls}>প্রকাশ</label>
-                          <select
-                            value={view.isPublished === false ? "no" : "yes"}
-                            onChange={(e) => setDraftField("isPublished", e.target.value === "yes")}
-                            className={editInput}
+                          <label className={labelCls}>প্রকাশের অবস্থা</label>
+                          <p
+                            title="কার্ডের নিচের বাটন থেকে পরিবর্তন করুন"
+                            className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${stateCls(state, isLight)}`}
                           >
-                            <option value="yes">প্রকাশিত</option>
-                            <option value="no">অপ্রকাশিত</option>
-                          </select>
+                            <StateIcon className="w-3.5 h-3.5 shrink-0" /> {COURSE_STATE_LABEL[state]}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -744,6 +979,45 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                 <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${statusCls(batch.status, isLight)}`}>
                   {batch.status || "—"}
                 </span>
+              </div>
+
+              {/* Publishing actions: publish / unpublish / archive / restore / draft + duplicate */}
+              <div className={`pt-4 border-t space-y-2.5 ${isLight ? "border-slate-100" : "border-slate-800"}`}>
+                <div className="flex flex-wrap items-center gap-2">
+                  {stateActions(state, batch.enrolledCount || 0).map((action) => {
+                    const Icon = action.icon;
+                    return (
+                      <button
+                        key={action.to}
+                        type="button"
+                        title={action.title}
+                        onClick={() => changeState(batch, action.to)}
+                        disabled={working || saving}
+                        className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${actionCls(action.tone, isLight)}`}
+                      >
+                        <Icon className="w-3.5 h-3.5" /> {working ? "অপেক্ষা করুন..." : action.label}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    title="Duplicate — এই কোর্সের কপি নতুন ড্রাফট হিসেবে তৈরি করুন"
+                    onClick={() => openDuplicate(batch)}
+                    disabled={working || saving}
+                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${actionCls("muted", isLight)}`}
+                  >
+                    <Copy className="w-3.5 h-3.5" /> ডুপ্লিকেট
+                  </button>
+                </div>
+                <p className={`text-[10px] font-medium leading-relaxed ${isLight ? "text-slate-500" : "text-slate-500"}`}>
+                  {STATE_META[state].hint}
+                  {batch.stateChangedAt && (
+                    <span className="font-mono">
+                      {" "}• {COURSE_STATE_LABEL[state]}: {formatDate(batch.stateChangedAt)}
+                      {batch.stateChangedBy ? ` (${batch.stateChangedBy})` : ""}
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
           );
@@ -1602,6 +1876,21 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                 />
               </div>
 
+              <div>
+                <label className="font-bold block mb-1">শুরুর অবস্থা</label>
+                <select
+                  value={newCourse.publishState}
+                  onChange={(e) => setNewCourse({ ...newCourse, publishState: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl border font-bold"
+                >
+                  <option value="draft">ড্রাফট — এখনই ওয়েবসাইটে দেখাবে না (প্রস্তাবিত)</option>
+                  <option value="published">প্রকাশিত — এখনই ওয়েবসাইটে দেখাবে ও ভর্তি নেবে</option>
+                </select>
+                <p className={`text-[11px] mt-1 leading-relaxed ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  ড্রাফটে কারিকুলাম, ফি ও ক্লাস লিংক ঠিক করে নিয়ে পরে কার্ড থেকে “প্রকাশ করুন”।
+                </p>
+              </div>
+
               <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
@@ -1615,7 +1904,93 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                   disabled={saving}
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
-                  {saving ? "তৈরি হচ্ছে..." : "✓ কোর্স তৈরি করুন"}
+                  {saving ? "তৈরি হচ্ছে..." : newCourse.publishState === "published" ? "✓ তৈরি করে প্রকাশ করুন" : "✓ ড্রাফট তৈরি করুন"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* DUPLICATE COURSE MODAL */}
+      {dupSource && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="কোর্স ডুপ্লিকেট করুন"
+            className={`rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5 my-8 border ${
+              isLight ? "bg-white border-slate-200" : "bg-slate-900 border-slate-800"
+            }`}
+          >
+            <div className={`flex items-center justify-between border-b pb-4 ${isLight ? "border-slate-200" : "border-slate-800"}`}>
+              <div className="flex items-center gap-2">
+                <Copy className="w-5 h-5 text-amber-500" />
+                <h2 className={`text-lg font-black ${isLight ? "text-slate-900" : "text-white"}`}>কোর্স ডুপ্লিকেট করুন</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDupSource(null)}
+                className={`p-1 rounded-lg ${isLight ? "text-slate-500 hover:bg-slate-100" : "text-slate-400 hover:text-white"}`}
+                aria-label="বন্ধ করুন"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className={`text-xs leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+              <strong className={isLight ? "text-slate-900" : "text-white"}>{dupSource.name}</strong>{" "}
+              <span className="font-mono">({dupSource.courseId})</span> থেকে একটি নতুন কোর্স তৈরি হবে — নতুন ব্যাচের জন্য আবার সব লিখতে হবে না।
+            </p>
+
+            <form onSubmit={handleDuplicate} className="space-y-4 text-xs">
+              <div>
+                <label className="font-bold block mb-1">নতুন কোর্সের নাম *</label>
+                <input
+                  type="text"
+                  required
+                  value={dupForm.name}
+                  onChange={(e) => setDupForm({ ...dupForm, name: e.target.value })}
+                  className="w-full font-bold px-3 py-2.5 rounded-xl border"
+                />
+              </div>
+              <div>
+                <label className="font-bold block mb-1">নতুন কোর্স আইডি (ঐচ্ছিক)</label>
+                <input
+                  type="text"
+                  value={dupForm.newCourseId}
+                  onChange={(e) => setDupForm({ ...dupForm, newCourseId: e.target.value })}
+                  placeholder={`খালি রাখলে স্বয়ংক্রিয়: ${dupSource.courseId}-COPY`}
+                  className="w-full font-mono font-bold px-3 py-2 rounded-xl border"
+                />
+              </div>
+
+              <div className={`rounded-2xl border p-3.5 space-y-2 leading-relaxed ${isLight ? "bg-slate-50 border-slate-200 text-slate-700" : "bg-slate-950/60 border-slate-800 text-slate-300"}`}>
+                <p className="flex items-start gap-2">
+                  <Info className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                  <span>
+                    <strong>কপি হবে:</strong> বিবরণ, ফি, রুটিন ও ওরিয়েন্টেশন, কারিকুলাম ({dupSource.curriculum?.length || 0} সেশন, লেসনসহ) এবং
+                    স্টাডি ফাইল ({dupSource.resources?.length || 0}টি)।
+                  </span>
+                </p>
+                <p className="pl-[22px]">
+                  <strong>কপি হবে না:</strong> ভর্তি হওয়া ট্রেইনি ও আসন সংখ্যা (০ থেকে শুরু), Google Meet ও WhatsApp লিংক — নতুন ব্যাচের জন্য আলাদা যুক্ত করুন।
+                </p>
+                <p className="pl-[22px]">
+                  নতুন কোর্স <strong>ড্রাফট</strong> ও <strong>Upcoming</strong> অবস্থায় তৈরি হবে; তারিখ ঠিক করে “প্রকাশ করুন”।
+                </p>
+              </div>
+
+              <div className={`pt-4 flex items-center justify-end gap-3 border-t ${isLight ? "border-slate-200" : "border-slate-800"}`}>
+                <button type="button" onClick={() => setDupSource(null)} className="px-4 py-2 rounded-xl border font-bold">
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || !dupForm.name.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <Copy className="w-4 h-4" /> {saving ? "কপি হচ্ছে..." : "ড্রাফট কপি তৈরি করুন"}
                 </button>
               </div>
             </form>

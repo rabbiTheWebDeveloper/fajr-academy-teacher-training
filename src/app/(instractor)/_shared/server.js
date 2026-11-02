@@ -6,6 +6,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { INSTRUCTOR_ROLES } from "@/lib/api-auth";
+import { OPERATING_COURSE_FILTER } from "@/lib/course-state";
 import { dbConnect } from "@/service/mongo";
 import { TotModel } from "@/model/tot-model";
 import { findSessionAccount } from "@/service/account-service";
@@ -56,10 +57,14 @@ export const getInstructorProfile = cache(async () => {
   };
 });
 
-/** Published courses, seeding the two default TOT batches on an empty database. */
+/**
+ * Courses instructors run: published ones AND unpublished ones (a batch hidden from the
+ * website to stop new admission is still running). Drafts and archives are excluded.
+ * Seeds the two default TOT batches on an empty database.
+ */
 export async function loadPublishedCourses() {
   await ensureDefaultCourses();
-  const courses = await CourseModel.find({ isPublished: true }).sort({ createdAt: 1 }).lean();
+  const courses = await CourseModel.find(OPERATING_COURSE_FILTER).sort({ createdAt: 1 }).lean();
   return toPlain(courses);
 }
 

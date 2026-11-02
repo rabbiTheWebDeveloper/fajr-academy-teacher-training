@@ -228,9 +228,30 @@ const courseSchema = new Schema(
       type: [String],
       default: [],
     },
+    // Lifecycle: draft | published | unpublished | archived (see src/lib/course-state.js).
+    // Older documents have no publishState — they are read as published / unpublished
+    // from isPublished. isPublished is always kept equal to (publishState === "published").
+    publishState: {
+      type: String,
+      enum: ["draft", "published", "unpublished", "archived"],
+      default: "published",
+      index: true,
+    },
     isPublished: {
       type: Boolean,
       default: true,
+    },
+    stateChangedAt: {
+      type: Date,
+      default: null,
+    },
+    stateChangedBy: {
+      type: String,
+      default: "",
+    },
+    duplicatedFrom: {
+      type: String,
+      default: "", // courseId this course was copied from
     },
     videoUrl: {
       type: String,
@@ -253,6 +274,25 @@ const courseSchema = new Schema(
     timestamps: true,
   }
 );
+
+// Keep isPublished equal to (publishState === "published") on every write path, so the
+// public site / checkout queries that filter on isPublished can never disagree with the state.
+courseSchema.pre("save", function () {
+  if (this.isModified("publishState")) this.isPublished = this.publishState === "published";
+});
+
+function syncPublishedFlag() {
+  const update = this.getUpdate();
+  if (!update) return;
+  const hasOperators = Object.keys(update).some((k) => k.startsWith("$"));
+  for (const target of [update.$set, update.$setOnInsert, hasOperators ? null : update]) {
+    if (target && typeof target.publishState === "string") target.isPublished = target.publishState === "published";
+  }
+  this.setUpdate(update);
+}
+courseSchema.pre("findOneAndUpdate", syncPublishedFlag);
+courseSchema.pre("updateOne", syncPublishedFlag);
+courseSchema.pre("updateMany", syncPublishedFlag);
 
 export {
   DEFAULT_TOT_CURRICULUM,

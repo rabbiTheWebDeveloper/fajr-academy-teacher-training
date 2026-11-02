@@ -19,6 +19,7 @@ import ErrorBanner from "../../_shared/ErrorBanner";
 import { FlashMessage, useFlash } from "../../_shared/Flash";
 import { apiFetch } from "../../_shared/api";
 import { bn, courseAccent, isHttpsUrl } from "../../_shared/utils";
+import { COURSE_STATE_LABEL, courseState } from "@/lib/course-state";
 
 const CATEGORIES = [
   "কুরআন শিক্ষা ও তাজবীদ",
@@ -283,8 +284,10 @@ export default function ResourcesClient({ initialCourses = [], loadError = null 
                   {accent.emoji} {course.courseId}
                 </span>
                 <h2 className="text-sm font-bold text-white">{course.name}</h2>
-                {course.isPublished === false && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400">অপ্রকাশিত</span>
+                {courseState(course) !== "published" && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+                    {COURSE_STATE_LABEL[courseState(course)]}
+                  </span>
                 )}
               </div>
               <span className="text-[11px] text-slate-400">
