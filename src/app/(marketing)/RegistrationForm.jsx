@@ -23,6 +23,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { toBengaliNumber } from '@/lib/utils'
+import { FACEBOOK_MESSENGER_URL } from './contact'
 
 const GATEWAY_ERRORS = {
   cancelled: 'আপনার পেমেন্ট বাতিল করা হয়েছে। কোনো টাকা কাটা হয়নি এবং কোনো অ্যাকাউন্ট তৈরি হয়নি — চাইলে আবার চেষ্টা করুন।',
@@ -30,7 +31,7 @@ const GATEWAY_ERRORS = {
   error: 'পেমেন্টে সাময়িক সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
 }
 const GATEWAY_VERIFYING =
-  'আপনার পেমেন্ট গেটওয়ে থেকে যাচাই করা হচ্ছে। টাকা কেটে থাকলে কয়েক মিনিটের মধ্যে অ্যাকাউন্ট সক্রিয় হবে — তারপর ইমেইল ও পাসওয়ার্ড দিয়ে লগইন করুন। প্রয়োজনে WhatsApp হেল্পলাইনে ট্রানজেকশন আইডি জানান।'
+  'আপনার পেমেন্ট গেটওয়ে থেকে যাচাই করা হচ্ছে। টাকা কেটে থাকলে কয়েক মিনিটের মধ্যে অ্যাকাউন্ট সক্রিয় হবে — তারপর ইমেইল ও পাসওয়ার্ড দিয়ে লগইন করুন। প্রয়োজনে Facebook Messenger-এ ট্রানজেকশন আইডি জানান।'
 
 export default function RegistrationForm({
   initialTrack = 'men',
@@ -106,13 +107,16 @@ export default function RegistrationForm({
     setFormData((p) => ({ ...p, [name]: value }))
   }
 
-  const handleWhatsAppConfirm = () => {
+  const handleMessengerConfirm = async () => {
     const trackName = selectedTrack === 'men' ? 'TOT - MEN BATCH' : 'TOT - WOMEN (Batch 014)'
     const msg = `আসসালামু আলাইকুম। আমি ফজর একাডেমি ${trackName} শিক্ষক প্রশিক্ষণের জন্য নিবন্ধন করেছি।\nনাম: ${formData.fullName}\nমোবাইল: ${formData.phone}\nইমেইল: ${formData.email}`
-    const helpline = settings?.helplinePhone || '01410764581'
-    const cleanPhone = helpline.replace(/[^0-9]/g, '')
-    const intlPhone = cleanPhone.startsWith('880') ? cleanPhone : `88${cleanPhone.replace(/^0/, '')}`
-    window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(msg)}`, '_blank')
+    // Facebook pages cannot be pre-filled with a message, so copy the details for pasting.
+    try {
+      await navigator.clipboard.writeText(msg)
+    } catch {
+      // Clipboard may be unavailable; the user can still message the page directly.
+    }
+    window.open(FACEBOOK_MESSENGER_URL, '_blank', 'noopener,noreferrer')
   }
 
   const handleSubmit = async (e) => {
@@ -120,7 +124,7 @@ export default function RegistrationForm({
     setErrorMsg('')
     setGatewayNoticeOpen(false)
     if (registrationClosed) {
-      setErrorMsg('এই মুহূর্তে ভর্তি বন্ধ রয়েছে। পরবর্তী ব্যাচের আপডেটের জন্য WhatsApp হেল্পলাইনে যোগাযোগ করুন।')
+      setErrorMsg('এই মুহূর্তে ভর্তি বন্ধ রয়েছে। পরবর্তী ব্যাচের আপডেটের জন্য Facebook Messenger-এ যোগাযোগ করুন।')
       return
     }
     setAlreadyPaid(false)
@@ -171,11 +175,11 @@ export default function RegistrationForm({
         if (data.alreadyPaid) {
           setAlreadyPaid(true)
         }
-        setErrorMsg(data.message || 'SSLCommerz পেমেন্ট গেটওয়েতে সংযোগ করতে ব্যর্থ হয়েছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন অথবা সরাসরি WhatsApp-এ যোগাযোগ করুন।')
+        setErrorMsg(data.message || 'SSLCommerz পেমেন্ট গেটওয়েতে সংযোগ করতে ব্যর্থ হয়েছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন অথবা সরাসরি Facebook Messenger-এ যোগাযোগ করুন।')
         setLoading(false)
       }
     } catch {
-      setErrorMsg('সার্ভারে সাময়িক সমস্যা হয়েছে। দয়া করে পুনরায় চেষ্টা করুন বা WhatsApp হেল্পলাইনে যোগাযোগ করুন।')
+      setErrorMsg('সার্ভারে সাময়িক সমস্যা হয়েছে। দয়া করে পুনরায় চেষ্টা করুন বা Facebook Messenger-এ যোগাযোগ করুন।')
       setLoading(false)
     }
   }
@@ -311,8 +315,8 @@ export default function RegistrationForm({
               <button type="button" onClick={() => router.push('/teacher')} className={`${styles.btn} ${styles.btnGold} ${styles.btnFull}`}>
                 🎓 সরাসরি টিচার ড্যাশবোর্ডে যান →
               </button>
-              <button type="button" onClick={handleWhatsAppConfirm} className={`${styles.btn} ${styles.btnOutline} ${styles.btnFull}`}>
-                📲 WhatsApp-এ তাৎক্ষণিক কনফার্মেশন পাঠান
+              <button type="button" onClick={handleMessengerConfirm} className={`${styles.btn} ${styles.btnOutline} ${styles.btnFull}`}>
+                📲 Facebook Messenger-এ তাৎক্ষণিক কনফার্মেশন পাঠান
               </button>
             </div>
           </div>

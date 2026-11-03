@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Menu, X, MessageCircle, ArrowRight, Sparkles } from 'lucide-react'
+import { Menu, X, ArrowRight, Sparkles } from 'lucide-react'
+import MessengerIcon from './MessengerIcon'
 import { toBengaliNumber } from '@/lib/utils'
+import { FACEBOOK_MESSENGER_URL } from './contact'
 
 const NAV_ITEMS = [
   { href: '#home', label: 'হোম' },
@@ -20,15 +22,7 @@ export default function MarketingNavbar({ settings = {} }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('home')
 
-  const helplinePhone = settings?.helplinePhone || '01410764581'
   const coursePrice = settings?.coursePrice || 1000
-  const cleanPhone = helplinePhone.replace(/[^0-9]/g, '')
-  const intlPhone = cleanPhone.startsWith('880') ? cleanPhone : `88${cleanPhone.replace(/^0/, '')}`
-  const whatsappUrl =
-    settings?.whatsappSupport ||
-    `https://wa.me/${intlPhone}?text=${encodeURIComponent(
-      'আসসালামু আলাইকুম, ফজর একাডেমি কুরআন টিচার ট্রেনিং কোর্স সম্পর্কে জানতে চাই।'
-    )}`
 
   useEffect(() => {
     const handleScroll = () => {
@@ -117,16 +111,15 @@ export default function MarketingNavbar({ settings = {} }) {
         </a>
 
         <a
-          href={whatsappUrl}
+          href={FACEBOOK_MESSENGER_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 bg-[#25D366] text-white font-bold py-1.5 px-3 sm:py-2 sm:px-4 rounded-full text-xs sm:text-sm hover:bg-[#20bd5a] hover:shadow-lg hover:shadow-green-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shrink-0"
-          title={`WhatsApp হটলাইন: ${helplinePhone}`}
+          className="inline-flex items-center gap-1.5 bg-[#0866FF] text-white font-bold py-1.5 px-3 sm:py-2 sm:px-4 rounded-full text-xs sm:text-sm hover:bg-[#0756d6] hover:shadow-lg hover:shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shrink-0"
+          title="Facebook Messenger-এ মেসেজ পাঠান"
         >
           <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-          <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white" />
-          <span className="hidden xs:inline sm:inline">{helplinePhone}</span>
-          <span className="inline xs:hidden sm:hidden">WhatsApp</span>
+          <MessengerIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" boltColor="#0866FF" />
+          <span>Messenger</span>
         </a>
 
         {/* Mobile Hamburger Toggle */}
@@ -174,14 +167,14 @@ export default function MarketingNavbar({ settings = {} }) {
               <ArrowRight className="w-4 h-4" />
             </a>
             <a
-              href={whatsappUrl}
+              href={FACEBOOK_MESSENGER_URL}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center bg-[#25D366] text-white font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm"
+              className="w-full text-center bg-[#0866FF] text-white font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm"
             >
-              <MessageCircle className="w-4 h-4 fill-white" />
-              <span>WhatsApp হটলাইনে কথা বলুন ({helplinePhone})</span>
+              <MessengerIcon className="w-4 h-4 text-white" boltColor="#0866FF" />
+              <span>Facebook Messenger-এ কথা বলুন</span>
             </a>
           </div>
         </div>

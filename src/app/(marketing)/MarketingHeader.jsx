@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react'
 import styles from './page.module.css'
+import { FACEBOOK_MESSENGER_URL } from './contact'
+import MessengerIcon from './MessengerIcon'
 import {
   Home,
   BookOpen,
   HelpCircle,
   Phone,
-  MessageCircle,
   Tag,
   User,
   Menu,
@@ -119,20 +120,20 @@ export default function MarketingHeader() {
           </div>
 
           <a
-            href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20ফজর%20একাডেমির%20কুরআন%20টিচার%20ট্রেনিং%20সম্পর্কে%20জানতে%20চাই।"
+            href={FACEBOOK_MESSENGER_URL}
             target="_blank"
             rel="noopener noreferrer"
             className={styles.headerWhatsappBtn}
-            title="WhatsApp-এ সরাসরি যোগাযোগ করুন"
-            id="header-whatsapp-btn"
+            title="Facebook Messenger-এ সরাসরি যোগাযোগ করুন"
+            id="header-messenger-btn"
           >
             <div className={styles.whatsappIconBox}>
-              <MessageCircle size={15} fill="#fff" color="#25D366" />
+              <MessengerIcon className="w-[15px] h-[15px] text-[#0866FF]" boltColor="#fff" />
             </div>
             <div className={styles.whatsappTextBox}>
-              <span className={styles.whatsappNum}>01410764581</span>
+              <span className={styles.whatsappNum}>Facebook Messenger</span>
               <span className={styles.whatsappLabel}>
-                <span className={styles.onlineDot} /> WhatsApp
+                <span className={styles.onlineDot} /> Message us
               </span>
             </div>
           </a>
@@ -235,19 +236,16 @@ export default function MarketingHeader() {
             {/* Drawer Footer CTA */}
             <div className={styles.mobileDrawerFooter}>
               <a
-                href="https://wa.me/8801410764581?text=আসসালামু%20আলাইকুম,%20ফজর%20একাডেমির%20কুরআন%20টিচার%20ট্রেনিং%20সম্পর্কে%20জানতে%20চাই।"
+                href={FACEBOOK_MESSENGER_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.mobileWhatsappCta}
                 onClick={closeMenu}
-                id="mobile-whatsapp-cta"
+                id="mobile-messenger-cta"
               >
-                <MessageCircle size={18} fill="#fff" color="#25D366" />
-                <span>WhatsApp-এ সরাসরি কথা বলুন</span>
+                <MessengerIcon className="w-[18px] h-[18px] text-white" boltColor="#0866FF" />
+                <span>Facebook Messenger-এ সরাসরি কথা বলুন</span>
               </a>
-              <div className={styles.mobileHotlineNote}>
-                হটলাইন: <strong>01410764581</strong>
-              </div>
             </div>
           </div>
         </div>

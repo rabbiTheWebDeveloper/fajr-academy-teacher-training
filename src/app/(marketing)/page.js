@@ -3,6 +3,8 @@ import MarketingNavbar from './MarketingNavbar'
 import RegistrationForm from './RegistrationForm'
 import FloatingWhatsApp from './FloatingWhatsApp'
 import VideoShortsCard from './VideoShortsCard'
+import { FACEBOOK_MESSENGER_URL } from './contact'
+import MessengerIcon from './MessengerIcon'
 import { BASE_URL } from '@/constant'
 import { dbConnect } from '@/service/mongo'
 import { CourseModel, DEFAULT_TOT_CURRICULUM } from '@/model/course-model'
@@ -18,7 +20,6 @@ import {
   Calendar,
   Check,
   ArrowRight,
-  MessageCircle,
   CreditCard,
   User,
   Users,
@@ -103,9 +104,7 @@ export default async function TeacherRegistrationMarketingPage() {
     orientationTime: 'রাত ৮:০০ টা – ৯:৩০ টা',
     bkashMerchantNumber: '01410764581',
     nagadMerchantNumber: '01410764581',
-    helplinePhone: '01410764581',
     supportEmail: 'support@fajracademy.io',
-    whatsappSupport: 'https://wa.me/8801410764581',
     registrationOpen: true,
   }
 
@@ -113,14 +112,6 @@ export default async function TeacherRegistrationMarketingPage() {
   const liveSettings = publicSettings({ ...defaultSettings, ...(settingsDoc || {}) })
   const coursePrice = liveSettings.coursePrice || 1000
   const regularPrice = liveSettings.regularCoursePrice || 2500
-  const helplinePhone = liveSettings.helplinePhone || '01410764581'
-  const cleanPhone = helplinePhone.replace(/[^0-9]/g, '')
-  const intlPhone = cleanPhone.startsWith('880') ? cleanPhone : `88${cleanPhone.replace(/^0/, '')}`
-  const whatsappUrl =
-    liveSettings.whatsappSupport ||
-    `https://wa.me/${intlPhone}?text=${encodeURIComponent(
-      'আসসালামু আলাইকুম, কুরআন টিচার ট্রেনিং কোর্স সম্পর্কে জানতে চাই।'
-    )}`
 
   // Live Courses extraction
   const menCourse = courses?.find((c) => c.track === 'men' || c.courseId === 'TOT-MEN') || {
@@ -192,14 +183,7 @@ export default async function TeacherRegistrationMarketingPage() {
         url: SITE_URL,
         logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon.ico`, width: 80, height: 80 },
         description: 'Balanced Education for Dunya and Akhirah — Online Quran Teacher Training in Bangladesh.',
-        contactPoint: {
-          '@type': 'ContactPoint',
-          contactType: 'customer support',
-          telephone: `+88${cleanPhone.replace(/^88/, '')}`,
-          availableLanguage: ['Bengali', 'English'],
-          contactOption: 'TollFree',
-        },
-        sameAs: [whatsappUrl, 'https://youtube.com/shorts/zPXTzup-2ok'],
+        sameAs: [FACEBOOK_MESSENGER_URL, 'https://youtube.com/shorts/zPXTzup-2ok'],
       },
       {
         '@type': 'Course',
@@ -284,13 +268,13 @@ export default async function TeacherRegistrationMarketingPage() {
           </span>
           <span className="hidden md:inline text-white/10">|</span>
           <a
-            href={whatsappUrl}
+            href={FACEBOOK_MESSENGER_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-white flex items-center gap-1.5 text-amber-300 text-[11px] sm:text-xs transition-colors shrink-0"
           >
-            <MessageCircle className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />
-            <span>হটলাইন: {helplinePhone}</span>
+            <MessengerIcon className="w-3.5 h-3.5 text-sky-400" boltColor="#0A1424" />
+            <span>Facebook Messenger</span>
           </a>
         </div>
       </div>
@@ -375,13 +359,13 @@ export default async function TeacherRegistrationMarketingPage() {
                 <span>রেজিস্ট্রেশন করুন ({toBengaliNumber(coursePrice)} ৳)</span>
               </a>
               <a
-                href={whatsappUrl}
+                href={FACEBOOK_MESSENGER_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 hover:border-amber-400/40 text-white font-bold py-4 px-7 rounded-full text-center text-sm sm:text-base md:text-lg transition-all flex items-center justify-center gap-2.5"
               >
-                <MessageCircle className="w-5 h-5 text-emerald-400 fill-emerald-400" />
-                <span>WhatsApp হটলাইন</span>
+                <MessengerIcon className="w-5 h-5 text-sky-400" boltColor="#0A1424" />
+                <span>Facebook Messenger</span>
               </a>
             </div>
 
@@ -463,13 +447,13 @@ export default async function TeacherRegistrationMarketingPage() {
                   রেজিস্ট্রেশন করুন ({toBengaliNumber(coursePrice)} ৳)
                 </a>
                 <a
-                  href={whatsappUrl}
+                  href={FACEBOOK_MESSENGER_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full text-center bg-white/[0.04] hover:bg-white/[0.08] border border-white/15 text-slate-200 hover:text-white font-semibold py-3 rounded-xl text-xs sm:text-sm transition-all"
                 >
-                  <MessageCircle className="w-4 h-4 inline mr-2 text-emerald-400 fill-emerald-400" />
-                  WhatsApp-এ সরাসরি কথা বলুন
+                  <MessengerIcon className="w-4 h-4 inline mr-2 text-sky-400" boltColor="#0A1424" />
+                  Facebook Messenger-এ সরাসরি কথা বলুন
                 </a>
               </div>
 
@@ -1082,7 +1066,7 @@ export default async function TeacherRegistrationMarketingPage() {
                     <Check className="w-3 h-3 text-white stroke-[3]" />
                   </div>
                   <span className="text-slate-700 font-medium">
-                    স্থিতিশীল ইন্টারনেট সংযোগ এবং সচল WhatsApp নম্বর
+                    স্থিতিশীল ইন্টারনেট সংযোগ এবং সচল Facebook অ্যাকাউন্ট
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
@@ -1130,8 +1114,8 @@ export default async function TeacherRegistrationMarketingPage() {
                   <span className="text-slate-900 font-bold">TOT-MEN / TOT-WOMEN</span>
                 </div>
                 <div className="flex justify-between items-center pb-1">
-                  <span className="text-slate-600 font-medium">হটলাইন / WhatsApp</span>
-                  <span className="text-slate-900 font-bold">{helplinePhone}</span>
+                  <span className="text-slate-600 font-medium">যোগাযোগ</span>
+                  <span className="text-slate-900 font-bold">Facebook Messenger</span>
                 </div>
               </div>
             </div>
@@ -1377,7 +1361,7 @@ export default async function TeacherRegistrationMarketingPage() {
           </h2>
 
           <p className="text-slate-300 max-w-2xl mx-auto mb-9 text-sm sm:text-base md:text-lg leading-relaxed">
-            ফর্ম পূরণ করে {toBengaliNumber(coursePrice)} টাকা রেজিস্ট্রেশন ফি প্রদান করুন। প্রয়োজনীয় তথ্য জানতে আমাদের সরাসরি WhatsApp হটলাইনে যোগাযোগ করুন।
+            ফর্ম পূরণ করে {toBengaliNumber(coursePrice)} টাকা রেজিস্ট্রেশন ফি প্রদান করুন। প্রয়োজনীয় তথ্য জানতে আমাদের সরাসরি Facebook Messenger-এ যোগাযোগ করুন।
           </p>
 
           <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-4 max-w-md sm:max-w-none mx-auto">
@@ -1389,13 +1373,13 @@ export default async function TeacherRegistrationMarketingPage() {
               <span>রেজিস্ট্রেশন ফর্মে যান ({toBengaliNumber(coursePrice)} ৳)</span>
             </a>
             <a
-              href={whatsappUrl}
+              href={FACEBOOK_MESSENGER_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="bg-white/[0.05] hover:bg-white/[0.1] border border-white/20 text-white font-bold py-4 px-8 rounded-full text-base sm:text-lg transition-all flex items-center justify-center gap-2 text-center"
             >
-              <MessageCircle className="w-5 h-5 text-emerald-400 fill-emerald-400 shrink-0" />
-              <span>WhatsApp হটলাইন</span>
+              <MessengerIcon className="w-5 h-5 text-sky-400 shrink-0" boltColor="#0A1424" />
+              <span>Facebook Messenger</span>
             </a>
           </div>
         </div>
@@ -1473,12 +1457,14 @@ export default async function TeacherRegistrationMarketingPage() {
 
           {/* Contact Info */}
           <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-8 text-xs sm:text-sm text-slate-300 mb-6 text-center">
-            <span className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-amber-400 shrink-0" /> হটলাইন: {helplinePhone}
-            </span>
-            <span className="flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" /> WhatsApp: {helplinePhone}
-            </span>
+            <a
+              href={FACEBOOK_MESSENGER_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 hover:text-white transition-colors"
+            >
+              <MessengerIcon className="w-4 h-4 text-sky-400 shrink-0" boltColor="#040814" /> Facebook Messenger
+            </a>
             <span className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-amber-400 shrink-0" /> ইমেইল: {liveSettings.supportEmail || 'support@fajracademy.io'}
             </span>
@@ -1493,8 +1479,8 @@ export default async function TeacherRegistrationMarketingPage() {
         </div>
       </footer>
 
-      {/* Floating WhatsApp Widget */}
-      <FloatingWhatsApp phone={helplinePhone} whatsappUrl={whatsappUrl} />
+      {/* Floating Facebook Messenger Widget */}
+      <FloatingWhatsApp />
     </div>
   )
 }
