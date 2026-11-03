@@ -34,7 +34,7 @@ const GATEWAY_VERIFYING =
   'আপনার পেমেন্ট গেটওয়ে থেকে যাচাই করা হচ্ছে। টাকা কেটে থাকলে কয়েক মিনিটের মধ্যে অ্যাকাউন্ট সক্রিয় হবে — তারপর ইমেইল ও পাসওয়ার্ড দিয়ে লগইন করুন। প্রয়োজনে Facebook Messenger-এ ট্রানজেকশন আইডি জানান।'
 
 export default function RegistrationForm({
-  initialTrack = 'men',
+  initialTrack = null, // no course is pre-selected; the user must pick one
   courses: initialCourses = [],
   settings: initialSettings = {},
 }) {
@@ -129,6 +129,11 @@ export default function RegistrationForm({
     }
     setAlreadyPaid(false)
 
+    if (!selectedTrack) {
+      setErrorMsg('অনুগ্রহ করে প্রথমে একটি কোর্স নির্বাচন করুন।')
+      return
+    }
+
     // Form field validations
     if (!formData.fullName.trim()) {
       setErrorMsg('অনুগ্রহ করে আপনার পূর্ণ নাম লিখুন।')
@@ -185,6 +190,9 @@ export default function RegistrationForm({
   }
 
   const currentCourse = selectedTrack === 'men' ? menCourse : womenCourse
+  // Step 2 counts as done once the required personal details are filled in.
+  const infoDone = !!formData.fullName.trim() && !!formData.phone.trim()
+    && !!formData.email.trim() && formData.password.length >= 6
 
   return (
     <div className={styles.regMainWrapper}>
@@ -320,6 +328,14 @@ export default function RegistrationForm({
               </button>
             </div>
           </div>
+        ) : !selectedTrack ? (
+          /* No course chosen yet */
+          <div className={styles.regFormHeader}>
+            <h3 className={styles.regFormTitleMain}>প্রথমে একটি কোর্স নির্বাচন করুন</h3>
+            <p className={styles.regFormSubtitle}>
+              উপরের কার্ড থেকে আপনার কোর্সটি বেছে নিন, তারপর নিবন্ধন ফর্ম দেখা যাবে।
+            </p>
+          </div>
         ) : (
           /* Form State */
           <form onSubmit={handleSubmit} noValidate>
@@ -340,17 +356,31 @@ export default function RegistrationForm({
                 </div>
               </div>
 
-              {/* Step Indicator */}
+              {/* Step Indicator: 1 course (done) → 2 details → 3 payment */}
               <div className={styles.regStepIndicator}>
                 <div className={styles.regStepItem}>
-                  <div className={styles.regStepNumActive}>১</div>
-                  <span className={styles.regStepTextActive}>তথ্য প্রদান</span>
+                  <div className={styles.regStepNumDone}><Check size={14} strokeWidth={3} /></div>
+                  <span className={styles.regStepTextDone}>কোর্স নির্বাচন</span>
+                </div>
+                <div className={infoDone ? styles.regStepLineDone : styles.regStepLine} />
+                <div className={styles.regStepItem}>
+                  {infoDone ? (
+                    <div className={styles.regStepNumDone}><Check size={14} strokeWidth={3} /></div>
+                  ) : (
+                    <div className={styles.regStepNumActive}>২</div>
+                  )}
+                  <span className={infoDone ? styles.regStepTextDone : styles.regStepTextActive}>তথ্য প্রদান</span>
                 </div>
                 <div className={styles.regStepLine} />
                 <div className={styles.regStepItem}>
-                  <div className={styles.regStepNumInactive}>২</div>
-                  <span className={styles.regStepTextInactive}>পেমেন্ট (৳১,০০০)</span>
+                  <div className={infoDone ? styles.regStepNumActive : styles.regStepNumInactive}>৩</div>
+                  <span className={infoDone ? styles.regStepTextActive : styles.regStepTextInactive}>পেমেন্ট (৳{toBengaliNumber(currentCourse.fee || defaultPrice)})</span>
                 </div>
+              </div>
+
+              {/* What to do */}
+              <div className={styles.regGuideBox} style={{ marginTop: '1rem', marginBottom: 0 }}>
+                ধাপ ২: নিচের <span style={{ color: '#DC2626' }}>*</span> চিহ্নিত ঘরগুলো পূরণ করুন, তারপর নিচের <strong>&quot;পেমেন্টে এগিয়ে যান&quot;</strong> বাটনে চাপুন।
               </div>
             </div>
 
@@ -432,6 +462,7 @@ export default function RegistrationForm({
                     autoComplete="tel"
                   />
                 </div>
+                <p className={styles.regFieldHint}>১১ ডিজিট, যেমন 01712345678 — হোয়াটসঅ্যাপে যোগাযোগ করা যায় এমন নম্বর দিন।</p>
               </div>
 
               {/* Email */}
@@ -449,6 +480,7 @@ export default function RegistrationForm({
                     autoComplete="email"
                   />
                 </div>
+                <p className={styles.regFieldHint}>রেজিস্ট্রেশন কনফার্মেশন ও লগইনের জন্য এই ইমেইল ব্যবহার হবে।</p>
               </div>
 
               {/* Password */}
@@ -467,6 +499,7 @@ export default function RegistrationForm({
                     minLength={6}
                   />
                 </div>
+                <p className={styles.regFieldHint}>এই পাসওয়ার্ড দিয়ে পেমেন্টের পর ড্যাশবোর্ডে লগইন করবেন। কমপক্ষে ৬ অক্ষর।</p>
               </div>
 
               {/* Education */}

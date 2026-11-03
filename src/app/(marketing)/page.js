@@ -1141,7 +1141,7 @@ export default async function TeacherRegistrationMarketingPage() {
             </p>
           </div>
 
-          <RegistrationForm initialTrack="men" courses={sanitizedCourses} settings={liveSettings} />
+          <RegistrationForm courses={sanitizedCourses} settings={liveSettings} />
         </div>
       </section>
 

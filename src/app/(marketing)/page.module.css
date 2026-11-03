@@ -1785,6 +1785,26 @@
 .regStepLine         { width: 40px; height: 2px; background: #DEE4EF; border-radius: 2px; }
 .regStepNumInactive  { width: 26px; height: 26px; border-radius: 50%; background: #EEF2F8; color: #8A96A8; display: flex; align-items: center; justify-content: center; font-size: 0.76rem; }
 .regStepTextInactive { color: #9AA6BA; }
+.regStepNumDone {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: #16A34A;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.regStepTextDone { color: #15803D; }
+.regStepLineDone { width: 40px; height: 2px; background: #16A34A; border-radius: 2px; }
+.regGuideBox {
+  margin: 0 0 1rem 0;
+  padding: 0.65rem 0.9rem;
+  border-radius: 10px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1E3A8A;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.regFieldHint { font-size: 0.72rem; color: #6B7A8E; margin-top: 4px; }
 
 .regErrorAlert {
   display: flex;
