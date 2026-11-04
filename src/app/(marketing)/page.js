@@ -7,7 +7,8 @@ import { FACEBOOK_MESSENGER_URL } from './contact'
 import MessengerIcon from './MessengerIcon'
 import { BASE_URL } from '@/constant'
 import { dbConnect } from '@/service/mongo'
-import { CourseModel, DEFAULT_TOT_CURRICULUM } from '@/model/course-model'
+import { CourseModel } from '@/model/course-model'
+import { modulesFor, sessionRows, sessionRange, NO_DATE } from './course-dates'
 import { SettingModel } from '@/model/setting-model'
 import { InstructorModel } from '@/model/instructor-model'
 import { DEFAULT_INSTRUCTORS } from '@/constant/instructor-defaults'
@@ -163,11 +164,10 @@ export default async function TeacherRegistrationMarketingPage() {
           track: i.track,
         }))
 
-  // Dynamic Curriculum from Course Model
-  const curriculumModules =
-    (menCourse?.curriculum && menCourse.curriculum.length > 0)
-      ? menCourse.curriculum
-      : DEFAULT_TOT_CURRICULUM
+  // Curriculum and session dates per batch (course data first, then the built-in batch curriculum).
+  const curriculumModules = modulesFor(menCourse, 'men')
+  const menRows = sessionRows(curriculumModules)
+  const womenRows = sessionRows(modulesFor(womenCourse, 'women'))
 
   const sanitizedCourses = JSON.parse(JSON.stringify(courses || []))
 
@@ -559,6 +559,7 @@ export default async function TeacherRegistrationMarketingPage() {
                         {menCourse.orientationDate || liveSettings.orientationDate} –{' '}
                         {menCourse.orientationTime || liveSettings.orientationTime}
                       </p>
+                      <p className="text-xs text-blue-200/90 mt-1">সেশন: {sessionRange(menRows)}</p>
                     </div>
                   </div>
 
@@ -639,6 +640,7 @@ export default async function TeacherRegistrationMarketingPage() {
                         {womenCourse.orientationDate || '২১ সেপ্টেম্বর ২০২৬'} –{' '}
                         {womenCourse.orientationTime || liveSettings.orientationTime}
                       </p>
+                      <p className="text-xs text-rose-200/90 mt-1">সেশন: {sessionRange(womenRows)}</p>
                     </div>
                   </div>
 
@@ -735,7 +737,8 @@ export default async function TeacherRegistrationMarketingPage() {
                     </span>
                     <span className="text-xs text-slate-400 flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-amber-400" />
-                      {mod.liveDate || 'লাইভ সেশন'}
+                      {mod.liveDate || mod.sessionDate || NO_DATE}
+                      {mod.sessionTime ? ` • ${mod.sessionTime}` : ''}
                     </span>
                   </div>
 
@@ -776,6 +779,94 @@ export default async function TeacherRegistrationMarketingPage() {
                   </span>
                   <span className="text-amber-300 font-semibold">সম্পূর্ণ লাইভ ও রেকর্ডিং</span>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== DATE-WISE SCHEDULE ==================== */}
+      <section id="schedule" className="py-16 sm:py-24 bg-white text-slate-900 relative border-t border-slate-200">
+        <div className="container mx-auto px-4 sm:px-6 max-w-6xl relative z-10">
+          <div className="text-center mb-12 sm:mb-14" data-reveal>
+            <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-full px-4 py-1 text-blue-800 text-xs sm:text-sm font-semibold mb-3">
+              <Calendar className="w-4 h-4" /> তারিখ অনুযায়ী ক্লাস সূচি
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 mb-3 leading-tight">
+              কোন তারিখে কোন সেশন?
+            </h2>
+            <p className="text-slate-600 max-w-2xl mx-auto text-xs sm:text-sm md:text-base leading-relaxed">
+              পুরুষ ও নারী উভয় ব্যাচের ওরিয়েন্টেশন ও প্রতিটি লাইভ সেশনের তারিখ এবং সময় এক জায়গায়। তারিখ ঘোষণা না হলে সেখানে তা স্পষ্ট লেখা থাকবে।
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[
+              {
+                key: 'men',
+                label: 'পুরুষ ব্যাচ',
+                name: menCourse.name,
+                orientation: `${menCourse.orientationDate || liveSettings.orientationDate} • ${menCourse.orientationTime || liveSettings.orientationTime}`,
+                rows: menRows,
+                accent: 'text-blue-700 bg-blue-50 border-blue-200',
+              },
+              {
+                key: 'women',
+                label: 'মহিলা ব্যাচ (০১৪)',
+                name: womenCourse.name,
+                orientation: `${womenCourse.orientationDate || '২১ সেপ্টেম্বর ২০২৬'} • ${womenCourse.orientationTime || liveSettings.orientationTime}`,
+                rows: womenRows,
+                accent: 'text-rose-700 bg-rose-50 border-rose-200',
+              },
+            ].map((batch) => (
+              <div key={batch.key} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7 shadow-sm" data-reveal>
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
+                  <div>
+                    <span className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${batch.accent}`}>{batch.label}</span>
+                    <h3 className="mt-2 text-base sm:text-lg font-bold text-slate-900 leading-snug">{batch.name}</h3>
+                  </div>
+                  <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1 rounded-full whitespace-nowrap">
+                    {toBengaliNumber(batch.rows.length)}টি সেশন
+                  </span>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5">
+                    <Calendar className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">ওরিয়েন্টেশন</p>
+                      <p className="text-sm font-bold text-slate-900">{batch.orientation}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5">
+                    <Clock className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">পুরো সেশন সময়কাল</p>
+                      <p className="text-sm font-bold text-slate-900">{sessionRange(batch.rows)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <ol className="mt-4 divide-y divide-slate-100">
+                  {batch.rows.map((r) => (
+                    <li key={r.key} className="flex items-start gap-4 py-3.5">
+                      <div className="w-14 shrink-0 text-center">
+                        <div className="text-[10px] font-bold uppercase text-slate-400">সেশন</div>
+                        <div className="text-lg font-black text-slate-900">{toBengaliNumber(r.no)}</div>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm font-bold ${r.date === NO_DATE ? 'text-slate-400' : 'text-slate-900'}`}>{r.date}</p>
+                        {r.time && (
+                          <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
+                            <Clock className="w-3 h-3" /> {r.time}
+                          </p>
+                        )}
+                        {r.title && <p className="mt-1 text-xs leading-snug text-slate-700">{r.title}</p>}
+                        {r.trainer && <p className="mt-0.5 text-[11px] text-slate-500">ট্রেইনার: {r.trainer}</p>}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
               </div>
             ))}
           </div>

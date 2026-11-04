@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { toBengaliNumber } from '@/lib/utils'
 import { FACEBOOK_MESSENGER_URL } from './contact'
+import { modulesFor, sessionRows, sessionRange } from './course-dates'
 
 const GATEWAY_ERRORS = {
   cancelled: 'আপনার পেমেন্ট বাতিল করা হয়েছে। কোনো টাকা কাটা হয়নি এবং কোনো অ্যাকাউন্ট তৈরি হয়নি — চাইলে আবার চেষ্টা করুন।',
@@ -229,6 +230,10 @@ export default function RegistrationForm({
                 <span><strong>ওরিয়েন্টেশন:</strong> {menCourse.orientationDate || '২০ সেপ্টেম্বর'} ({menCourse.orientationTime || 'রাত ৮:০০ টা'})</span>
               </div>
               <div className={styles.regTrackMetaItem}>
+                <Calendar size={15} className={styles.regMetaIcon} />
+                <span><strong>সেশনের তারিখ:</strong> {sessionRange(sessionRows(modulesFor(menCourse, 'men')))}</span>
+              </div>
+              <div className={styles.regTrackMetaItem}>
                 <CreditCard size={15} className={styles.regMetaIcon} />
                 <span><strong>কোর্স ফি:</strong> ৳{toBengaliNumber(menCourse.fee || defaultPrice)} (এককালীন)</span>
               </div>
@@ -275,6 +280,10 @@ export default function RegistrationForm({
               <div className={styles.regTrackMetaItem}>
                 <Calendar size={15} className={styles.regMetaIcon} />
                 <span><strong>ওরিয়েন্টেশন:</strong> {womenCourse.orientationDate || '২১ সেপ্টেম্বর'} ({womenCourse.orientationTime || 'রাত ৮:০০ টা'})</span>
+              </div>
+              <div className={styles.regTrackMetaItem}>
+                <Calendar size={15} className={styles.regMetaIcon} />
+                <span><strong>সেশনের তারিখ:</strong> {sessionRange(sessionRows(modulesFor(womenCourse, 'women')))}</span>
               </div>
               <div className={styles.regTrackMetaItem}>
                 <CreditCard size={15} className={styles.regMetaIcon} />

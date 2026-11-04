@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: '#home', label: 'হোম' },
   { href: '#courses', label: 'কোর্সসমূহ' },
   { href: '#curriculum', label: 'কারিকুলাম' },
+  { href: '#schedule', label: 'সেশনের তারিখ' },
   { href: '#instructors', label: 'শিক্ষক প্যানেল' },
   { href: '#process', label: 'ধাপসমূহ' },
   { href: '#why', label: 'কেন ফজর' },
