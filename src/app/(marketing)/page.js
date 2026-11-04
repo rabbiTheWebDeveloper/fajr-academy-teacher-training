@@ -3,11 +3,17 @@ import MarketingNavbar from './MarketingNavbar'
 import RegistrationForm from './RegistrationForm'
 import FloatingWhatsApp from './FloatingWhatsApp'
 import VideoShortsCard from './VideoShortsCard'
+import AdmitLink from './AdmitLink'
+import AdmissionHighlight from './AdmissionHighlight'
+import BatchSchedule from './BatchSchedule'
+import MobileActionBar from './MobileActionBar'
 import { FACEBOOK_MESSENGER_URL } from './contact'
 import MessengerIcon from './MessengerIcon'
 import { BASE_URL } from '@/constant'
 import { dbConnect } from '@/service/mongo'
+import { withLiveEnrolment } from '@/service/course-service'
 import { CourseModel } from '@/model/course-model'
+import { admissionState } from './admission'
 import { modulesFor, sessionRows, sessionRange, NO_DATE } from './course-dates'
 import { SettingModel } from '@/model/setting-model'
 import { InstructorModel } from '@/model/instructor-model'
@@ -85,6 +91,12 @@ export default async function TeacherRegistrationMarketingPage() {
     ])
 
     courses = coursesResult || []
+    // Real enrolment numbers (valid payments) for the seat lines; the page still renders without them.
+    try {
+      courses = await withLiveEnrolment(courses)
+    } catch (err) {
+      console.error('Could not count live enrolment for the marketing page:', err)
+    }
     settingsDoc = settingsResult ? JSON.parse(JSON.stringify(settingsResult)) : null
     instructorsData = instructorsResult || []
   } catch (err) {
@@ -171,6 +183,12 @@ export default async function TeacherRegistrationMarketingPage() {
 
   const sanitizedCourses = JSON.parse(JSON.stringify(courses || []))
 
+  const admission = admissionState(liveSettings)
+  const menFee = menCourse.fee || coursePrice
+  const womenFee = womenCourse.fee || coursePrice
+  const menOrientation = `${menCourse.orientationDate || liveSettings.orientationDate}`
+  const womenOrientation = `${womenCourse.orientationDate || '২১ সেপ্টেম্বর ২০২৬'}`
+
   /* Dynamic JSON-LD Structured Data */
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -232,7 +250,7 @@ export default async function TeacherRegistrationMarketingPage() {
   }
 
   return (
-    <div className="bg-[#060D1A] text-white font-bengali antialiased selection:bg-amber-400 selection:text-slate-950 min-h-screen">
+    <div className="marketing-root bg-[#060D1A] text-white font-bengali antialiased selection:bg-amber-400 selection:text-slate-950 min-h-screen pb-24 lg:pb-0">
       {/* ── JSON-LD ── */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
@@ -240,25 +258,24 @@ export default async function TeacherRegistrationMarketingPage() {
       <RevealObserver />
 
       {/* ==================== TOP ANNOUNCEMENT BAR ==================== */}
-      <div className="bg-[#040814] border-b border-white/5 py-2 px-3 sm:px-6 md:px-12 flex justify-between items-center text-xs text-amber-300/90">
-        <div className="flex items-center gap-2 font-medium">
+      <div className="bg-[#040814] border-b border-white/5 px-3 sm:px-6 md:px-12 flex justify-between items-center gap-3 text-xs text-amber-300/90">
+        <a href="#register" className="flex flex-1 items-center gap-2 font-medium min-w-0 py-3">
           <span
             className={`w-2 h-2 rounded-full animate-pulse shrink-0 ${
-              liveSettings.admissionStatus === 'closed'
+              admission.mode === 'closed'
                 ? 'bg-rose-500'
-                : liveSettings.admissionStatus === 'waitlist'
+                : admission.mode === 'waitlist'
                 ? 'bg-amber-400'
                 : 'bg-emerald-400'
             }`}
           />
-          <span className="text-[11px] sm:text-xs">
-            {liveSettings.admissionStatus === 'closed'
-              ? 'ভর্তি সাময়িক সমাপ্ত — পরবর্তী ব্যাচ শীঘ্রই'
-              : liveSettings.admissionStatus === 'waitlist'
-              ? 'অপেক্ষমাণ তালিকা চলছে — আসন সীমিত'
-              : 'ভর্তি চলছে — সীমিত আসন'}
-          </span>
-        </div>
+          <span className="text-[11px] sm:text-xs truncate">{admission.label}</span>
+          {!admission.closed && (
+            <span className="shrink-0 text-[11px] sm:text-xs font-bold text-white underline decoration-amber-400/70 underline-offset-2">
+              ভর্তি হোন →
+            </span>
+          )}
+        </a>
         <div className="flex items-center gap-3 sm:gap-5">
           <span className="hidden md:inline text-slate-300">
             <Calendar className="w-3.5 h-3.5 inline mr-1 text-amber-400" />
@@ -271,7 +288,7 @@ export default async function TeacherRegistrationMarketingPage() {
             href={FACEBOOK_MESSENGER_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-white flex items-center gap-1.5 text-amber-300 text-[11px] sm:text-xs transition-colors shrink-0"
+            className="hover:text-white hidden sm:flex items-center gap-1.5 py-3 text-amber-300 text-[11px] sm:text-xs transition-colors shrink-0"
           >
             <MessengerIcon className="w-3.5 h-3.5 text-sky-400" boltColor="#0A1424" />
             <span>Facebook Messenger</span>
@@ -280,12 +297,12 @@ export default async function TeacherRegistrationMarketingPage() {
       </div>
 
       {/* ==================== NAVBAR ==================== */}
-      <MarketingNavbar settings={liveSettings} />
+      <MarketingNavbar settings={liveSettings} closed={admission.closed} />
 
       {/* ==================== HERO SECTION ==================== */}
       <section
         id="home"
-        className="relative min-h-[90vh] flex items-center justify-center pt-8 sm:pt-14 pb-16 sm:pb-24 overflow-hidden bg-gradient-to-b from-[#060D1A] via-[#09152B] to-[#060D1A]"
+        className="relative lg:min-h-[90vh] flex items-center justify-center pt-6 sm:pt-14 pb-16 sm:pb-24 overflow-hidden bg-gradient-to-b from-[#060D1A] via-[#09152B] to-[#060D1A]"
       >
         {/* Soft Ambient Radial Lights */}
         <div className="absolute top-10 left-1/4 w-[420px] h-[420px] bg-blue-600/15 rounded-full filter blur-[110px] pointer-events-none" />
@@ -297,12 +314,12 @@ export default async function TeacherRegistrationMarketingPage() {
         <div className="container mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center relative z-10 max-w-7xl">
           {/* Left Hero Column */}
           <div data-reveal className="space-y-5 sm:space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1.5 text-amber-300 text-xs sm:text-sm font-semibold tracking-wider shadow-sm">
+            <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1.5 text-amber-300 text-[13px] sm:text-sm font-semibold tracking-wider shadow-sm">
               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
               <span>TRAINING OF TRAINERS (TOT) — {liveSettings.currentBatch || '2026'}</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.2] text-white tracking-tight">
+            <h1 className="text-[1.7rem] sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.25] sm:leading-[1.2] text-white tracking-tight">
               শুদ্ধভাবে কুরআন ও <br />
               <span className="text-gradient-gold">ইংরেজি জানেন?</span>
               <br />
@@ -319,7 +336,7 @@ export default async function TeacherRegistrationMarketingPage() {
             </p>
 
             {/* Feature Pills */}
-            <div className="flex flex-wrap justify-center lg:justify-start gap-2 sm:gap-3 pt-1">
+            <div className="grid grid-cols-2 gap-2 text-left sm:flex sm:flex-wrap justify-center lg:justify-start sm:gap-3 pt-1">
               {[
                 'লাইভ ইন্টারঅ্যাক্টিভ ক্লাস',
                 'আজীবন ক্লাস রেকর্ডিং',
@@ -328,7 +345,7 @@ export default async function TeacherRegistrationMarketingPage() {
               ].map((item) => (
                 <div
                   key={item}
-                  className="flex items-center gap-2 bg-white/[0.04] border border-white/10 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium text-slate-200 hover:border-amber-400/40 hover:bg-white/[0.07] transition-all"
+                  className="flex items-center gap-2 bg-white/[0.04] border border-white/10 px-3 sm:px-3.5 py-2 sm:py-1.5 rounded-xl sm:rounded-full text-[12px] sm:text-sm leading-snug font-medium text-slate-200 hover:border-amber-400/40 hover:bg-white/[0.07] transition-all"
                 >
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span>{item}</span>
@@ -340,7 +357,7 @@ export default async function TeacherRegistrationMarketingPage() {
             <div className="bg-gradient-to-r from-slate-900/90 to-[#0B1A45]/40 border-l-4 border-l-amber-400 border border-white/10 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 text-left max-w-xl mx-auto lg:mx-0 shadow-lg">
               <span className="text-amber-400 text-3xl font-serif leading-none shrink-0">&ldquo;</span>
               <div>
-                <p className="text-xs sm:text-sm text-slate-200 italic leading-relaxed">
+                <p className="text-[13px] sm:text-sm text-slate-200 italic leading-relaxed">
                   &ldquo;তোমাদের মধ্যে সর্বোত্তম ব্যক্তি সে, যে নিজে কুরআন শেখে এবং অন্যকে শেখায়।&rdquo;
                 </p>
                 <span className="text-[11px] sm:text-xs text-amber-300 font-semibold mt-1 inline-block">
@@ -353,16 +370,18 @@ export default async function TeacherRegistrationMarketingPage() {
             <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 sm:gap-4 pt-2">
               <a
                 href="#register"
-                className="w-full sm:w-auto bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C59B27] text-slate-950 font-bold py-4 px-8 rounded-full text-center text-sm sm:text-base md:text-lg shadow-xl shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2.5"
+                className={`${admission.closed ? '' : 'cta-glow cta-shine'} w-full sm:w-auto min-h-14 bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C59B27] text-slate-950 font-black py-4 px-8 rounded-full text-center text-base sm:text-base md:text-lg shadow-xl shadow-amber-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2.5`}
               >
                 <CreditCard className="w-5 h-5 text-slate-900" />
-                <span>রেজিস্ট্রেশন করুন ({toBengaliNumber(coursePrice)} ৳)</span>
+                <span>
+                  {admission.closed ? 'ভর্তি সাময়িক বন্ধ — বিস্তারিত দেখুন' : `ভর্তি হোন — মাত্র ${toBengaliNumber(coursePrice)} ৳`}
+                </span>
               </a>
               <a
                 href={FACEBOOK_MESSENGER_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 hover:border-amber-400/40 text-white font-bold py-4 px-7 rounded-full text-center text-sm sm:text-base md:text-lg transition-all flex items-center justify-center gap-2.5"
+                className="w-full sm:w-auto min-h-12 bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 hover:border-amber-400/40 text-white font-bold py-3 sm:py-4 px-7 rounded-full text-center text-sm sm:text-base md:text-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2.5"
               >
                 <MessengerIcon className="w-5 h-5 text-sky-400" boltColor="#0A1424" />
                 <span>Facebook Messenger</span>
@@ -386,7 +405,7 @@ export default async function TeacherRegistrationMarketingPage() {
           </div>
 
           {/* Right Hero Column — Executive Glass Card */}
-          <div data-reveal className="relative max-w-lg mx-auto w-full">
+          <div data-reveal className="relative max-w-lg mx-auto w-full hidden lg:block">
             <div className="bg-[#0A1326]/90 backdrop-blur-xl rounded-3xl p-6 sm:p-8 border border-amber-400/30 shadow-2xl relative z-10 shadow-black/70">
               {/* Card Header */}
               <div className="text-center mb-6">
@@ -408,7 +427,7 @@ export default async function TeacherRegistrationMarketingPage() {
               </div>
 
               {/* Value Points */}
-              <ul className="space-y-3 sm:space-y-3.5 mb-7 text-xs sm:text-sm text-slate-200">
+              <ul className="space-y-3 sm:space-y-3.5 mb-7 text-[13px] sm:text-sm text-slate-200">
                 <li className="flex items-start gap-3">
                   <div className="w-5 h-5 rounded-full bg-amber-400/20 flex items-center justify-center text-amber-300 mt-0.5 shrink-0 border border-amber-400/30">
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
@@ -441,16 +460,16 @@ export default async function TeacherRegistrationMarketingPage() {
               <div className="space-y-3">
                 <a
                   href="#register"
-                  className="block w-full text-center bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C59B27] text-slate-950 font-bold py-3.5 rounded-xl text-base shadow-lg shadow-amber-500/20 hover:shadow-amber-500/35 hover:scale-[1.01] active:scale-[0.99] transition-all"
+                  className={`${admission.closed ? '' : 'cta-glow cta-shine'} block w-full text-center bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C59B27] text-slate-950 font-black py-3.5 rounded-xl text-base shadow-lg shadow-amber-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all`}
                 >
                   <CreditCard className="w-4 h-4 inline mr-2 text-slate-900" />
-                  রেজিস্ট্রেশন করুন ({toBengaliNumber(coursePrice)} ৳)
+                  {admission.closed ? 'ভর্তি সাময়িক বন্ধ — বিস্তারিত দেখুন' : `ভর্তি হোন (${toBengaliNumber(coursePrice)} ৳)`}
                 </a>
                 <a
                   href={FACEBOOK_MESSENGER_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full text-center bg-white/[0.04] hover:bg-white/[0.08] border border-white/15 text-slate-200 hover:text-white font-semibold py-3 rounded-xl text-xs sm:text-sm transition-all"
+                  className="block w-full text-center bg-white/[0.04] hover:bg-white/[0.08] border border-white/15 text-slate-200 hover:text-white font-semibold py-3 rounded-xl text-[13px] sm:text-sm transition-all"
                 >
                   <MessengerIcon className="w-4 h-4 inline mr-2 text-sky-400" boltColor="#0A1424" />
                   Facebook Messenger-এ সরাসরি কথা বলুন
@@ -466,29 +485,53 @@ export default async function TeacherRegistrationMarketingPage() {
         </div>
       </section>
 
+      {/* ==================== ADMISSION HIGHLIGHT ==================== */}
+      <AdmissionHighlight
+        price={coursePrice}
+        regularPrice={regularPrice}
+        batchLabel={liveSettings.currentBatch || 'BATCH 2026'}
+        mode={admission.mode}
+        batches={[
+          {
+            key: 'men',
+            label: 'পুরুষ ব্যাচ',
+            cta: 'পুরুষ ব্যাচে ভর্তি হোন',
+            orientation: menOrientation,
+            course: { enrolledCount: menCourse.enrolledCount, maxSeats: menCourse.maxSeats },
+          },
+          {
+            key: 'women',
+            label: 'নারী ব্যাচ (০১৪)',
+            cta: 'নারী ব্যাচে ভর্তি হোন',
+            orientation: womenOrientation,
+            course: { enrolledCount: womenCourse.enrolledCount, maxSeats: womenCourse.maxSeats },
+          },
+        ]}
+      />
+
       {/* ==================== 4 METRICS TRUST BAR ==================== */}
-      <section className="bg-[#050B17] border-y border-white/5 py-8 sm:py-10">
+      <section className="bg-[#050B17] border-y border-white/5 py-8 sm:py-10 mt-8 sm:mt-10">
         <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 sm:p-5 text-center hover:border-amber-400/30 transition-all">
               <Users className="w-6 h-6 text-amber-400 mx-auto mb-2" />
               <div className="text-2xl sm:text-3xl font-extrabold text-white">১০,০০০+</div>
-              <div className="text-xs sm:text-sm text-slate-400 mt-1">সফল শিক্ষার্থী</div>
+              <div className="text-[13px] sm:text-sm text-slate-400 mt-1">সফল শিক্ষার্থী</div>
             </div>
             <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 sm:p-5 text-center hover:border-amber-400/30 transition-all">
               <Award className="w-6 h-6 text-amber-400 mx-auto mb-2" />
               <div className="text-2xl sm:text-3xl font-extrabold text-white">৩,০০০+</div>
-              <div className="text-xs sm:text-sm text-slate-400 mt-1">শিক্ষক তৈরির লক্ষ্য</div>
+              <div className="text-[13px] sm:text-sm text-slate-400 mt-1">শিক্ষক তৈরির লক্ষ্য</div>
             </div>
             <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 sm:p-5 text-center hover:border-amber-400/30 transition-all">
               <Globe className="w-6 h-6 text-amber-400 mx-auto mb-2" />
               <div className="text-2xl sm:text-3xl font-extrabold text-white">৫০+ দেশ</div>
-              <div className="text-xs sm:text-sm text-slate-400 mt-1">প্রবাসী শিক্ষার্থী পরিবার</div>
+              <div className="text-[13px] sm:text-sm text-slate-400 mt-1">প্রবাসী শিক্ষার্থী পরিবার</div>
             </div>
             <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 sm:p-5 text-center hover:border-amber-400/30 transition-all">
               <TrendingUp className="w-6 h-6 text-amber-400 mx-auto mb-2" />
               <div className="text-2xl sm:text-3xl font-extrabold text-amber-300">১৫-২২ হাজার ৳</div>
-              <div className="text-xs sm:text-sm text-slate-400 mt-1">সম্ভাব্য মাসিক সম্মানী</div>
+              <div className="text-[13px] sm:text-sm text-slate-400 mt-1">সম্ভাব্য মাসিক সম্মানী</div>
             </div>
           </div>
         </div>
@@ -497,11 +540,11 @@ export default async function TeacherRegistrationMarketingPage() {
       {/* ==================== COURSES SECTION ==================== */}
       <section
         id="courses"
-        className="py-16 sm:py-24 relative bg-gradient-to-b from-[#060D1A] via-[#08152B] to-[#060D1A]"
+        className="py-12 sm:py-24 relative bg-gradient-to-b from-[#060D1A] via-[#08152B] to-[#060D1A]"
       >
         <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
-          <div className="text-center mb-12 sm:mb-16" data-reveal>
-            <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1 text-amber-300 text-xs sm:text-sm font-semibold mb-3">
+          <div className="text-center mb-8 sm:mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1 text-amber-300 text-[13px] sm:text-sm font-semibold mb-3">
               <Sparkles className="w-4 h-4" /> প্রফেশনাল ট্রেনিং প্রোগ্রাম
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-5xl font-extrabold mb-3 leading-tight text-white">
@@ -509,7 +552,7 @@ export default async function TeacherRegistrationMarketingPage() {
               <span className="text-gradient-gold">প্রফেশনাল শিক্ষক হন</span>
             </h2>
             <div className="w-20 sm:w-24 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto mb-4" />
-            <p className="text-slate-300 max-w-2xl mx-auto text-xs sm:text-sm md:text-base leading-relaxed">
+            <p className="text-slate-300 max-w-2xl mx-auto text-[13px] sm:text-sm md:text-base leading-relaxed">
               অভিজ্ঞ ট্রেনার ও আন্তর্জাতিক শিক্ষক পেডাগগির মাধ্যমে ঘরে বসেই গড়ে তুলুন দক্ষ, দায়িত্বশীল ও আধুনিক কুরআন শিক্ষক হিসেবে নিজেকে।
             </p>
           </div>
@@ -522,7 +565,7 @@ export default async function TeacherRegistrationMarketingPage() {
               data-reveal
             >
               <div>
-                <div className="relative h-56 sm:h-64 overflow-hidden">
+                <div className="relative h-44 sm:h-64 overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/men-batch.jpg"
@@ -542,13 +585,13 @@ export default async function TeacherRegistrationMarketingPage() {
                     <h3 className="text-xl sm:text-2xl font-bold text-white leading-tight">
                       {menCourse.name}
                     </h3>
-                    <p className="text-blue-300 text-xs sm:text-sm mt-1 font-medium">
+                    <p className="text-blue-300 text-[13px] sm:text-sm mt-1 font-medium">
                       {menCourse.summary}
                     </p>
                   </div>
                 </div>
 
-                <div className="p-6 sm:p-7">
+                <div className="p-5 sm:p-7">
                   <div className="bg-blue-950/40 border border-blue-500/30 rounded-xl p-3.5 mb-5 flex items-start gap-3">
                     <Calendar className="w-5 h-5 text-blue-400 mt-0.5 shrink-0" />
                     <div>
@@ -563,7 +606,7 @@ export default async function TeacherRegistrationMarketingPage() {
                     </div>
                   </div>
 
-                  <ul className="space-y-3 mb-6 text-xs sm:text-sm text-slate-300">
+                  <ul className="space-y-3 mb-6 text-[13px] sm:text-sm text-slate-300">
                     {(menCourse.perks && menCourse.perks.length > 0
                       ? menCourse.perks
                       : [
@@ -584,12 +627,13 @@ export default async function TeacherRegistrationMarketingPage() {
               </div>
 
               <div className="px-6 pb-6 sm:px-7 sm:pb-7">
-                <a
-                  href="#register"
-                  className="block text-center bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C59B27] text-slate-950 font-bold py-3.5 rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-amber-500/35 hover:scale-[1.01] active:scale-[0.99] transition-all text-sm sm:text-base"
+                <AdmitLink
+                  track="men"
+                  className={`${admission.closed ? '' : 'cta-glow cta-shine'} flex min-h-14 items-center justify-center gap-2 text-center bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C59B27] text-slate-950 font-black py-3.5 rounded-xl shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-all text-[15px] sm:text-base`}
                 >
-                  রেজিস্ট্রেশন করুন এখনই ({toBengaliNumber(menCourse.fee || coursePrice)} ৳)
-                </a>
+                  {admission.closed ? 'ভর্তি সাময়িক বন্ধ — বিস্তারিত দেখুন' : `পুরুষ ব্যাচে ভর্তি হোন (${toBengaliNumber(menFee)} ৳)`}
+                  <ArrowRight className="w-4 h-4 stroke-[3] shrink-0" />
+                </AdmitLink>
                 <p className="text-center text-[11px] text-slate-400 mt-2.5 flex items-center justify-center gap-1.5">
                   <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" /> নিশ্চিত SSLCommerz ও বিকাশ পেমেন্ট
                 </p>
@@ -603,7 +647,7 @@ export default async function TeacherRegistrationMarketingPage() {
               data-reveal
             >
               <div>
-                <div className="relative h-56 sm:h-64 overflow-hidden">
+                <div className="relative h-44 sm:h-64 overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/women-batch.jpg"
@@ -623,13 +667,13 @@ export default async function TeacherRegistrationMarketingPage() {
                     <h3 className="text-xl sm:text-2xl font-bold text-white leading-tight">
                       {womenCourse.name}
                     </h3>
-                    <p className="text-rose-300 text-xs sm:text-sm mt-1 font-medium">
+                    <p className="text-rose-300 text-[13px] sm:text-sm mt-1 font-medium">
                       {womenCourse.summary}
                     </p>
                   </div>
                 </div>
 
-                <div className="p-6 sm:p-7">
+                <div className="p-5 sm:p-7">
                   <div className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-3.5 mb-5 flex items-start gap-3">
                     <Calendar className="w-5 h-5 text-rose-400 mt-0.5 shrink-0" />
                     <div>
@@ -644,7 +688,7 @@ export default async function TeacherRegistrationMarketingPage() {
                     </div>
                   </div>
 
-                  <ul className="space-y-3 mb-6 text-xs sm:text-sm text-slate-300">
+                  <ul className="space-y-3 mb-6 text-[13px] sm:text-sm text-slate-300">
                     {(womenCourse.perks && womenCourse.perks.length > 0
                       ? womenCourse.perks
                       : [
@@ -665,12 +709,13 @@ export default async function TeacherRegistrationMarketingPage() {
               </div>
 
               <div className="px-6 pb-6 sm:px-7 sm:pb-7">
-                <a
-                  href="#register"
-                  className="block text-center bg-gradient-to-r from-rose-600 via-rose-500 to-rose-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-rose-600/25 hover:shadow-rose-600/40 hover:scale-[1.01] active:scale-[0.99] transition-all text-sm sm:text-base"
+                <AdmitLink
+                  track="women"
+                  className={`${admission.closed ? '' : 'cta-glow cta-shine'} flex min-h-14 items-center justify-center gap-2 text-center bg-gradient-to-r from-rose-600 via-rose-500 to-rose-700 text-white font-black py-3.5 rounded-xl shadow-lg shadow-rose-600/25 active:scale-[0.98] transition-all text-[15px] sm:text-base`}
                 >
-                  রেজিস্ট্রেশন করুন এখনই ({toBengaliNumber(womenCourse.fee || coursePrice)} ৳)
-                </a>
+                  {admission.closed ? 'ভর্তি সাময়িক বন্ধ — বিস্তারিত দেখুন' : `নারী ব্যাচে ভর্তি হোন (${toBengaliNumber(womenFee)} ৳)`}
+                  <ArrowRight className="w-4 h-4 stroke-[3] shrink-0" />
+                </AdmitLink>
                 <p className="text-center text-[11px] text-slate-400 mt-2.5 flex items-center justify-center gap-1.5">
                   <Lock className="w-3.5 h-3.5 text-rose-400 shrink-0" /> নিশ্চিত SSLCommerz ও বিকাশ পেমেন্ট
                 </p>
@@ -691,7 +736,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 <h4 className="text-base sm:text-lg font-bold text-amber-300">
                   সরাসরি শিক্ষক নিয়োগ অপরচুনিটি
                 </h4>
-                <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
+                <p className="text-[13px] sm:text-sm text-slate-300 mt-0.5">
                   প্রশিক্ষণ শেষে উত্তীর্ণ গ্র্যাজুয়েটদের মধ্য থেকে সরাসরি ফজর একাডেমির নিজস্ব গ্লোবাল প্ল্যাটফর্মে শিক্ষক হিসেবে নিয়োগের সুযোগ রয়েছে।
                 </p>
               </div>
@@ -707,23 +752,24 @@ export default async function TeacherRegistrationMarketingPage() {
       {/* ==================== CURRICULUM SECTION ==================== */}
       <section
         id="curriculum"
-        className="py-16 sm:py-24 bg-[#050C19] relative border-t border-white/5"
+        className="py-12 sm:py-24 bg-[#050C19] relative border-t border-white/5"
       >
         <div className="container mx-auto px-4 sm:px-6 max-w-6xl relative z-10">
-          <div className="text-center mb-12 sm:mb-16" data-reveal>
-            <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1 text-amber-300 text-xs sm:text-sm font-semibold mb-3">
+          <div className="text-center mb-8 sm:mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1 text-amber-300 text-[13px] sm:text-sm font-semibold mb-3">
               <Layers className="w-4 h-4" /> পূর্ণাঙ্গ সিলেবাস ও সাপ্তাহিক সেশন
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-white mb-3 leading-tight">
               কোর্স কারিকুলাম ও <span className="text-gradient-gold">৪টি প্রফেশনাল প্যাকেজ</span>
             </h2>
             <div className="w-20 sm:w-24 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto mb-4" />
-            <p className="text-slate-300 max-w-2xl mx-auto text-xs sm:text-sm md:text-base leading-relaxed">
+            <p className="text-slate-300 max-w-2xl mx-auto text-[13px] sm:text-sm md:text-base leading-relaxed">
               আন্তর্জাতিক মানের ভার্চুয়াল ক্লাসরুম আর্ট, নূরানী তাজবীদ মেথডোলজি ও শিশু-কিশোর সাইকোলজির সমন্বয়ে সাজানো ৪ সপ্তাহের কম্প্রিহেন্সিভ পাঠ্যক্রম।
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+          <p className="md:hidden -mt-4 mb-3 text-center text-[11px] font-medium text-slate-400">← সোয়াইপ করে সবগুলো দেখুন →</p>
+          <div className="snap-row grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {curriculumModules.map((mod, idx) => (
               <div
                 key={idx}
@@ -746,12 +792,12 @@ export default async function TeacherRegistrationMarketingPage() {
                     {mod.title}
                   </h3>
                   {mod.subtitle && (
-                    <p className="text-xs sm:text-sm text-amber-200/90 mb-3 font-medium">
+                    <p className="text-[13px] sm:text-sm text-amber-200/90 mb-3 font-medium">
                       {mod.subtitle}
                     </p>
                   )}
                   {mod.description && (
-                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4">
+                    <p className="text-[13px] sm:text-sm text-slate-300 leading-relaxed mb-4">
                       {mod.description}
                     </p>
                   )}
@@ -761,7 +807,7 @@ export default async function TeacherRegistrationMarketingPage() {
                       <p className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
                         প্রধান আলোচ্য বিষয়সমূহ:
                       </p>
-                      <ul className="space-y-1.5 text-xs sm:text-sm text-slate-300">
+                      <ul className="space-y-1.5 text-[13px] sm:text-sm text-slate-300">
                         {mod.topics.map((t, tIdx) => (
                           <li key={tIdx} className="flex items-start gap-2">
                             <Check className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0 stroke-[3]" />
@@ -786,98 +832,59 @@ export default async function TeacherRegistrationMarketingPage() {
       </section>
 
       {/* ==================== DATE-WISE SCHEDULE ==================== */}
-      <section id="schedule" className="py-16 sm:py-24 bg-white text-slate-900 relative border-t border-slate-200">
+      <section id="schedule" className="py-12 sm:py-24 bg-white text-slate-900 relative border-t border-slate-200">
         <div className="container mx-auto px-4 sm:px-6 max-w-6xl relative z-10">
-          <div className="text-center mb-12 sm:mb-14" data-reveal>
-            <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-full px-4 py-1 text-blue-800 text-xs sm:text-sm font-semibold mb-3">
+          <div className="text-center mb-8 sm:mb-14" data-reveal>
+            <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-full px-4 py-1 text-blue-800 text-[13px] sm:text-sm font-semibold mb-3">
               <Calendar className="w-4 h-4" /> তারিখ অনুযায়ী ক্লাস সূচি
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 mb-3 leading-tight">
               কোন তারিখে কোন সেশন?
             </h2>
-            <p className="text-slate-600 max-w-2xl mx-auto text-xs sm:text-sm md:text-base leading-relaxed">
+            <p className="text-slate-600 max-w-2xl mx-auto text-[13px] sm:text-sm md:text-base leading-relaxed">
               পুরুষ ও নারী উভয় ব্যাচের ওরিয়েন্টেশন ও প্রতিটি লাইভ সেশনের তারিখ এবং সময় এক জায়গায়। তারিখ ঘোষণা না হলে সেখানে তা স্পষ্ট লেখা থাকবে।
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {[
-              {
-                key: 'men',
-                label: 'পুরুষ ব্যাচ',
-                name: menCourse.name,
-                orientation: `${menCourse.orientationDate || liveSettings.orientationDate} • ${menCourse.orientationTime || liveSettings.orientationTime}`,
-                rows: menRows,
-                accent: 'text-blue-700 bg-blue-50 border-blue-200',
-              },
-              {
-                key: 'women',
-                label: 'মহিলা ব্যাচ (০১৪)',
-                name: womenCourse.name,
-                orientation: `${womenCourse.orientationDate || '২১ সেপ্টেম্বর ২০২৬'} • ${womenCourse.orientationTime || liveSettings.orientationTime}`,
-                rows: womenRows,
-                accent: 'text-rose-700 bg-rose-50 border-rose-200',
-              },
-            ].map((batch) => (
-              <div key={batch.key} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7 shadow-sm" data-reveal>
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
-                  <div>
-                    <span className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${batch.accent}`}>{batch.label}</span>
-                    <h3 className="mt-2 text-base sm:text-lg font-bold text-slate-900 leading-snug">{batch.name}</h3>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1 rounded-full whitespace-nowrap">
-                    {toBengaliNumber(batch.rows.length)}টি সেশন
-                  </span>
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5">
-                    <Calendar className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">ওরিয়েন্টেশন</p>
-                      <p className="text-sm font-bold text-slate-900">{batch.orientation}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5">
-                    <Clock className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">পুরো সেশন সময়কাল</p>
-                      <p className="text-sm font-bold text-slate-900">{sessionRange(batch.rows)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <ol className="mt-4 divide-y divide-slate-100">
-                  {batch.rows.map((r) => (
-                    <li key={r.key} className="flex items-start gap-4 py-3.5">
-                      <div className="w-14 shrink-0 text-center">
-                        <div className="text-[10px] font-bold uppercase text-slate-400">সেশন</div>
-                        <div className="text-lg font-black text-slate-900">{toBengaliNumber(r.no)}</div>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className={`text-sm font-bold ${r.date === NO_DATE ? 'text-slate-400' : 'text-slate-900'}`}>{r.date}</p>
-                        {r.time && (
-                          <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
-                            <Clock className="w-3 h-3" /> {r.time}
-                          </p>
-                        )}
-                        {r.title && <p className="mt-1 text-xs leading-snug text-slate-700">{r.title}</p>}
-                        {r.trainer && <p className="mt-0.5 text-[11px] text-slate-500">ট্রেইনার: {r.trainer}</p>}
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ))}
+          <div data-reveal>
+            <BatchSchedule
+              batches={[
+                {
+                  key: 'men',
+                  label: 'পুরুষ ব্যাচ',
+                  name: menCourse.name,
+                  orientation: `${menOrientation} • ${menCourse.orientationTime || liveSettings.orientationTime}`,
+                  range: sessionRange(menRows),
+                  rows: menRows,
+                },
+                {
+                  key: 'women',
+                  label: 'নারী ব্যাচ (০১৪)',
+                  name: womenCourse.name,
+                  orientation: `${womenOrientation} • ${womenCourse.orientationTime || liveSettings.orientationTime}`,
+                  range: sessionRange(womenRows),
+                  rows: womenRows,
+                },
+              ]}
+            />
           </div>
+
+          {!admission.closed && (
+            <div className="mt-8 flex justify-center">
+              <AdmitLink className="cta-shine inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-slate-900 px-8 text-[15px] font-black text-amber-300 shadow-lg shadow-slate-900/20 transition-transform active:scale-[0.98] sm:w-auto">
+                এই সূচিতে ভর্তি হোন
+                <ArrowRight className="h-4 w-4 stroke-[3]" />
+              </AdmitLink>
+            </div>
+          )}
         </div>
       </section>
 
       {/* ==================== 4-STEP PROCESS ==================== */}
-      <section id="process" className="py-16 sm:py-24 bg-[#FBF9F4] text-slate-900 relative overflow-hidden">
+      <section id="process" className="py-12 sm:py-24 bg-[#FBF9F4] text-slate-900 relative overflow-hidden">
         <div className="container mx-auto px-4 sm:px-6 relative z-10 max-w-6xl">
-          <div className="text-center mb-12 sm:mb-16" data-reveal>
-            <div className="inline-flex items-center gap-2 text-amber-800 text-xs sm:text-sm font-bold tracking-wider mb-2">
+          <div className="text-center mb-8 sm:mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 text-amber-800 text-[13px] sm:text-sm font-bold tracking-wider mb-2">
               <span className="w-6 sm:w-8 h-[1px] bg-amber-700" />
               নিবন্ধন থেকে নিয়োগের ধাপসমূহ
               <span className="w-6 sm:w-8 h-[1px] bg-amber-700" />
@@ -885,12 +892,13 @@ export default async function TeacherRegistrationMarketingPage() {
             <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 mb-3 leading-tight">
               মাত্র ৪টি সহজ ধাপে হয়ে উঠুন <br /> একজন প্রফেশনাল শিক্ষক
             </h2>
-            <p className="text-slate-600 text-xs sm:text-sm md:text-base max-w-xl mx-auto">
+            <p className="text-slate-600 text-[13px] sm:text-sm md:text-base max-w-xl mx-auto">
               স্বচ্ছ ও শৃঙ্খলিত প্রক্রিয়ার মাধ্যমে নিশ্চিত করুন আপনার শিক্ষা ও কর্মসংস্থানের পরবর্তী পদক্ষেপ।
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+          <p className="md:hidden -mt-4 mb-3 text-center text-[11px] font-medium text-slate-400">← সোয়াইপ করে সবগুলো দেখুন →</p>
+          <div className="snap-row grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
             {/* Step 1 */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/90 flex flex-col justify-between hover:shadow-md hover:-translate-y-1 transition-all duration-300" data-reveal>
               <div>
@@ -900,7 +908,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2">
                   রেজিস্ট্রেশন ও কোর্স ফি
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                <p className="text-[13px] sm:text-sm text-slate-600 leading-relaxed">
                   পছন্দের ট্র্যাক (পুরুষ বা নারী) নির্বাচন করে {toBengaliNumber(coursePrice)} টাকা এককালীন ফি পরিশোধ করে নিবন্ধন সম্পন্ন করুন।
                 </p>
               </div>
@@ -918,7 +926,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2">
                   লাইভ ওরিয়েন্টেশন ক্লাস
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                <p className="text-[13px] sm:text-sm text-slate-600 leading-relaxed">
                   পুরুষদের {menCourse.orientationDate} এবং নারীদের {womenCourse.orientationDate} {menCourse.orientationTime}-এ লাইভ ওরিয়েন্টেশনে যুক্ত হোন।
                 </p>
               </div>
@@ -936,7 +944,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2">
                   ৪টি প্রফেশনাল TOT প্যাকেজ
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                <p className="text-[13px] sm:text-sm text-slate-600 leading-relaxed">
                   ১ মাসে ৪টি হ্যান্ডস-অন সেশনে আধুনিক পেডাগোজি, নূরানী মেথডোলজি ও আন্তর্জাতিক শিক্ষক প্রশিক্ষণ আয়ত্ত করুন।
                 </p>
               </div>
@@ -954,7 +962,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-2">
                   সার্টিফিকেট ও জব অফার
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                <p className="text-[13px] sm:text-sm text-slate-600 leading-relaxed">
                   চূড়ান্ত মূল্যায়নে অফিসিয়াল সনদ অর্জন এবং ফজর একাডেমির নিজস্ব প্ল্যাটফর্মে ১৫-২২ হাজার মাসিক সম্মানীতে যোগ দিন।
                 </p>
               </div>
@@ -967,28 +975,29 @@ export default async function TeacherRegistrationMarketingPage() {
       </section>
 
       {/* ==================== WHY FAJR ACADEMY ==================== */}
-      <section id="why" className="py-16 sm:py-24 bg-gradient-to-b from-[#060D1A] via-[#09152B] to-[#060D1A] relative">
+      <section id="why" className="py-12 sm:py-24 bg-gradient-to-b from-[#060D1A] via-[#09152B] to-[#060D1A] relative">
         <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
-          <div className="text-center mb-12 sm:mb-16" data-reveal>
-            <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1 text-amber-300 text-xs sm:text-sm font-semibold mb-3">
+          <div className="text-center mb-8 sm:mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1 text-amber-300 text-[13px] sm:text-sm font-semibold mb-3">
               <ShieldCheck className="w-4 h-4" /> কেন ফজর একাডেমি
             </div>
             <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold mb-3 text-white leading-tight">
               প্রশিক্ষণ থেকে সরাসরি ক্যারিয়ার — <br />
               <span className="text-gradient-gold">একটি স্বচ্ছ ও বরকতময় পথ</span>
             </h2>
-            <p className="text-slate-300 text-xs sm:text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+            <p className="text-slate-300 text-[13px] sm:text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
               শুধু সার্টিফিকেট নয়, ফজর একাডেমি প্রশিক্ষণ শেষে যোগ্য শিক্ষক-শিক্ষিকাদের নিজস্ব গ্লোবাল প্ল্যাটফর্মে সরাসরি শিক্ষকতার সুযোগ প্রদান করে।
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+          <p className="md:hidden -mt-4 mb-3 text-center text-[11px] font-medium text-slate-400">← সোয়াইপ করে সবগুলো দেখুন →</p>
+          <div className="snap-row grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             <div className="bg-white/[0.03] border border-white/10 hover:border-amber-400/40 rounded-2xl p-6 sm:p-8 transition-all shadow-xl" data-reveal>
               <div className="w-12 h-12 rounded-xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center font-bold text-amber-300 text-lg mb-4">
                 ০১
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-white mb-2">ঘরে বসেই সম্পূর্ণ কাজ</h3>
-              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              <p className="text-slate-300 text-[13px] sm:text-sm leading-relaxed">
                 কোনো ট্রাফিক জ্যাম নেই, রোদে পুড়তে হবে না। সম্পূর্ণ ট্রেনিং ও পরবর্তী শিক্ষকতার ক্লাস ঘরে বসেই ল্যাপটপে সম্পন্ন করতে পারবেন।
               </p>
             </div>
@@ -998,7 +1007,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 ০২
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-white mb-2">মাসিক সম্মানী ১৫,০০০ – ২২,০০০৳</h3>
-              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              <p className="text-slate-300 text-[13px] sm:text-sm leading-relaxed">
                 কুরআনের খেদমতের সাথে সাথে একটি সম্মানজনক এবং স্বাবলম্বী হালাল ক্যারিয়ার গড়ার নিশ্চয়তা ইনশাআল্লাহ।
               </p>
             </div>
@@ -1008,7 +1017,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 ০৩
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-white mb-2">বিনামূল্যে ল্যাপটপ ও ডিভাইস সাপোর্ট</h3>
-              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              <p className="text-slate-300 text-[13px] sm:text-sm leading-relaxed">
                 আপনার যদি কুরআন তিলাওয়াত ও ইংরেজি ভালো থাকে কিন্তু ডিভাইস না থাকে, তবে ফজর একাডেমি নিজস্ব তহবিল থেকে ল্যাপটপ সহায়তা প্রদান করবে।
               </p>
             </div>
@@ -1018,7 +1027,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 ০৪
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-white mb-2">কন্টিনিউয়াস মেন্টরিং ও সার্টিফিকেট</h3>
-              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              <p className="text-slate-300 text-[13px] sm:text-sm leading-relaxed">
                 ৪টি প্রফেশনাল সেশন শেষে অফিসিয়াল মূল্যায়ন সার্টিফিকেট প্রদান এবং নিয়মিত গ্রুমিং ও স্কিল ডেভেলপমেন্টের মাধ্যমে ক্যারিয়ার বৃদ্ধি।
               </p>
             </div>
@@ -1029,23 +1038,24 @@ export default async function TeacherRegistrationMarketingPage() {
       {/* ==================== SENIOR INSTRUCTORS & FACULTY ==================== */}
       <section
         id="instructors"
-        className="py-16 sm:py-24 bg-[#050B17] relative border-t border-white/5"
+        className="py-12 sm:py-24 bg-[#050B17] relative border-t border-white/5"
       >
         <div className="container mx-auto px-4 sm:px-6 max-w-6xl relative z-10">
-          <div className="text-center mb-12 sm:mb-16" data-reveal>
-            <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1 text-amber-300 text-xs sm:text-sm font-semibold mb-3">
+          <div className="text-center mb-8 sm:mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1 text-amber-300 text-[13px] sm:text-sm font-semibold mb-3">
               <GraduationCap className="w-4 h-4" /> বিশিষ্ট ট্রেইনার ও শিক্ষক পরিষদ
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-white mb-3 leading-tight">
               আমাদের প্রখ্যাত ইনস্ট্রাক্টর ও <span className="text-gradient-gold">মাস্টার ট্রেইনার প্যানেল</span>
             </h2>
             <div className="w-20 sm:w-24 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent mx-auto mb-4" />
-            <p className="text-slate-300 max-w-2xl mx-auto text-xs sm:text-sm md:text-base leading-relaxed">
+            <p className="text-slate-300 max-w-2xl mx-auto text-[13px] sm:text-sm md:text-base leading-relaxed">
               আন্তর্জাতিক বিশ্ববিদ্যালয় ও সুপরিচিত শিক্ষক প্রশিক্ষণ কেন্দ্র থেকে অভিজ্ঞ উস্তাদ ও উস্তাজাগণ সরাসরি আপনার ক্যারিয়ার মেন্টরিং করবেন।
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto">
+          <p className="md:hidden -mt-4 mb-3 text-center text-[11px] font-medium text-slate-400">← সোয়াইপ করে সবগুলো দেখুন →</p>
+          <div className="snap-row grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto">
             {activeInstructors.map((inst, idx) => (
               <div
                 key={idx}
@@ -1072,7 +1082,7 @@ export default async function TeacherRegistrationMarketingPage() {
                     </div>
                   </div>
 
-                  <p className="text-xs sm:text-sm text-amber-300 font-semibold mb-2">
+                  <p className="text-[13px] sm:text-sm text-amber-300 font-semibold mb-2">
                     {inst.designation || 'Master Trainer'}
                   </p>
 
@@ -1105,11 +1115,11 @@ export default async function TeacherRegistrationMarketingPage() {
       {/* ==================== ELIGIBILITY & PAYMENT ==================== */}
       <section
         id="payment-info"
-        className="py-16 sm:py-24 bg-white text-slate-900 relative overflow-hidden"
+        className="py-12 sm:py-24 bg-white text-slate-900 relative overflow-hidden"
       >
         <div className="container mx-auto px-4 sm:px-6 relative z-10 max-w-5xl">
           <div className="text-center mb-12 sm:mb-14" data-reveal>
-            <div className="inline-flex items-center gap-2 text-amber-800 text-xs sm:text-sm font-bold tracking-wider mb-2">
+            <div className="inline-flex items-center gap-2 text-amber-800 text-[13px] sm:text-sm font-bold tracking-wider mb-2">
               <span className="w-6 sm:w-8 h-[1px] bg-amber-700" />
               প্রয়োজনীয় যোগ্যতা ও ফি
               <span className="w-6 sm:w-8 h-[1px] bg-amber-700" />
@@ -1127,7 +1137,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 আবেদনের সাধারণ যোগ্যতা
               </h3>
 
-              <ul className="space-y-4 text-xs sm:text-sm">
+              <ul className="space-y-4 text-[13px] sm:text-sm">
                 <li className="flex items-start gap-3">
                   <div className="w-5 h-5 rounded-full bg-[#060D1A] flex items-center justify-center shrink-0 mt-0.5">
                     <Check className="w-3 h-3 text-white stroke-[3]" />
@@ -1185,13 +1195,13 @@ export default async function TeacherRegistrationMarketingPage() {
                   <span className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
                     {toBengaliNumber(coursePrice)}
                   </span>
-                  <span className="text-xs sm:text-sm font-medium text-slate-500 ml-2">
+                  <span className="text-[13px] sm:text-sm font-medium text-slate-500 ml-2">
                     (এককালীন রেজিস্ট্রেশন ফি)
                   </span>
                 </div>
               </div>
 
-              <div className="space-y-3.5 text-xs sm:text-sm">
+              <div className="space-y-3.5 text-[13px] sm:text-sm">
                 <div className="flex justify-between items-center border-b border-slate-200 pb-2.5">
                   <span className="text-slate-600 font-medium">পেমেন্ট গেটওয়ে</span>
                   <span className="text-slate-900 font-bold">SSLCommerz (অনলাইন পেমেন্ট)</span>
@@ -1217,17 +1227,17 @@ export default async function TeacherRegistrationMarketingPage() {
       {/* ==================== REGISTRATION FORM SECTION ==================== */}
       <section
         id="register"
-        className="py-16 sm:py-24 bg-[#060D1A] relative overflow-hidden border-t border-white/5"
+        className="py-12 sm:py-24 bg-[#060D1A] relative overflow-x-clip border-t border-white/5"
       >
         <div className="container mx-auto px-4 sm:px-6 max-w-5xl">
           <div className="text-center mb-10 sm:mb-12" data-reveal>
-            <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1 text-amber-300 text-xs sm:text-sm font-semibold mb-3">
+            <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1 text-amber-300 text-[13px] sm:text-sm font-semibold mb-3">
               ❖ আপনার দক্ষতা, আমাদের সহায়তা ❖
             </div>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-white mb-2 leading-tight">
               কোর্স নির্বাচন ও শিক্ষক নিবন্ধন ফর্ম
             </h2>
-            <p className="text-slate-300 text-xs sm:text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+            <p className="text-slate-300 text-[13px] sm:text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
               পছন্দের ট্র্যাক নির্বাচন করে {toBengaliNumber(coursePrice)}৳ কোর্স ফি পরিশোধের মাধ্যমে আপনার নিবন্ধন সম্পন্ন করুন।
             </p>
           </div>
@@ -1239,11 +1249,11 @@ export default async function TeacherRegistrationMarketingPage() {
       {/* ==================== VIDEO SECTION ==================== */}
       <section
         id="videos"
-        className="py-16 sm:py-24 bg-[#FBF9F4] text-slate-900 relative overflow-hidden"
+        className="py-12 sm:py-24 bg-[#FBF9F4] text-slate-900 relative overflow-hidden"
       >
         <div className="container mx-auto px-4 sm:px-6 relative z-10 max-w-5xl">
-          <div className="text-center mb-12 sm:mb-16" data-reveal>
-            <div className="inline-flex items-center gap-2 text-amber-800 text-xs sm:text-sm font-bold tracking-wider mb-2">
+          <div className="text-center mb-8 sm:mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 text-amber-800 text-[13px] sm:text-sm font-bold tracking-wider mb-2">
               <span className="w-6 sm:w-8 h-[1px] bg-amber-700" />
               অফিসিয়াল ভিডিও ও নির্দেশিকা
               <span className="w-6 sm:w-8 h-[1px] bg-amber-700" />
@@ -1251,7 +1261,7 @@ export default async function TeacherRegistrationMarketingPage() {
             <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 mb-3 leading-tight">
               কুরআন টিচার ট্রেনিং ও ওরিয়েন্টেশন ভিডিও
             </h2>
-            <p className="text-slate-600 max-w-2xl mx-auto text-xs sm:text-sm md:text-base">
+            <p className="text-slate-600 max-w-2xl mx-auto text-[13px] sm:text-sm md:text-base">
               পুরুষ ও নারী উভয় কোর্সের ট্রেনিং পদ্ধতি, ক্লাসরুম পেডাগোজি ও ক্যারিয়ার সম্ভাবনার ভিডিওগুলো সরাসরি দেখে নিন।
             </p>
           </div>
@@ -1298,7 +1308,7 @@ export default async function TeacherRegistrationMarketingPage() {
                     <h4 className="text-slate-900 font-bold text-sm sm:text-base">
                       Hafiz Maulana Muhammad Farabi Chowdhury
                     </h4>
-                    <p className="text-slate-500 text-xs sm:text-sm">Founder &amp; CEO, Fajr Academy</p>
+                    <p className="text-slate-500 text-[13px] sm:text-sm">Founder &amp; CEO, Fajr Academy</p>
                   </div>
                 </div>
               </div>
@@ -1310,11 +1320,11 @@ export default async function TeacherRegistrationMarketingPage() {
       {/* ==================== FAQ SECTION ==================== */}
       <section
         id="faq"
-        className="py-16 sm:py-24 bg-white text-slate-900 relative overflow-hidden border-t border-slate-100"
+        className="py-12 sm:py-24 bg-white text-slate-900 relative overflow-hidden border-t border-slate-100"
       >
         <div className="container mx-auto px-4 sm:px-6 max-w-4xl relative z-10">
-          <div className="text-center mb-12 sm:mb-16" data-reveal>
-            <div className="inline-flex items-center gap-2 text-amber-800 text-xs sm:text-sm font-bold tracking-wider mb-2">
+          <div className="text-center mb-8 sm:mb-16" data-reveal>
+            <div className="inline-flex items-center gap-2 text-amber-800 text-[13px] sm:text-sm font-bold tracking-wider mb-2">
               <span className="w-6 sm:w-8 h-[1px] bg-amber-700" />
               সাধারণ প্রশ্ন ও উত্তর
               <span className="w-6 sm:w-8 h-[1px] bg-amber-700" />
@@ -1335,7 +1345,7 @@ export default async function TeacherRegistrationMarketingPage() {
                   <Plus className="w-4 h-4" />
                 </div>
               </summary>
-              <div className="faq-answer px-5 sm:px-6 pb-5 sm:pb-6 text-xs sm:text-sm md:text-base text-slate-600 border-t border-amber-100 pt-4 hidden leading-relaxed">
+              <div className="faq-answer px-5 sm:px-6 pb-5 sm:pb-6 text-[13px] sm:text-sm md:text-base text-slate-600 border-t border-amber-100 pt-4 hidden leading-relaxed">
                 <p>
                   পুরুষদের ({menCourse.name}) ফার্স্ট ওরিয়েন্টেশন ক্লাস হবে{' '}
                   <strong>
@@ -1360,7 +1370,7 @@ export default async function TeacherRegistrationMarketingPage() {
                   <Plus className="w-4 h-4" />
                 </div>
               </summary>
-              <div className="faq-answer px-5 sm:px-6 pb-5 sm:pb-6 text-xs sm:text-sm md:text-base text-slate-600 border-t border-amber-100 pt-4 hidden leading-relaxed">
+              <div className="faq-answer px-5 sm:px-6 pb-5 sm:pb-6 text-[13px] sm:text-sm md:text-base text-slate-600 border-t border-amber-100 pt-4 hidden leading-relaxed">
                 <p>
                   উভয় কোর্সের এককালীন রেজিস্ট্রেশন ফি {toBengaliNumber(coursePrice)} টাকা। SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, কার্ড অথবা সরাসরি বিকাশ মার্চেন্ট নম্বরে (<strong>{liveSettings.bkashMerchantNumber || '01410764581'}</strong>) পেমেন্ট করতে পারবেন।
                 </p>
@@ -1377,7 +1387,7 @@ export default async function TeacherRegistrationMarketingPage() {
                   <Plus className="w-4 h-4" />
                 </div>
               </summary>
-              <div className="faq-answer px-5 sm:px-6 pb-5 sm:pb-6 text-xs sm:text-sm md:text-base text-slate-600 border-t border-amber-100 pt-4 hidden leading-relaxed">
+              <div className="faq-answer px-5 sm:px-6 pb-5 sm:pb-6 text-[13px] sm:text-sm md:text-base text-slate-600 border-t border-amber-100 pt-4 hidden leading-relaxed">
                 <p>
                   হ্যাঁ, আপনার যদি কুরআন তেলাওয়াত ও ইংরেজি ভাষা ভালো করে জানা থাকে কিন্তু ডিভাইস না থাকে, তবে ফজর একাডেমি নিজস্ব ব্যবস্থাপনায় ডিভাইস সহায়তা প্রদান করবে।
                 </p>
@@ -1394,7 +1404,7 @@ export default async function TeacherRegistrationMarketingPage() {
                   <Plus className="w-4 h-4" />
                 </div>
               </summary>
-              <div className="faq-answer px-5 sm:px-6 pb-5 sm:pb-6 text-xs sm:text-sm md:text-base text-slate-600 border-t border-amber-100 pt-4 hidden leading-relaxed">
+              <div className="faq-answer px-5 sm:px-6 pb-5 sm:pb-6 text-[13px] sm:text-sm md:text-base text-slate-600 border-t border-amber-100 pt-4 hidden leading-relaxed">
                 <p>
                   না, হাফিজ বা আলেম হওয়া বাধ্যতামূলক নয়। শুদ্ধভাবে কুরআন পড়তে জানা এবং বেসিক ইংরেজি জানা থাকলেই যথেষ্ট।
                 </p>
@@ -1411,7 +1421,7 @@ export default async function TeacherRegistrationMarketingPage() {
                   <Plus className="w-4 h-4" />
                 </div>
               </summary>
-              <div className="faq-answer px-5 sm:px-6 pb-5 sm:pb-6 text-xs sm:text-sm md:text-base text-slate-600 border-t border-amber-100 pt-4 hidden leading-relaxed">
+              <div className="faq-answer px-5 sm:px-6 pb-5 sm:pb-6 text-[13px] sm:text-sm md:text-base text-slate-600 border-t border-amber-100 pt-4 hidden leading-relaxed">
                 <p>
                   একদমই না। যারা প্রথম ধাপে সরাসরি শিক্ষক হিসেবে নির্বাচিত হবেন না, তাদেরকে নিয়মিত ট্রেনিং ও স্কিল ডেভেলপমেন্ট কোর্সে সুযোগ দেওয়া হবে।
                 </p>
@@ -1428,7 +1438,7 @@ export default async function TeacherRegistrationMarketingPage() {
                   <Plus className="w-4 h-4" />
                 </div>
               </summary>
-              <div className="faq-answer px-5 sm:px-6 pb-5 sm:pb-6 text-xs sm:text-sm md:text-base text-slate-600 border-t border-amber-100 pt-4 hidden leading-relaxed">
+              <div className="faq-answer px-5 sm:px-6 pb-5 sm:pb-6 text-[13px] sm:text-sm md:text-base text-slate-600 border-t border-amber-100 pt-4 hidden leading-relaxed">
                 <p>
                   ট্রেনিং সম্পন্ন করে শিক্ষক হিসেবে কাজের সুযোগ পেলে মাসিক সম্মানী হবে ১৫,০০০ টাকা থেকে ২২,০০০ টাকা পর্যন্ত।
                 </p>
@@ -1439,9 +1449,9 @@ export default async function TeacherRegistrationMarketingPage() {
       </section>
 
       {/* ==================== FINAL CTA BANNER ==================== */}
-      <section className="py-16 sm:py-24 bg-gradient-to-b from-[#060D1A] via-[#09152B] to-[#040814] relative overflow-hidden border-t border-white/5">
+      <section className="py-12 sm:py-24 bg-gradient-to-b from-[#060D1A] via-[#09152B] to-[#040814] relative overflow-hidden border-t border-white/5">
         <div className="container mx-auto px-4 sm:px-6 text-center relative z-10 max-w-4xl" data-reveal>
-          <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1.5 text-amber-300 text-xs sm:text-sm mb-6">
+          <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 rounded-full px-4 py-1.5 text-amber-300 text-[13px] sm:text-sm mb-6">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>{liveSettings.currentBatch || 'Batch 2026'} • সীমিত আসন সংখ্যা</span>
           </div>
@@ -1458,10 +1468,10 @@ export default async function TeacherRegistrationMarketingPage() {
           <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-4 max-w-md sm:max-w-none mx-auto">
             <a
               href="#register"
-              className="bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C59B27] text-slate-950 font-bold py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-xl shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-center"
+              className={`${admission.closed ? '' : 'cta-glow cta-shine'} min-h-14 bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C59B27] text-slate-950 font-black py-4 px-8 sm:px-10 rounded-full text-base sm:text-lg shadow-xl shadow-amber-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-center`}
             >
               <CreditCard className="w-5 h-5 text-slate-900 shrink-0" />
-              <span>রেজিস্ট্রেশন ফর্মে যান ({toBengaliNumber(coursePrice)} ৳)</span>
+              <span>{admission.closed ? 'ভর্তির তথ্য দেখুন' : `ভর্তি হোন — মাত্র ${toBengaliNumber(coursePrice)} ৳`}</span>
             </a>
             <a
               href={FACEBOOK_MESSENGER_URL}
@@ -1499,7 +1509,7 @@ export default async function TeacherRegistrationMarketingPage() {
                 </p>
               </div>
             </div>
-            <p className="text-slate-400 text-xs sm:text-sm">
+            <p className="text-slate-400 text-[13px] sm:text-sm">
               Training of Trainers (TOT) Program - {liveSettings.currentBatch || 'Batch 2026'}
             </p>
           </div>
@@ -1507,7 +1517,7 @@ export default async function TeacherRegistrationMarketingPage() {
           {/* Payment Gateway Partner Box */}
           <div className="max-w-4xl mx-auto bg-white text-slate-900 rounded-2xl p-5 sm:p-7 md:p-8 mb-10 sm:mb-12 shadow-2xl relative overflow-hidden" data-reveal>
             <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mb-4 text-center sm:text-left">
-              <div className="flex items-center gap-2 text-slate-800 font-bold text-xs sm:text-sm tracking-wide">
+              <div className="flex items-center gap-2 text-slate-800 font-bold text-[13px] sm:text-sm tracking-wide">
                 <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0" /> OFFICIAL PAYMENT GATEWAY PARTNER
               </div>
               <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold">
@@ -1547,12 +1557,12 @@ export default async function TeacherRegistrationMarketingPage() {
           </div>
 
           {/* Contact Info */}
-          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-8 text-xs sm:text-sm text-slate-300 mb-6 text-center">
+          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-8 text-[13px] sm:text-sm text-slate-300 mb-6 text-center">
             <a
               href={FACEBOOK_MESSENGER_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 hover:text-white transition-colors"
+              className="flex items-center gap-2 py-2.5 hover:text-white transition-colors"
             >
               <MessengerIcon className="w-4 h-4 text-sky-400 shrink-0" boltColor="#040814" /> Facebook Messenger
             </a>
@@ -1570,7 +1580,10 @@ export default async function TeacherRegistrationMarketingPage() {
         </div>
       </footer>
 
-      {/* Floating Facebook Messenger Widget */}
+      {/* Phones: app-style bottom bar with price + "ভর্তি হোন" */}
+      <MobileActionBar price={coursePrice} regularPrice={regularPrice} closed={admission.closed} />
+
+      {/* Floating Facebook Messenger Widget (desktop; phones use the bar above) */}
       <FloatingWhatsApp />
     </div>
   )

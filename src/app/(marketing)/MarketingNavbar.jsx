@@ -1,24 +1,38 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Menu, X, ArrowRight, Sparkles } from 'lucide-react'
+import {
+  Menu,
+  X,
+  ArrowRight,
+  Sparkles,
+  Home,
+  BookOpen,
+  Layers,
+  CalendarDays,
+  GraduationCap,
+  ListChecks,
+  ShieldCheck,
+  Play,
+  HelpCircle,
+} from 'lucide-react'
 import MessengerIcon from './MessengerIcon'
 import { toBengaliNumber } from '@/lib/utils'
 import { FACEBOOK_MESSENGER_URL } from './contact'
 
 const NAV_ITEMS = [
-  { href: '#home', label: 'হোম' },
-  { href: '#courses', label: 'কোর্সসমূহ' },
-  { href: '#curriculum', label: 'কারিকুলাম' },
-  { href: '#schedule', label: 'সেশনের তারিখ' },
-  { href: '#instructors', label: 'শিক্ষক প্যানেল' },
-  { href: '#process', label: 'ধাপসমূহ' },
-  { href: '#why', label: 'কেন ফজর' },
-  { href: '#videos', label: 'ভিডিও' },
-  { href: '#faq', label: 'FAQ' },
+  { href: '#home', label: 'হোম', Icon: Home },
+  { href: '#courses', label: 'কোর্সসমূহ', Icon: BookOpen },
+  { href: '#curriculum', label: 'কারিকুলাম', Icon: Layers },
+  { href: '#schedule', label: 'সেশনের তারিখ', Icon: CalendarDays },
+  { href: '#instructors', label: 'শিক্ষক প্যানেল', Icon: GraduationCap },
+  { href: '#process', label: 'ধাপসমূহ', Icon: ListChecks },
+  { href: '#why', label: 'কেন ফজর', Icon: ShieldCheck },
+  { href: '#videos', label: 'ভিডিও', Icon: Play },
+  { href: '#faq', label: 'FAQ', Icon: HelpCircle },
 ]
 
-export default function MarketingNavbar({ settings = {} }) {
+export default function MarketingNavbar({ settings = {}, closed = false }) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('home')
@@ -46,18 +60,36 @@ export default function MarketingNavbar({ settings = {} }) {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // While the menu sheet is open: lock page scroll and let Escape close it.
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = previous
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [mobileMenuOpen])
+
+  const closeMenu = () => setMobileMenuOpen(false)
+
   return (
     <nav
       id="navbar"
+      aria-label="প্রধান মেনু"
       className={`sticky top-0 w-full z-50 transition-all duration-300 ${
         scrolled
-          ? 'py-2.5 sm:py-3 bg-[#060D1A]/95 backdrop-blur-xl border-b border-amber-400/20 shadow-2xl shadow-black/50'
-          : 'py-3 sm:py-4 bg-[#060D1A]/70 backdrop-blur-md border-b border-white/5'
-      } px-3 sm:px-6 md:px-12 flex justify-between items-center`}
+          ? 'py-2 sm:py-3 bg-[#060D1A]/95 backdrop-blur-xl border-b border-amber-400/20 shadow-2xl shadow-black/50'
+          : 'py-2.5 sm:py-4 bg-[#060D1A]/80 backdrop-blur-md border-b border-white/5'
+      } px-3 sm:px-6 md:px-12 flex justify-between items-center gap-2`}
     >
-      <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
+      <div className="flex min-w-0 items-center gap-4 sm:gap-6 lg:gap-8">
         {/* Brand */}
-        <a href="#home" className="flex items-center gap-2.5 sm:gap-3 group">
+        <a href="#home" className="flex items-center gap-2 sm:gap-3 group min-w-0">
           <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden border border-amber-400/40 p-0.5 bg-gradient-to-br from-[#0B1A45] to-[#060D1A] shadow-md shadow-amber-500/15 group-hover:border-amber-400 group-hover:scale-105 transition-all duration-300 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -66,26 +98,26 @@ export default function MarketingNavbar({ settings = {} }) {
               className="w-full h-full object-cover rounded-lg"
             />
           </div>
-          <div className="flex flex-col justify-center">
-            <div className="text-base sm:text-lg font-black tracking-wider text-white leading-none font-serif flex items-center gap-1">
+          <div className="flex flex-col justify-center min-w-0">
+            <div className="text-[15px] max-[359px]:text-[13px] max-[359px]:tracking-wide sm:text-lg font-black tracking-wider text-white leading-none font-serif flex items-center gap-1 whitespace-nowrap">
               <span>FAJR</span>
               <span className="text-gradient-gold">ACADEMY</span>
             </div>
-            <div className="text-[8px] sm:text-[9px] text-amber-300/80 tracking-widest uppercase font-semibold mt-1">
+            <div className="max-[359px]:hidden text-[8px] sm:text-[9px] text-amber-300/80 tracking-widest uppercase font-semibold mt-1 truncate">
               Balanced Education
             </div>
           </div>
         </a>
 
         {/* Desktop Navigation Links */}
-        <div className="hidden lg:flex items-center gap-1 sm:gap-2 text-sm font-medium text-slate-300">
+        <div className="hidden xl:flex items-center gap-0.5 text-sm font-medium text-slate-300">
           {NAV_ITEMS.map((item) => {
             const isActive = activeSection === item.href.substring(1)
             return (
               <a
                 key={item.href}
                 href={item.href}
-                className={`relative px-3 py-1.5 rounded-lg text-xs xl:text-sm font-medium transition-all duration-200 ${
+                className={`relative px-2.5 py-1.5 rounded-lg whitespace-nowrap text-xs 2xl:text-sm font-medium transition-all duration-200 ${
                   isActive
                     ? 'text-amber-300 font-semibold bg-white/[0.06]'
                     : 'text-slate-300 hover:text-white hover:bg-white/[0.03]'
@@ -102,83 +134,103 @@ export default function MarketingNavbar({ settings = {} }) {
       </div>
 
       {/* Right Action Buttons */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        <a
-          href="#register"
-          className="hidden md:inline-flex items-center gap-2 bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C59B27] text-slate-950 font-bold py-2 px-5 rounded-full text-xs sm:text-sm shadow-md shadow-amber-500/20 hover:shadow-amber-500/35 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-slate-900" />
-          <span>ভর্তি হোন ({toBengaliNumber(coursePrice)} ৳)</span>
-        </a>
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+        {/* Admission button — visible on every screen size */}
+        {!closed && (
+          <a
+            href="#register"
+            className="cta-glow cta-shine inline-flex items-center gap-1.5 bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C59B27] text-slate-950 font-black min-h-10 px-3.5 max-[359px]:px-3 sm:px-5 rounded-full text-[13px] sm:text-sm whitespace-nowrap active:scale-95 transition-transform"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-slate-900 max-[359px]:hidden" />
+            <span>
+              ভর্তি হোন<span className="hidden 2xl:inline"> ({toBengaliNumber(coursePrice)} ৳)</span>
+            </span>
+          </a>
+        )}
 
         <a
           href={FACEBOOK_MESSENGER_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 bg-[#0866FF] text-white font-bold py-1.5 px-3 sm:py-2 sm:px-4 rounded-full text-xs sm:text-sm hover:bg-[#0756d6] hover:shadow-lg hover:shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 shrink-0"
+          className="hidden sm:inline-flex items-center gap-1.5 bg-[#0866FF] text-white font-bold min-h-10 px-4 rounded-full text-sm hover:bg-[#0756d6] hover:shadow-lg hover:shadow-blue-500/25 active:scale-95 transition-all duration-200 shrink-0"
           title="Facebook Messenger-এ মেসেজ পাঠান"
         >
           <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-          <MessengerIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" boltColor="#0866FF" />
-          <span>Messenger</span>
+          <MessengerIcon className="w-4 h-4 text-white" boltColor="#0866FF" />
+          <span className="hidden md:inline">Messenger</span>
         </a>
 
-        {/* Mobile Hamburger Toggle */}
+        {/* Mobile menu toggle */}
         <button
           type="button"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 rounded-lg text-slate-300 hover:text-amber-300 hover:bg-white/5 transition-colors focus:outline-none shrink-0"
-          aria-label="Toggle navigation menu"
+          onClick={() => setMobileMenuOpen((open) => !open)}
+          className="xl:hidden flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] text-slate-200 hover:text-amber-300 active:scale-95 transition-all shrink-0"
+          aria-label={mobileMenuOpen ? 'মেনু বন্ধ করুন' : 'মেনু খুলুন'}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-menu"
         >
-          {mobileMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
+          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
 
-      {/* Mobile Menu Drawer */}
+      {/* Mobile menu sheet */}
       {mobileMenuOpen && (
-        <div className="lg:hidden absolute top-full left-0 w-full bg-[#060D1A]/98 backdrop-blur-2xl border-b border-white/10 py-5 px-5 sm:px-8 flex flex-col gap-2 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="grid grid-cols-2 gap-1.5 pb-3 border-b border-white/10">
-            {NAV_ITEMS.map((item) => {
-              const isActive = activeSection === item.href.substring(1)
-              return (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`text-sm font-medium px-3 py-2 rounded-lg transition-colors ${
-                    isActive
-                      ? 'text-amber-300 bg-amber-400/10 font-semibold'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  {item.label}
-                </a>
-              )
-            })}
-          </div>
+        <>
+          <div
+            className="xl:hidden absolute left-0 right-0 top-full h-[100dvh] bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={closeMenu}
+            aria-hidden="true"
+          />
+          <div
+            id="mobile-menu"
+            className="xl:hidden absolute left-0 right-0 top-full max-h-[calc(100dvh-4.5rem)] overflow-y-auto overscroll-contain rounded-b-3xl border-b border-amber-400/20 bg-[#0A1326] px-4 pb-5 pt-4 shadow-2xl shadow-black/70 animate-in fade-in slide-in-from-top-2 duration-200"
+          >
+            <div className="grid grid-cols-2 gap-2">
+              {NAV_ITEMS.map(({ href, label, Icon }) => {
+                const isActive = activeSection === href.substring(1)
+                return (
+                  <a
+                    key={href}
+                    href={href}
+                    onClick={closeMenu}
+                    className={`flex min-h-12 items-center gap-2.5 rounded-xl border px-3 text-sm font-semibold transition-colors active:scale-[0.98] ${
+                      isActive
+                        ? 'border-amber-400/40 bg-amber-400/10 text-amber-300'
+                        : 'border-white/[0.07] bg-white/[0.03] text-slate-200'
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-amber-300' : 'text-slate-400'}`} />
+                    <span className="truncate">{label}</span>
+                  </a>
+                )
+              })}
+            </div>
 
-          <div className="pt-2 flex flex-col gap-2">
-            <a
-              href="#register"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C59B27] text-slate-950 font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 shadow-md"
-            >
-              <Sparkles className="w-4 h-4 text-slate-900" />
-              <span>রেজিস্ট্রেশন করুন ({toBengaliNumber(coursePrice)} ৳)</span>
-              <ArrowRight className="w-4 h-4" />
-            </a>
-            <a
-              href={FACEBOOK_MESSENGER_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center bg-[#0866FF] text-white font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm"
-            >
-              <MessengerIcon className="w-4 h-4 text-white" boltColor="#0866FF" />
-              <span>Facebook Messenger-এ কথা বলুন</span>
-            </a>
+            <div className="mt-4 flex flex-col gap-2.5 border-t border-white/10 pt-4">
+              {!closed && (
+                <a
+                  href="#register"
+                  onClick={closeMenu}
+                  className="cta-shine flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#C59B27] text-[15px] font-black text-slate-950 shadow-md active:scale-[0.98] transition-transform"
+                >
+                  <Sparkles className="w-4 h-4 text-slate-900" />
+                  <span>ভর্তি হোন ({toBengaliNumber(coursePrice)} ৳)</span>
+                  <ArrowRight className="w-4 h-4 stroke-[3]" />
+                </a>
+              )}
+              <a
+                href={FACEBOOK_MESSENGER_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={closeMenu}
+                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0866FF] text-sm font-bold text-white shadow-sm active:scale-[0.98] transition-transform"
+              >
+                <MessengerIcon className="w-4 h-4 text-white" boltColor="#0866FF" />
+                <span>Facebook Messenger-এ কথা বলুন</span>
+              </a>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </nav>
   )

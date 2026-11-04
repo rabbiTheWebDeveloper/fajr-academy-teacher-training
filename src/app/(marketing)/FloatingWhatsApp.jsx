@@ -10,7 +10,7 @@ export default function FloatingWhatsApp() {
         href={FACEBOOK_MESSENGER_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 flex items-center gap-2.5 bg-[#0866FF] hover:bg-[#0756d6] text-white py-2.5 px-4 sm:py-3 sm:px-5 rounded-full shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 hover:scale-105 active:scale-95 transition-all duration-300 group border border-white/20"
+        className="max-lg:hidden fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-50 flex items-center gap-2.5 bg-[#0866FF] hover:bg-[#0756d6] text-white py-2.5 px-4 sm:py-3 sm:px-5 rounded-full shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 hover:scale-105 active:scale-95 transition-all duration-300 group border border-white/20"
         aria-label="Facebook Messenger-এ চ্যাট করুন"
         title="Facebook Messenger সহায়তা"
         id="floating-messenger-btn"

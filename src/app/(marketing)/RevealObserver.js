@@ -14,7 +14,8 @@ export default function RevealObserver() {
           }
         })
       },
-      { threshold: 0.15 }
+      // Low threshold: cards peeking out of a swipe row must still reveal.
+      { threshold: 0.05 }
     )
 
     els.forEach((el) => io.observe(el))

@@ -1887,7 +1887,34 @@
   margin-top: 12px;
   flex-wrap: wrap;
 }
+.regTrustMobile { display: none; }
 .regSecurityBlock { display: flex; align-items: center; gap: 12px; }
+
+/* Batch switch inside the form header (change batch without scrolling back up). */
+.regBatchSwitch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-top: 14px;
+  border-radius: 14px;
+  background: #EEF2F8;
+  width: 100%;
+}
+.regBatchSwitchBtn {
+  min-height: 42px;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: #5A6A7E;
+  font-weight: 700;
+  font-size: 0.86rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--t-fast);
+}
+.regBatchSwitchBtnMen { background: #fff; color: var(--men-blue); box-shadow: 0 2px 8px rgba(3, 12, 30, 0.12); }
+.regBatchSwitchBtnWomen { background: #fff; color: var(--women-rose); box-shadow: 0 2px 8px rgba(3, 12, 30, 0.12); }
 .regShieldIcon    { color: var(--men-blue); flex-shrink: 0; }
 .regSecurityText  { display: flex; flex-direction: column; line-height: 1.35; }
 .regSecurityTitle { font-size: 0.87rem; font-weight: 800; color: #0F1A2B; }
@@ -2495,11 +2522,42 @@
   .whyGrid { grid-template-columns: 1fr; }
   .timeline { grid-template-columns: 1fr; }
   .regInputsGrid { grid-template-columns: 1fr; gap: 16px; }
-  .regBottomBar { flex-direction: column; text-align: center; padding: 16px 14px; gap: 14px; }
-  .regSecurityBlock { flex-direction: column; align-items: center; text-align: center; gap: 6px; width: 100%; }
-  .regFeeActionWrap { flex-direction: column; width: 100%; gap: 10px; }
-  .regFeePillDark { width: 100%; padding: 8px 14px; }
-  .regSubmitBtnGold { width: 100%; justify-content: center; padding: 13px 18px; }
+  /* Phones: the pay bar sticks to the bottom of the screen while the form is on screen. */
+  .regBottomBar {
+    position: sticky;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    z-index: 30;
+    flex-wrap: nowrap;
+    padding: 8px;
+    gap: 8px;
+    margin: 4px -4px 0;
+    border-radius: 18px;
+    background: #fff;
+    border: 1.5px solid rgba(212, 175, 55, 0.55);
+    box-shadow: 0 -8px 28px rgba(3, 12, 30, 0.14), 0 12px 32px rgba(3, 12, 30, 0.22);
+  }
+  .regSecurityBlock { display: none; }
+  .regTrustMobile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    border-radius: 12px;
+    background: #F1F7F3;
+    border: 1px solid #CFE5D6;
+    color: #14532D;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .regFeeActionWrap { flex-direction: row; width: 100%; gap: 8px; align-items: stretch; }
+  .regFeePillDark { width: auto; flex-shrink: 0; padding: 6px 14px; border-radius: 14px; }
+  .regSubmitBtnGold { flex: 1; width: auto; min-height: 52px; justify-content: center; padding: 12px 14px; border-radius: 14px; }
+  /* 16px inputs stop iOS Safari from zooming the page on focus. */
+  .regInputField, .regSelectField { font-size: 16px; min-height: 50px; }
+  .regInputField::placeholder { font-size: 15px; }
+  .regCardBtnSelected, .regCardBtnUnselected { min-height: 48px; }
   .ribbonGrid { grid-template-columns: 1fr; }
   .floatingWhatsApp { bottom: 16px; right: 16px; padding: 9px; }
   .floatingWhatsApp .floatingLabel { display: none; }
@@ -2527,7 +2585,13 @@
   .regFormTitleRow { flex-direction: column; align-items: flex-start; gap: 8px; }
   .regFormTitleMain { font-size: 1.02rem; }
   .regFormSubtitle { font-size: 0.76rem; }
-  .regInputField, .regSelectField { font-size: 0.85rem; padding: 11px 12px 11px 38px; }
+  .regInputField, .regSelectField { font-size: 16px; padding: 11px 12px 11px 38px; }
+  .regStepIndicator { gap: 6px; }
+  .regStepItem { gap: 5px; font-size: 0.72rem; }
+  .regStepLine, .regStepLineDone { width: 14px; }
+  .regBottomBar { margin-inline: -2px; }
+  .regFeePillAmount { font-size: 0.98rem; }
+  .regSubmitBtnGold { font-size: 0.92rem; }
   .regSecurityTitle { font-size: 0.82rem; }
   .regSecuritySub { font-size: 0.70rem; }
   .receiptSummary { padding: 16px 14px; }

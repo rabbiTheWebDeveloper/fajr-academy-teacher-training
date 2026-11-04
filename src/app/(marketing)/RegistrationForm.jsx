@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 import {
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { toBengaliNumber } from '@/lib/utils'
 import { FACEBOOK_MESSENGER_URL } from './contact'
+import { SELECT_TRACK_EVENT } from './admission'
 import { modulesFor, sessionRows, sessionRange } from './course-dates'
 
 const GATEWAY_ERRORS = {
@@ -99,9 +100,34 @@ export default function RegistrationForm({
   const infoMsg = gatewayNoticeOpen && paymentParam === 'verifying' ? GATEWAY_VERIFYING : ''
   const [alreadyPaid, setAlreadyPaid] = useState(false);
 
-  const handleTrackChange = (track) => {
+  const handleTrackChange = useCallback((track) => {
     setSelectedTrack(track)
     setFormData((p) => ({ ...p, gender: track === 'women' ? 'female' : 'male' }))
+  }, [])
+
+  // Bring the form into view once it has rendered for the chosen batch.
+  const scrollToForm = useCallback(() => {
+    window.setTimeout(() => {
+      document.getElementById('reg-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  }, [])
+
+  // "ভর্তি হোন" buttons elsewhere on the page pre-select their batch and jump to the form.
+  useEffect(() => {
+    const onSelect = (e) => {
+      const track = e.detail?.track
+      if (track !== 'men' && track !== 'women') return
+      handleTrackChange(track)
+      scrollToForm()
+    }
+    window.addEventListener(SELECT_TRACK_EVENT, onSelect)
+    return () => window.removeEventListener(SELECT_TRACK_EVENT, onSelect)
+  }, [handleTrackChange, scrollToForm])
+
+  // Picking a batch card on a phone: the form sits far below the tall cards, so scroll to it.
+  const pickTrackCard = (track) => {
+    handleTrackChange(track)
+    if (window.matchMedia('(max-width: 1024px)').matches) scrollToForm()
   }
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -206,8 +232,8 @@ export default function RegistrationForm({
           role="button"
           tabIndex={0}
           id="track-men-card"
-          onClick={() => handleTrackChange('men')}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleTrackChange('men') }}
+          onClick={() => pickTrackCard('men')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') pickTrackCard('men') }}
           className={`${styles.regTrackCard} ${selectedTrack === 'men' ? styles.regTrackCardSelected : ''}`}
           aria-pressed={selectedTrack === 'men'}
         >
@@ -258,8 +284,8 @@ export default function RegistrationForm({
           role="button"
           tabIndex={0}
           id="track-women-card"
-          onClick={() => handleTrackChange('women')}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleTrackChange('women') }}
+          onClick={() => pickTrackCard('women')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') pickTrackCard('women') }}
           className={`${styles.regTrackCard} ${selectedTrack === 'women' ? styles.regTrackCardSelected : ''}`}
           aria-pressed={selectedTrack === 'women'}
         >
@@ -308,7 +334,7 @@ export default function RegistrationForm({
       </div>
 
       {/* ── Registration Form Card ── */}
-      <div className={styles.regWhiteCard}>
+      <div id="reg-form" className={styles.regWhiteCard}>
         {submitted ? (
           /* Success State */
           <div className={styles.successBox}>
@@ -387,6 +413,26 @@ export default function RegistrationForm({
                 </div>
               </div>
 
+              {/* Switch batch without scrolling back to the cards */}
+              <div className={styles.regBatchSwitch} role="group" aria-label="ব্যাচ পরিবর্তন করুন">
+                <button
+                  type="button"
+                  aria-pressed={selectedTrack === 'men'}
+                  onClick={() => handleTrackChange('men')}
+                  className={`${styles.regBatchSwitchBtn} ${selectedTrack === 'men' ? styles.regBatchSwitchBtnMen : ''}`}
+                >
+                  পুরুষ ব্যাচ
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={selectedTrack === 'women'}
+                  onClick={() => handleTrackChange('women')}
+                  className={`${styles.regBatchSwitchBtn} ${selectedTrack === 'women' ? styles.regBatchSwitchBtnWomen : ''}`}
+                >
+                  নারী ব্যাচ (০১৪)
+                </button>
+              </div>
+
               {/* What to do */}
               <div className={styles.regGuideBox} style={{ marginTop: '1rem', marginBottom: 0 }}>
                 ধাপ ২: নিচের <span style={{ color: '#DC2626' }}>*</span> চিহ্নিত ঘরগুলো পূরণ করুন, তারপর নিচের <strong>&quot;পেমেন্টে এগিয়ে যান&quot;</strong> বাটনে চাপুন।
@@ -452,6 +498,7 @@ export default function RegistrationForm({
                     value={formData.fullName} onChange={handleChange}
                     className={styles.regInputField}
                     autoComplete="name"
+                    enterKeyHint="next"
                   />
                 </div>
               </div>
@@ -469,6 +516,8 @@ export default function RegistrationForm({
                     value={formData.phone} onChange={handleChange}
                     className={styles.regInputField}
                     autoComplete="tel"
+                    inputMode="tel"
+                    enterKeyHint="next"
                   />
                 </div>
                 <p className={styles.regFieldHint}>১১ ডিজিট, যেমন 01712345678 — হোয়াটসঅ্যাপে যোগাযোগ করা যায় এমন নম্বর দিন।</p>
@@ -487,6 +536,11 @@ export default function RegistrationForm({
                     value={formData.email} onChange={handleChange}
                     className={styles.regInputField}
                     autoComplete="email"
+                    inputMode="email"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    enterKeyHint="next"
                   />
                 </div>
                 <p className={styles.regFieldHint}>রেজিস্ট্রেশন কনফার্মেশন ও লগইনের জন্য এই ইমেইল ব্যবহার হবে।</p>
@@ -506,6 +560,7 @@ export default function RegistrationForm({
                     className={styles.regInputField}
                     autoComplete="new-password"
                     minLength={6}
+                    enterKeyHint="next"
                   />
                 </div>
                 <p className={styles.regFieldHint}>এই পাসওয়ার্ড দিয়ে পেমেন্টের পর ড্যাশবোর্ডে লগইন করবেন। কমপক্ষে ৬ অক্ষর।</p>
@@ -583,6 +638,12 @@ export default function RegistrationForm({
                   </select>
                 </div>
               </div>
+            </div>
+
+            {/* Phones: trust line above the sticky pay bar */}
+            <div className={styles.regTrustMobile}>
+              <ShieldCheck size={20} className={styles.regShieldIcon} />
+              <span>SSLCommerz-এর মাধ্যমে বিকাশ, নগদ, রকেট, কার্ড ও ব্যাংকে নিরাপদ পেমেন্ট।</span>
             </div>
 
             {/* Bottom Bar */}
