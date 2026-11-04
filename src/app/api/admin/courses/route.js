@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { CourseModel } from "@/model/course-model";
 import { ParticipantModel } from "@/model/participant-model";
+import { PaymentModel } from "@/model/payment-model";
 import { MEN_TOT_CURRICULUM, WOMEN_TOT_CURRICULUM } from "@/constant/course-defaults";
-import { ensureDefaultCourses } from "@/service/course-service";
+import { ensureDefaultCourses, withLiveEnrolment } from "@/service/course-service";
 import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
 import { isObjectId, pick } from "@/lib/query-helpers";
 import { COURSE_STATES, COURSE_STATE_LABEL, courseState, publishProblem, transitionProblem, withCourseState } from "@/lib/course-state";
@@ -41,6 +42,8 @@ const EDITABLE = [
   "resources",
 ];
 const STATUSES = ["Active & Enrolling", "Upcoming", "Closed"];
+// Trainee checkout and enrolment code refers to these two codes directly, so they never change.
+const OFFICIAL_COURSE_IDS = ["TOT-MEN", "TOT-WOMEN-014"];
 const TRACKS = ["men", "women", "general"];
 const bad = (message, status = 400) => NextResponse.json({ success: false, message }, { status });
 const plain = (v) => JSON.parse(JSON.stringify(v));
@@ -87,7 +90,7 @@ export async function GET(request) {
       await ensureDefaultCourses();
       courses = await CourseModel.find().sort({ createdAt: 1 }).lean();
     }
-    courses = courses.map(withCourseState);
+    courses = (await withLiveEnrolment(courses)).map(withCourseState);
     if (COURSE_STATES.includes(state)) courses = courses.filter((c) => c.publishState === state);
     return NextResponse.json({ success: true, courses: plain(courses) });
   } catch (error) {
@@ -159,12 +162,28 @@ export async function PUT(request) {
     // publishState / isPublished are deliberately not editable here — use PATCH.
     const { data, error } = clean(body);
     if (error) return bad(error);
-    if (Object.keys(data).length === 0) return bad("পরিবর্তনের মতো কোনো তথ্য পাওয়া যায়নি।");
+    const requestedId = body.nextCourseId == null ? "" : String(body.nextCourseId).trim().toUpperCase();
+    if (Object.keys(data).length === 0 && !requestedId) return bad("পরিবর্তনের মতো কোনো তথ্য পাওয়া যায়নি।");
 
     // A live course must stay publishable: no emptying its name or setting a 0 fee. Only the
     // fields this request changes are checked, so unrelated edits are never blocked.
-    const current = await CourseModel.findOne(query).select("publishState isPublished").lean();
+    const current = await CourseModel.findOne(query).select("publishState isPublished courseId").lean();
     if (!current) return bad("কোর্স পাওয়া যায়নি।", 404);
+
+    // Course ID change: only for a non-official course with no payments or enrolments yet.
+    let idChange = null;
+    if (requestedId && requestedId !== current.courseId) {
+      if (OFFICIAL_COURSE_IDS.includes(current.courseId)) return bad("মূল ব্যাচের (TOT-MEN / TOT-WOMEN-014) কোর্স আইডি বদলানো যাবে না।");
+      if (!/^[A-Z0-9-]{3,40}$/.test(requestedId)) return bad("কোর্স আইডিতে শুধু ইংরেজি বড় হাতের অক্ষর, সংখ্যা ও হাইফেন ব্যবহার করুন।");
+      if (await CourseModel.exists({ courseId: requestedId })) return bad("এই কোর্স আইডি ইতিমধ্যে ব্যবহৃত হয়েছে।");
+      const [payments, enrolments] = await Promise.all([
+        PaymentModel.countDocuments({ courseId: current.courseId }),
+        ParticipantModel.countDocuments({ courseId: current.courseId }),
+      ]);
+      if (payments > 0 || enrolments > 0) return bad("এই কোর্সে পেমেন্ট বা ভর্তি আছে, তাই কোর্স আইডি বদলানো যাবে না।");
+      idChange = requestedId;
+    }
+    if (idChange) data.courseId = idChange;
     if (courseState(current) === "published") {
       const touched = {};
       if (data.name !== undefined) touched.name = data.name;

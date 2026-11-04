@@ -68,8 +68,9 @@ async function loadDashboard() {
     notices,
   ] = await Promise.all([
     TotModel.countDocuments({}),
-    TotModel.countDocuments({ paymentStatus: "paid" }),
-    TotModel.countDocuments({ paymentStatus: "pending" }),
+    // Same definitions as the instructor stats: paid = paid + free, pending = pending + failed.
+    TotModel.countDocuments({ paymentStatus: { $in: ["paid", "free"] } }),
+    TotModel.countDocuments({ paymentStatus: { $in: ["pending", "failed"] } }),
     TotModel.countDocuments(trackFilter("men")),
     TotModel.countDocuments(trackFilter("women")),
     InstructorModel.countDocuments({}),

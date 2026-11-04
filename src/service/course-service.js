@@ -1,5 +1,6 @@
 import { dbConnect } from "@/service/mongo";
 import { CourseModel } from "@/model/course-model";
+import { PaymentModel } from "@/model/payment-model";
 import { SettingModel } from "@/model/setting-model";
 import { OPERATING_COURSE_FILTER } from "@/lib/course-state";
 import { MEN_TOT_CURRICULUM, WOMEN_TOT_CURRICULUM } from "@/constant/course-defaults";
@@ -96,6 +97,20 @@ export async function ensureDefaultCourses() {
       updateOne: { filter: { courseId: c.courseId }, update: { $setOnInsert: c }, upsert: true },
     }))
   );
+}
+
+/**
+ * Trainees with a VALID payment for each course, counted once per trainee (by e-mail).
+ * This replaces the stored CourseModel.enrolledCount counter, which drifts.
+ */
+export async function withLiveEnrolment(courses) {
+  const rows = await PaymentModel.aggregate([
+    { $match: { status: "VALID", courseId: { $nin: [null, ""] } } },
+    { $group: { _id: { courseId: "$courseId", email: "$userEmail" } } },
+    { $group: { _id: "$_id.courseId", n: { $sum: 1 } } },
+  ]);
+  const counts = new Map(rows.map((r) => [r._id, r.n]));
+  return courses.map((c) => ({ ...c, enrolledCount: counts.get(c.courseId) || 0 }));
 }
 
 /** Course code for a user track ("TOT-WOMEN" → "TOT-WOMEN-014"). */

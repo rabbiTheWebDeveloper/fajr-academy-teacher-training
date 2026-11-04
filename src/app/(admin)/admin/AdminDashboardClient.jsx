@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   RefreshCw,
   ChevronRight,
-  Sparkles,
   GraduationCap,
   Star,
   Eye,
@@ -44,10 +43,20 @@ import {
 const PRIORITY_LABEL = { normal: "সাধারণ", important: "জরুরি", urgent: "অতি জরুরি" };
 const NOTICE_TRACK_LABEL = { all: "সকল ব্যাচ", "TOT-MEN": "পুরুষ ব্যাচ", "TOT-WOMEN-014": "মহিলা ব্যাচ (014)", "TOT-WOMEN": "মহিলা ব্যাচ" };
 const PAYMENT_BADGE = {
-  paid: "Paid",
-  pending: "Pending",
-  failed: "Failed",
-  free: "Free",
+  paid: "পরিশোধিত",
+  pending: "বকেয়া",
+  failed: "ব্যর্থ",
+  free: "ফ্রি",
+};
+const PAYMENT_STATUS_LABEL = {
+  VALID: "যাচাইকৃত",
+  PENDING: "অপেক্ষমাণ",
+  FAILED: "ব্যর্থ",
+  CANCELLED: "বাতিল",
+  UNATTEMPTED: "অসম্পূর্ণ",
+  EXPIRED: "মেয়াদোত্তীর্ণ",
+  INVALID: "অবৈধ",
+  REFUNDED: "রিফান্ডকৃত",
 };
 
 function whatsappHref(phone) {
@@ -183,6 +192,9 @@ export default function AdminDashboardClient({ stats, loadError }) {
   };
 
   const cardBox = isLight ? "bg-white border-slate-200 shadow-sm" : "bg-slate-900 border-slate-800 shadow-xl";
+  const secondaryBtn = isLight
+    ? "bg-white hover:bg-slate-50 border-slate-300 text-slate-800"
+    : "bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-200";
   const kpiBox = isLight
     ? "bg-white border-slate-200 shadow-sm hover:shadow-md"
     : "bg-slate-900/90 border-slate-800 shadow-xl";
@@ -201,16 +213,8 @@ export default function AdminDashboardClient({ stats, loadError }) {
       {/* Executive Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-2 border ${
-              isLight ? "bg-amber-100 text-amber-900 border-amber-300" : "bg-amber-500/10 border-amber-500/30 text-amber-300"
-            }`}
-          >
-            <Sparkles className={`w-3.5 h-3.5 ${isLight ? "text-amber-600" : "text-amber-400"}`} />
-            Executive Control System
-          </div>
-          <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
-            TOT অ্যাডমিন ওভারভিউ ও এনালিটিক্স
+          <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
+            অ্যাডমিন ড্যাশবোর্ড
           </h1>
           <p className={`text-xs sm:text-sm mt-1 font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
             ফজর একাডেমি টিচার্স ট্রেনিং (TOT) প্রোগ্রামের লাইভ এনরোলমেন্ট, পেমেন্ট, মূল্যায়ন ও ইনস্ট্রাক্টর ট্র্যাকার
@@ -231,25 +235,25 @@ export default function AdminDashboardClient({ stats, loadError }) {
           </button>
           <button
             onClick={() => setShowNoticeModal(true)}
-            className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-rose-500/20 transition-all cursor-pointer"
+            className="px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
-            <Megaphone className="w-4 h-4" /> ঘোষণা ব্রডকাস্ট
+            <Megaphone className="w-4 h-4" /> ঘোষণা পাঠান
           </button>
           <Link
             href="/admin/evaluations"
-            className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#C59B27] hover:brightness-110 text-[#051329] font-black text-xs flex items-center gap-1.5 shadow-md shadow-[#D4AF37]/20 transition-all"
+            className={`px-3.5 py-2.5 rounded-xl border font-semibold text-xs flex items-center gap-1.5 transition-all ${secondaryBtn}`}
           >
             <Award className="w-4 h-4" /> মূল্যায়ন ও ফলাফল
           </Link>
           <Link
             href="/admin/instructors"
-            className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-purple-500/20 transition-all"
+            className={`px-3.5 py-2.5 rounded-xl border font-semibold text-xs flex items-center gap-1.5 transition-all ${secondaryBtn}`}
           >
             <GraduationCap className="w-4 h-4" /> ইনস্ট্রাক্টর
           </Link>
           <Link
             href="/admin/tots"
-            className="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all"
+            className={`px-3.5 py-2.5 rounded-xl border font-semibold text-xs flex items-center gap-1.5 transition-all ${secondaryBtn}`}
           >
             <Users className="w-4 h-4" /> TOT ট্রেইনি
           </Link>
@@ -286,7 +290,7 @@ export default function AdminDashboardClient({ stats, loadError }) {
         {/* KPI 2: Paid Trainees */}
         <div className={`p-5 rounded-3xl relative overflow-hidden border transition-all ${kpiBox}`}>
           <div className="flex items-center justify-between mb-2">
-            <span className={`text-xs font-bold ${isLight ? "text-slate-600" : "text-slate-400"}`}>পরিশোধিত ট্রেইনি</span>
+            <span className={`text-xs font-bold ${isLight ? "text-slate-600" : "text-slate-400"}`}>পেইড / ফ্রি ট্রেইনি</span>
             <div className={`p-2 rounded-xl ${isLight ? "bg-blue-100 text-blue-700" : "bg-blue-500/20 text-blue-400"}`}>
               <Users className="w-4 h-4" />
             </div>
@@ -446,7 +450,7 @@ export default function AdminDashboardClient({ stats, loadError }) {
                           isLight ? "bg-emerald-50 text-emerald-800 border-emerald-300" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
                         }`}
                       >
-                        ✓ Verified
+                        ✓ যাচাইকৃত
                       </span>
                     ) : p.status === "REFUNDED" ? (
                       <span
@@ -454,11 +458,13 @@ export default function AdminDashboardClient({ stats, loadError }) {
                           isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-300 border-slate-700"
                         }`}
                       >
-                        REFUNDED
+                        রিফান্ডকৃত
                       </span>
                     ) : (
                       <>
-                        <span className={`text-[10px] font-bold ${isLight ? "text-slate-500" : "text-slate-400"}`}>{p.status}</span>
+                        <span className={`text-[10px] font-bold ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                          {PAYMENT_STATUS_LABEL[p.status] || p.status}
+                        </span>
                         <button
                           onClick={() => handleVerifyPayment(p)}
                           disabled={verifyingId === p._id || isRefreshing}

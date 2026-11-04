@@ -36,6 +36,9 @@ import EnrolmentManager from "../../_shared/EnrolmentManager";
 import { AdminToast, DbErrorBanner, callApi, formatDate, formatMoney, useConfirm, useToast } from "../../_shared/admin-ui";
 
 /** Fields edited on the course card. Curriculum/resources are saved separately so a stale card can never overwrite them. */
+// Official batch codes that trainee checkout and enrolment rely on (see the server route).
+const OFFICIAL_COURSE_IDS = ["TOT-MEN", "TOT-WOMEN-014"];
+
 const CARD_FIELDS = [
   "name",
   "tag",
@@ -64,21 +67,76 @@ const STATUS_LABEL = {
 
 const keyOf = (c) => c?._id || c?.courseId;
 
+/**
+ * "2026-08-23" (date picker) → "23 August 2026, Sunday" — the text format the course
+ * schedule and the public pages already read. Empty for an empty picker.
+ */
+function formatSessionDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
+  if (!m) return "";
+  const date = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  const month = date.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+  const weekday = date.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
+  return `${m[3]} ${month} ${m[1]}, ${weekday}`;
+}
+
+/**
+ * "20:00" (+ optional "21:00") → "8:00 PM - 9:00 PM" — the text format the schedule and
+ * the public pages already read. Empty when no start time is picked.
+ */
+function formatSessionTime(start, end) {
+  const one = (hhmm) => {
+    const m = /^(\d{2}):(\d{2})$/.exec(hhmm || "");
+    if (!m) return "";
+    const h24 = Number(m[1]);
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    return `${h12}:${m[2]} ${h24 >= 12 ? "PM" : "AM"}`;
+  };
+  const from = one(start);
+  if (!from) return "";
+  const to = one(end);
+  return to ? `${from} - ${to}` : from;
+}
+
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+/** "23 August 2026, Sunday" → "2026-08-23" so the date picker can show a saved date. */
+function isoFromSessionDate(text) {
+  const m = /(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/.exec(text || "");
+  if (!m) return "";
+  const mi = MONTH_NAMES.findIndex((x) => x.toLowerCase() === m[2].toLowerCase());
+  if (mi < 0) return "";
+  return `${m[3]}-${String(mi + 1).padStart(2, "0")}-${String(m[1]).padStart(2, "0")}`;
+}
+
+/** "8:00 PM - 9:00 PM" → { start: "20:00", end: "21:00" } for the time pickers. */
+function timesFromSessionTime(text) {
+  const to24 = (part) => {
+    const m = /(\d{1,2})[:.](\d{2})\s*(AM|PM)/i.exec(part || "");
+    if (!m) return "";
+    let h = Number(m[1]) % 12;
+    if (/pm/i.test(m[3])) h += 12;
+    return `${String(h).padStart(2, "0")}:${m[2]}`;
+  };
+  const parts = String(text || "").split(/\s*-\s*/);
+  return { start: to24(parts[0]), end: parts[1] ? to24(parts[1]) : "" };
+}
+
 const emptyModule = (n) => ({
   moduleNo: n,
+  sessionIso: "",
+  sessionStart: "",
+  sessionEnd: "",
   sessionBadge: `SESSION ${String(n).padStart(2, "0")}`,
   title: "",
   subtitle: "",
   description: "",
-  themeQuote: "",
   trainerName: "",
   trainerRole: "",
-  trainerQualifications: "",
   sessionDate: "",
   sessionTime: "",
   duration: "১ ঘণ্টা",
   liveDate: "",
-  topics: "",
 });
 
 const EMPTY_RESOURCE = {
@@ -198,7 +256,7 @@ function statusCls(status, isLight) {
   return isLight ? "bg-emerald-50 text-emerald-800 border-emerald-300" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
 }
 
-export default function AdminCoursesClient({ initialBatches, loadError: initialLoadError }) {
+export default function AdminCoursesClient({ initialBatches, loadError: initialLoadError, instructors = [] }) {
   const [batches, setBatches] = useState(initialBatches || []);
   const [loadError, setLoadError] = useState(initialLoadError);
   const [reloading, setReloading] = useState(false);
@@ -214,6 +272,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
   const [selectedCourseForCurriculum, setSelectedCourseForCurriculum] = useState(null);
   const [curriculumTab, setCurriculumTab] = useState("curriculum"); // "curriculum" | "resources"
   const [showAddModuleModal, setShowAddModuleModal] = useState(false);
+  const [editingModuleIndex, setEditingModuleIndex] = useState(null); // null = adding a new module
   const [showAddResourceModal, setShowAddResourceModal] = useState(false);
   const [newModule, setNewModule] = useState(emptyModule(1));
   const [newResource, setNewResource] = useState(EMPTY_RESOURCE);
@@ -272,7 +331,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
 
   const startEdit = (batch) => {
     setEditingId(keyOf(batch));
-    setDraft({ ...batch });
+    setDraft({ ...batch, nextCourseId: batch.courseId });
   };
 
   const cancelEdit = () => {
@@ -288,7 +347,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
       showToast("কোর্সের নাম আবশ্যক।", "error");
       return;
     }
-    const saved = await saveCourse(draft, CARD_FIELDS);
+    const saved = await saveCourse(draft, [...CARD_FIELDS, "nextCourseId"]);
     if (saved) cancelEdit();
   };
 
@@ -388,36 +447,53 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
     saveCourse({ ...selectedCourseForCurriculum, resources }, ["resources"], successText);
 
   const openAddModule = () => {
+    setEditingModuleIndex(null);
     setNewModule(emptyModule((selectedCourseForCurriculum?.curriculum?.length || 0) + 1));
     setShowAddModuleModal(true);
   };
 
-  const handleAddModule = async (e) => {
+  const openEditModule = (modIdx) => {
+    const mod = (selectedCourseForCurriculum?.curriculum || [])[modIdx];
+    if (!mod) return;
+    const times = timesFromSessionTime(mod.sessionTime);
+    setEditingModuleIndex(modIdx);
+    setNewModule({
+      ...emptyModule(mod.moduleNo || modIdx + 1),
+      ...mod,
+      sessionIso: isoFromSessionDate(mod.sessionDate),
+      sessionStart: times.start,
+      sessionEnd: times.end,
+    });
+    setShowAddModuleModal(true);
+  };
+
+  const handleSaveModule = async (e) => {
     e.preventDefault();
     if (!selectedCourseForCurriculum) return;
     const current = selectedCourseForCurriculum.curriculum || [];
-    const topicsArray = newModule.topics ? newModule.topics.split(",").map((t) => t.trim()).filter(Boolean) : [];
-
-    const moduleObj = {
+    const existing = editingModuleIndex !== null ? current[editingModuleIndex] : null;
+    const fields = {
       moduleNo: Number(newModule.moduleNo) || current.length + 1,
       sessionBadge: newModule.sessionBadge || `SESSION ${String(current.length + 1).padStart(2, "0")}`,
       title: newModule.title.trim(),
       subtitle: newModule.subtitle,
       description: newModule.description,
-      themeQuote: newModule.themeQuote,
       trainerName: newModule.trainerName,
       trainerRole: newModule.trainerRole,
-      trainerQualifications: newModule.trainerQualifications,
       sessionDate: newModule.sessionDate,
       sessionTime: newModule.sessionTime,
       duration: newModule.duration || "১ ঘণ্টা",
       liveDate: newModule.liveDate || newModule.sessionDate,
-      topics: topicsArray,
-      lessons: [],
     };
+    // Editing keeps the module's lessons and anything else not on the form.
+    const moduleObj = existing ? { ...existing, ...fields } : { ...fields, topics: [], lessons: [] };
+    const updated = existing ? current.map((m, i) => (i === editingModuleIndex ? moduleObj : m)) : [...current, moduleObj];
 
-    const saved = await saveCurriculum([...current, moduleObj], "নতুন সেশন / মডিউল সংরক্ষিত হয়েছে!");
-    if (saved) setShowAddModuleModal(false);
+    const saved = await saveCurriculum(updated, existing ? "মডিউল আপডেট হয়েছে!" : "নতুন সেশন / মডিউল সংরক্ষিত হয়েছে!");
+    if (saved) {
+      setShowAddModuleModal(false);
+      setEditingModuleIndex(null);
+    }
   };
 
   const handleReloadOfficialCurriculum = async () => {
@@ -774,9 +850,18 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                   <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className={labelCls}>কোর্স আইডি (ID)</label>
-                      <span className="font-mono font-bold px-2.5 py-1 rounded-lg border block text-xs bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-amber-700 dark:text-amber-400 truncate">
+                      {isEditing && !OFFICIAL_COURSE_IDS.includes(batch.courseId) ? (
+                        <input
+                          type="text"
+                          value={view.nextCourseId || ""}
+                          onChange={(e) => setDraftField("nextCourseId", e.target.value.toUpperCase())}
+                          className={editInput + " font-mono font-bold text-xs"}
+                        />
+                      ) : (
+                        <span className="font-mono font-bold px-2.5 py-1 rounded-lg border block text-xs bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-amber-700 dark:text-amber-400 truncate">
                         {batch.courseId}
                       </span>
+                      )}
                     </div>
 
                     <div>
@@ -1003,7 +1088,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                 >
                   <Users className="w-4 h-4 text-amber-500" />
                   <span>
-                    নিবন্ধিত ট্রেইনি: <strong className={isLight ? "text-slate-900" : "text-white"}>{batch.enrolledCount || 0}</strong> / {batch.maxSeats ?? 0}
+                    ভ্যালিড পেমেন্ট ট্রেইনি: <strong className={isLight ? "text-slate-900" : "text-white"}>{batch.enrolledCount || 0}</strong> / {batch.maxSeats ?? 0}
                   </span>
                   <span className={`text-[10px] font-extrabold underline underline-offset-2 ${isLight ? "text-indigo-700" : "text-indigo-300"}`}>তালিকা</span>
                 </button>
@@ -1289,6 +1374,15 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                           </button>
                           <button
                             type="button"
+                            onClick={() => openEditModule(modIdx)}
+                            disabled={saving}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-500/10 border border-slate-300 dark:border-slate-700 cursor-pointer disabled:opacity-50"
+                            title="মডিউল সম্পাদনা করুন"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleDeleteModule(modIdx)}
                             disabled={saving}
                             className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-500/10 border border-rose-500/30 cursor-pointer disabled:opacity-50"
@@ -1444,14 +1538,14 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
           >
             <div className="flex items-center justify-between border-b pb-3 border-slate-200 dark:border-slate-800">
               <h3 className={`font-black text-sm ${isLight ? "text-slate-900" : "text-white"}`}>
-                নতুন কারিকুলাম মডিউল যুক্ত করুন
+                {editingModuleIndex !== null ? "মডিউল সম্পাদনা করুন" : "নতুন কারিকুলাম মডিউল যুক্ত করুন"}
               </h3>
               <button onClick={() => setShowAddModuleModal(false)} className="text-slate-400 hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleAddModule} className="space-y-3 text-xs">
+            <form onSubmit={handleSaveModule} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold mb-1">সেশন ব্যাজ / নম্বর</label>
@@ -1492,46 +1586,89 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                 <div>
                   <label className="block font-bold mb-1">সেশন তারিখ (Date)</label>
                   <input
-                    type="text"
-                    value={newModule.sessionDate}
-                    onChange={(e) => setNewModule({ ...newModule, sessionDate: e.target.value })}
-                    placeholder="যেমন: 23 August 2026, Sunday"
+                    type="date"
+                    value={newModule.sessionIso || ""}
+                    onChange={(e) =>
+                      setNewModule({
+                        ...newModule,
+                        sessionIso: e.target.value,
+                        sessionDate: formatSessionDate(e.target.value),
+                      })
+                    }
                     className="w-full px-3 py-2 rounded-xl border"
                   />
+                  {newModule.sessionDate && (
+                    <p className="text-[11px] mt-1 text-slate-500">সংরক্ষিত হবে: {newModule.sessionDate}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block font-bold mb-1">সেশন সময় (Time)</label>
-                  <input
-                    type="text"
-                    value={newModule.sessionTime}
-                    onChange={(e) => setNewModule({ ...newModule, sessionTime: e.target.value })}
-                    placeholder="যেমন: 8:00 PM - 9:00 PM"
-                    className="w-full font-mono px-3 py-2 rounded-xl border"
-                  />
+                  <label className="block font-bold mb-1">সেশন সময় (Time)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="time"
+                      aria-label="শুরুর সময়"
+                      value={newModule.sessionStart || ""}
+                      onChange={(e) =>
+                        setNewModule({
+                          ...newModule,
+                          sessionStart: e.target.value,
+                          sessionTime: formatSessionTime(e.target.value, newModule.sessionEnd),
+                        })
+                      }
+                      className="w-full px-3 py-2 rounded-xl border"
+                    />
+                    <input
+                      type="time"
+                      aria-label="শেষ সময় (ঐচ্ছিক)"
+                      value={newModule.sessionEnd || ""}
+                      onChange={(e) =>
+                        setNewModule({
+                          ...newModule,
+                          sessionEnd: e.target.value,
+                          sessionTime: formatSessionTime(newModule.sessionStart, e.target.value),
+                        })
+                      }
+                      className="w-full px-3 py-2 rounded-xl border"
+                    />
+                  </div>
+                  <p className="text-[11px] mt-1 text-slate-500">
+                    শুরু ও শেষ (ঐচ্ছিক)।{newModule.sessionTime ? ` সংরক্ষিত হবে: ${newModule.sessionTime}` : ""}
+                  </p>
                 </div>
-              </div>
-
-              <div>
-                <label className="block font-bold mb-1">সেশন থিম কোট (Session Theme / Quote)</label>
-                <textarea
-                  value={newModule.themeQuote}
-                  onChange={(e) => setNewModule({ ...newModule, themeQuote: e.target.value })}
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-xl border italic"
-                  placeholder="পোস্টারের থিম উদ্ধৃতি..."
-                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold mb-1">ট্রেইনার নাম (Trainer Name)</label>
-                  <input
-                    type="text"
+                  <label className="block font-bold mb-1">ট্রেইনার নাম (ইনস্ট্রাক্টর তালিকা থেকে)</label>
+                  <select
                     value={newModule.trainerName}
-                    onChange={(e) => setNewModule({ ...newModule, trainerName: e.target.value })}
-                    placeholder="যেমন: Kazi Shakhawat Hossain"
+                    onChange={(e) => {
+                      const picked = instructors.find((i) => i.fullName === e.target.value);
+                      setNewModule({
+                        ...newModule,
+                        trainerName: e.target.value,
+                        // Fill the role from the instructor's designation; still editable below.
+                        trainerRole: picked?.designation || "",
+                      });
+                    }}
                     className="w-full font-bold px-3 py-2 rounded-xl border"
-                  />
+                  >
+                    <option value="">— ইনস্ট্রাক্টর নির্বাচন করুন —</option>
+                    {instructors.map((i) => (
+                      <option key={i._id} value={i.fullName}>
+                        {i.fullName}
+                        {i.designation ? ` (${i.designation})` : ""}
+                      </option>
+                    ))}
+                    {newModule.trainerName && !instructors.some((i) => i.fullName === newModule.trainerName) && (
+                      <option value={newModule.trainerName}>{newModule.trainerName} (তালিকায় নেই)</option>
+                    )}
+                  </select>
+                  {instructors.length === 0 && (
+                    <p className="text-[11px] mt-1 text-amber-600">
+                      সক্রিয় কোনো ইনস্ট্রাক্টর নেই। আগে ইনস্ট্রাক্টর যোগ করুন।
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block font-bold mb-1">ট্রেইনার পদবী (Trainer Role)</label>
@@ -1543,28 +1680,6 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                     className="w-full px-3 py-2 rounded-xl border"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block font-bold mb-1">ট্রেইনার শিক্ষাগত যোগ্যতা (Qualifications)</label>
-                <input
-                  type="text"
-                  value={newModule.trainerQualifications}
-                  onChange={(e) => setNewModule({ ...newModule, trainerQualifications: e.target.value })}
-                  placeholder="যেমন: BA (Hons) in Qur'anic Sciences (IIUC), MA (BIU)"
-                  className="w-full font-mono text-[11px] px-3 py-2 rounded-xl border"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold mb-1">টপিক কি-ওয়ার্ড (কমা দিয়ে আলাদা করুন)</label>
-                <input
-                  type="text"
-                  value={newModule.topics}
-                  onChange={(e) => setNewModule({ ...newModule, topics: e.target.value })}
-                  placeholder="Mindset, Pedagogy, Live Practice"
-                  className="w-full px-3 py-2 rounded-xl border"
-                />
               </div>
 
               <div className="pt-2 flex justify-end gap-2 border-t border-slate-200 dark:border-slate-800">
