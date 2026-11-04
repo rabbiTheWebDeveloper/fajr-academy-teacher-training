@@ -15,16 +15,16 @@ export default async function TOTLayout({ children }) {
   const role = session?.role || "";
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#051329] text-[#FDFBF7] font-sans selection:bg-[#C59B27] selection:text-slate-950 antialiased">
+    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans selection:bg-indigo-600 selection:text-white antialiased">
       {/* Background ambient lighting effects */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-[#081A3A]/40 blur-[130px]" />
-        <div className="absolute top-[20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-[#C59B27]/8 blur-[150px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-slate-900 blur-[130px]" />
+        <div className="absolute top-[20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-indigo-500/15 blur-[150px]" />
         <div className="absolute bottom-[-10%] left-[20%] w-[45vw] h-[45vw] rounded-full bg-emerald-900/10 blur-[140px]" />
       </div>
 
       {/* Top Header Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-[#051329]/90 backdrop-blur-xl border-b border-[#C59B27]/25 px-4 sm:px-6 lg:px-8 py-3.5 no-print shadow-2xl transition-all">
+      <header className="sticky top-0 z-40 bg-slate-950 backdrop-blur-xl border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-3.5 no-print shadow-2xl transition-all">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Brand Logo & Portal Title */}
           <div className="flex items-center gap-3">
@@ -33,14 +33,14 @@ export default async function TOTLayout({ children }) {
               <img
                 src="/fajr-logo.png"
                 alt="Fajr Academy"
-                className="w-10 h-10 rounded-2xl object-cover shadow-lg shadow-[#C59B27]/20 group-hover:scale-105 transition-all border border-[#C59B27]/40"
+                className="w-10 h-10 rounded-2xl object-cover shadow-lg shadow-indigo-900/20 group-hover:scale-105 transition-all border border-slate-800"
               />
               <div className="flex flex-col">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-black text-base sm:text-lg tracking-tight bg-gradient-to-r from-white via-[#FDFBF7] to-[#D4AF37] bg-clip-text text-transparent">
+                  <span className="font-black text-base sm:text-lg tracking-tight text-white">
                     FAJR ACADEMY
                   </span>
-                  <span className="hidden sm:inline-block text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#C59B27]/20 text-[#D4AF37] border border-[#C59B27]/30">
+                  <span className="hidden sm:inline-block text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-slate-800">
                     TOT TRAINEE
                   </span>
                 </div>
@@ -58,14 +58,14 @@ export default async function TOTLayout({ children }) {
           <div className="hidden sm:flex items-center gap-3">
             <Link
               href="/results"
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-[#C59B27]/15 text-[#D4AF37] border border-[#C59B27]/30 hover:bg-[#C59B27]/25 transition-all shadow-sm"
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-slate-800 hover:bg-indigo-500/15 transition-all shadow-sm"
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" /> ফলাফল ও সনদ
+              <Sparkles className="w-3.5 h-3.5 text-indigo-300" /> ফলাফল ও সনদ
             </Link>
 
             <Link
               href="/"
-              className="text-xs font-medium text-slate-400 hover:text-white transition-colors bg-[#081A3A] border border-[#C59B27]/30 px-3 py-1.5 rounded-full"
+              className="text-xs font-medium text-slate-400 hover:text-white transition-colors bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full"
             >
               হোমপেজ
             </Link>
@@ -81,11 +81,11 @@ export default async function TOTLayout({ children }) {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-[#C59B27]/30 bg-gradient-to-b from-[#030C19] via-[#051329] to-[#020813] py-10 px-4 text-center text-xs text-slate-400 no-print space-y-8 w-full mt-12 backdrop-blur-sm">
+      <footer className="relative z-10 border-t border-slate-800 bg-slate-950 py-10 px-4 text-center text-xs text-slate-400 no-print space-y-8 w-full mt-12 backdrop-blur-sm">
         {/* Integrated SSLCommerz Banner Card */}
-        <div className="max-w-4xl mx-auto bg-[#081A3A]/80 border border-[#C59B27]/35 rounded-3xl p-5 shadow-2xl backdrop-blur-xl flex flex-col items-center gap-4">
-          <div className="flex items-center justify-between w-full flex-wrap gap-2 pb-3 border-b border-[#C59B27]/20 text-[11px]">
-            <span className="font-extrabold text-[#D4AF37] tracking-wider uppercase flex items-center gap-1.5">
+        <div className="max-w-4xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl backdrop-blur-xl flex flex-col items-center gap-4">
+          <div className="flex items-center justify-between w-full flex-wrap gap-2 pb-3 border-b border-slate-800 text-[11px]">
+            <span className="font-extrabold text-indigo-300 tracking-wider uppercase flex items-center gap-1.5">
               🔒 OFFICIAL PAYMENT GATEWAY PARTNER
             </span>
             <span className="text-emerald-400 font-bold bg-emerald-500/15 border border-emerald-500/30 px-3 py-0.5 rounded-full text-[10px]">
@@ -123,14 +123,14 @@ export default async function TOTLayout({ children }) {
           <div className="flex flex-col sm:flex-row items-center gap-2">
             <p>© 2026 Fajr Academy — Training of Trainers (TOT) Program.</p>
             <span className="hidden sm:inline text-slate-600">•</span>
-            <span className="text-[#D4AF37] italic font-serif tracking-wide">
+            <span className="text-indigo-300 italic font-serif tracking-wide">
               Better Teachers, Brighter Generations
             </span>
           </div>
 
           <div className="flex items-center gap-4 text-slate-400">
-            <span className="flex items-center gap-1 text-[#D4AF37]">
-              <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" /> Authorized Teacher Certification
+            <span className="flex items-center gap-1 text-indigo-300">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-300" /> Authorized Teacher Certification
             </span>
             <span>•</span>
             <a

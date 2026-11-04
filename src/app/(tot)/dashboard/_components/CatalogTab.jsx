@@ -18,11 +18,11 @@ export default function CatalogTab({ catalog = [], catalogError = false, enrolle
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-black text-white flex items-center gap-2">
-            <GraduationCap className="w-6 h-6 text-[#F59E0B]" /> ফজর একাডেমি কোর্স ক্যাটালগ ও ভর্তি পোর্টাল
+            <GraduationCap className="w-6 h-6 text-amber-400" /> ফজর একাডেমি কোর্স ক্যাটালগ ও ভর্তি পোর্টাল
           </h2>
           <p className="text-xs text-slate-300 mt-1">আপনার সক্রিয় কোর্সসমূহ দেখুন অথবা নতুন ব্যাচে সরাসরি ভর্তি হোন।</p>
         </div>
-        <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-[#081A3A] text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+        <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-slate-900 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
           <ShieldCheck className="w-4 h-4" /> SSLCommerz ভেরিফাইড কোর্স পেমেন্ট
         </span>
       </div>
@@ -35,7 +35,7 @@ export default function CatalogTab({ catalog = [], catalogError = false, enrolle
       )}
 
       {list.length === 0 && !catalogError && (
-        <div className="p-8 rounded-2xl bg-[#081A3A]/70 border border-[#C59B27]/20 text-center text-xs text-slate-400">
+        <div className="p-8 rounded-2xl bg-slate-900 border border-slate-800 text-center text-xs text-slate-400">
           এই মুহূর্তে কোনো কোর্সে ভর্তি চলছে না।
         </div>
       )}
@@ -53,13 +53,13 @@ export default function CatalogTab({ catalog = [], catalogError = false, enrolle
               key={course.courseId}
               className={`relative rounded-3xl p-6 border shadow-2xl transition-all flex flex-col justify-between ${
                 enrolled
-                  ? "bg-gradient-to-br from-[#061B3B] to-[#08224D] border-[#C59B27]/50 shadow-[#C59B27]/10"
-                  : "bg-[#071328]/90 border-slate-700/60 hover:border-amber-500/50"
+                  ? "bg-slate-900 border-indigo-500/40 shadow-indigo-900/20"
+                  : "bg-slate-900 border-slate-700/60 hover:border-amber-500/50"
               }`}
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-[#D4AF37] border border-[#C59B27]/30">
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-indigo-300 border border-slate-800">
                     {course.tag || course.courseId}
                   </span>
                   {enrolled ? (
@@ -82,7 +82,7 @@ export default function CatalogTab({ catalog = [], catalogError = false, enrolle
                   {course.summary && <p className="text-xs text-slate-300 mt-1 leading-relaxed">{course.summary}</p>}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 bg-[#030c1d]/60 p-3.5 rounded-2xl border border-slate-800 text-xs">
+                <div className="grid grid-cols-2 gap-3 bg-slate-950 p-3.5 rounded-2xl border border-slate-800 text-xs">
                   <div>
                     <span className="text-slate-400 block text-[11px]">ওরিয়েন্টেশন তারিখ:</span>
                     <strong className="text-slate-200">{course.orientationDate || "ঘোষণা করা হবে"}</strong>
@@ -102,7 +102,7 @@ export default function CatalogTab({ catalog = [], catalogError = false, enrolle
                     ইন্সট্রাক্টর: <strong className="text-white">{course.instructor || "ঘোষণা করা হবে"}</strong>
                   </span>
                   {hasFee && (
-                    <span className="text-sm font-black text-[#FACC15]">
+                    <span className="text-sm font-black text-indigo-300">
                       {Number(course.regularFee) > Number(course.fee) && (
                         <span className="text-xs text-slate-500 line-through mr-1.5 font-semibold">
                           {formatAmount(course.regularFee, course.currency)}
@@ -142,7 +142,7 @@ export default function CatalogTab({ catalog = [], catalogError = false, enrolle
                 ) : (
                   <Link
                     href={checkoutHref(course.courseId)}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 active:scale-[0.99] text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all"
+                    className="w-full py-3 rounded-xl bg-slate-900 hover:brightness-110 active:scale-[0.99] text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all"
                   >
                     <CreditCard className="w-4 h-4 stroke-[2.5]" />
                     {pending ? "পেমেন্ট সম্পন্ন করুন" : "কোর্সটি কিনুন"}

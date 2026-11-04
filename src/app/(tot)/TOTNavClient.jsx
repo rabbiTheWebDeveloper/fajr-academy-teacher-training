@@ -21,7 +21,7 @@ import TOTLogoutButton from "@/components/TOTLogoutButton";
 // Staff who open the trainee pages get a shortcut back to their own panel; trainees don't.
 const STAFF_PANEL = {
   admin: { href: "/admin", label: "অ্যাডমিন প্যানেল" },
-  "super-admin": { href: "/admin", label: "অ্যাডমিন প্যানেল" },
+"super-admin": { href: "/admin", label: "অ্যাডমিন প্যানেল" },
   instructor: { href: "/instructor", label: "ইনস্ট্রাক্টর প্যানেল" },
 };
 
@@ -68,7 +68,7 @@ export default function TOTNavClient({ role = "" }) {
   return (
     <>
       {/* Desktop Navigation Links */}
-      <nav className="hidden xl:flex items-center gap-1 bg-[#051329]/90 p-1.5 rounded-full border border-[#C59B27]/30 shadow-inner">
+      <nav className="hidden xl:flex items-center gap-1 bg-slate-950 p-1.5 rounded-full border border-slate-800 shadow-inner">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item);
@@ -78,11 +78,11 @@ export default function TOTNavClient({ role = "" }) {
               href={item.href}
               className={`relative px-3.5 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all ${
                 active
-                  ? "bg-gradient-to-r from-[#C59B27] via-[#D4AF37] to-[#B8860B] text-[#051329] font-black shadow-md shadow-[#C59B27]/25 border border-[#FDFBF7]/40"
-                  : "text-slate-300 hover:text-[#D4AF37] hover:bg-[#0B2545]/60"
+                  ? "bg-indigo-600 text-white font-black shadow-md shadow-indigo-900/20 border "
+                  : "text-slate-300 hover:text-indigo-300 hover:bg-slate-800"
               }`}
             >
-              <Icon className={`w-3.5 h-3.5 ${active ? "text-[#051329]" : "text-[#D4AF37]"}`} />
+              <Icon className={`w-3.5 h-3.5 ${active ? "text-white" : "text-indigo-300"}`} />
               <span>{item.label}</span>
               {item.badge && (
                 <span className="ml-1 text-[9px] font-black px-1.5 py-0.2 rounded-full bg-rose-500 text-white animate-pulse">
@@ -105,7 +105,7 @@ export default function TOTNavClient({ role = "" }) {
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
-          className="p-2 rounded-xl bg-[#051329] text-[#D4AF37] hover:text-white border border-[#C59B27]/40 transition-colors"
+          className="p-2 rounded-xl bg-slate-950 text-indigo-300 hover:text-white border border-slate-800 transition-colors"
         >
           {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -121,21 +121,21 @@ export default function TOTNavClient({ role = "" }) {
           />
 
           {/* Drawer Panel */}
-          <div className="fixed top-0 right-0 bottom-0 w-4/5 max-w-sm bg-[#040C1A] border-l border-[#C59B27]/30 p-6 flex flex-col justify-between shadow-2xl z-10 overflow-y-auto">
+          <div className="fixed top-0 right-0 bottom-0 w-4/5 max-w-sm bg-slate-950 border-l border-slate-800 p-6 flex flex-col justify-between shadow-2xl z-10 overflow-y-auto">
             <div className="space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-[#C59B27]/20">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#C59B27] to-[#D4AF37] text-[#051329] font-black flex items-center justify-center text-sm shadow-md">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-md">
                     F
                   </div>
                   <div>
                     <h3 className="font-extrabold text-sm text-white">FAJR TOT PORTAL</h3>
-                    <p className="text-[10px] text-[#D4AF37] font-semibold">Trainee Teacher Hub</p>
+                    <p className="text-[10px] text-indigo-300 font-semibold">Trainee Teacher Hub</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-[#081A3A] border border-slate-800"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-900 border border-slate-800"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -153,12 +153,12 @@ export default function TOTNavClient({ role = "" }) {
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-bold transition-all ${
                         active
-                          ? "bg-gradient-to-r from-[#C59B27] via-[#D4AF37] to-[#B8860B] text-[#051329] shadow-lg shadow-[#C59B27]/20"
-                          : "text-slate-300 hover:bg-[#081A3A] hover:text-white"
+                          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/20"
+                          : "text-slate-300 hover:bg-slate-900 hover:text-white"
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <Icon className={`w-4 h-4 ${active ? "text-[#051329]" : "text-[#D4AF37]"}`} />
+                        <Icon className={`w-4 h-4 ${active ? "text-white" : "text-indigo-300"}`} />
                         <span>{item.label}</span>
                       </div>
                       <ChevronRight className="w-3.5 h-3.5 opacity-60" />
@@ -174,13 +174,13 @@ export default function TOTNavClient({ role = "" }) {
                 <Link
                   href={staffPanel.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#081A3A] border border-[#C59B27]/30 text-[#D4AF37] text-xs font-semibold flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-900 border border-slate-800 text-indigo-300 text-xs font-semibold flex items-center justify-center gap-2"
                 >
                   {staffPanel.label} <ExternalLink className="w-3.5 h-3.5" />
                 </Link>
               )}
               <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500">
-                <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" /> Better Teachers, Brighter Generations
+                <Sparkles className="w-3.5 h-3.5 text-indigo-300" /> Better Teachers, Brighter Generations
               </div>
               <TOTLogoutButton variant="header" />
             </div>

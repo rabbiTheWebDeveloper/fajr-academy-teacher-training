@@ -6,7 +6,7 @@ import { Sparkles, AlertCircle, Loader2, X } from "lucide-react";
 import { BLOOD_GROUPS, QURAN_SKILLS, ENGLISH_SKILLS, fromBnDigits } from "../../_shared/format";
 
 const inputCls =
-  "w-full bg-[#051329] border border-[#C59B27]/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-[#D4AF37] disabled:opacity-60";
+"w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500 disabled:opacity-60";
 
 /** 01XXXXXXXXX from "+880 1X…", "8801X…", Bengali digits, spaces or dashes. */
 function normalizePhone(value) {
@@ -102,10 +102,10 @@ export default function ProfileModal({ user, onClose, onSaved }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
       <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={close} />
 
-      <div className="relative z-10 w-full max-w-lg bg-[#081A3A] border border-[#C59B27]/40 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between pb-3 border-b border-[#C59B27]/20">
+      <div className="relative z-10 w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+            <Sparkles className="w-4 h-4 text-indigo-300" />
             <h3 id="profile-modal-title" className="text-base font-bold text-white">
               টিচার প্রোফাইল তথ্য আপডেট
             </h3>
@@ -178,7 +178,7 @@ export default function ProfileModal({ user, onClose, onSaved }) {
                       checked={form.hasLaptop === o.value}
                       onChange={update("hasLaptop")}
                       disabled={saving}
-                      className="accent-[#D4AF37]"
+                      className="accent-indigo-500"
                     />
                     <span>{o.label}</span>
                   </label>
@@ -268,7 +268,7 @@ export default function ProfileModal({ user, onClose, onSaved }) {
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#C59B27] via-[#D4AF37] to-[#B8860B] text-[#051329] font-black shadow-md transition-all disabled:opacity-70 flex items-center gap-2"
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-black shadow-md transition-all disabled:opacity-70 flex items-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {saving ? "সংরক্ষণ হচ্ছে..." : "প্রোফাইল সেভ করুন"}

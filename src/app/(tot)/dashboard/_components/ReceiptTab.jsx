@@ -14,31 +14,31 @@ export default function ReceiptTab({ payments = [], user }) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-[#D4AF37]" /> অফিসিয়াল পেমেন্ট রিসিপ্ট ও হিস্টোরি
+            <Receipt className="w-5 h-5 text-indigo-300" /> অফিসিয়াল পেমেন্ট রিসিপ্ট ও হিস্টোরি
           </h2>
           <p className="text-xs text-slate-400 mt-1">আপনার কোর্স ফি, ট্রানজেকশনের বিবরণ ও প্রকৃত পেমেন্ট স্ট্যাটাস</p>
         </div>
         <Link
           href="/payments"
-          className="px-4 py-2 rounded-xl bg-[#081A3A] hover:bg-[#0B2545] text-[#D4AF37] font-bold text-xs border border-[#C59B27]/40 flex items-center gap-1.5 transition-all shadow-sm"
+          className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-300 font-bold text-xs border border-slate-800 flex items-center gap-1.5 transition-all shadow-sm"
         >
           <ExternalLink className="w-3.5 h-3.5" /> ফুল পেমেন্ট পেজ খুলুন
         </Link>
       </div>
 
       {payments.length === 0 ? (
-        <div className="p-8 rounded-3xl bg-[#051329] border border-[#C59B27]/25 text-center text-xs text-slate-400 space-y-1">
+        <div className="p-8 rounded-3xl bg-slate-950 border border-slate-800 text-center text-xs text-slate-400 space-y-1">
           <CreditCard className="w-8 h-8 text-slate-600 mx-auto" />
           <p>আপনার অ্যাকাউন্টে এখনো কোনো পেমেন্ট রেকর্ড নেই।</p>
         </div>
       ) : (
-        <div className="bg-[#051329] border border-[#C59B27]/30 rounded-3xl p-5 shadow-xl space-y-3">
-          <h3 className="text-xs font-bold text-[#D4AF37] uppercase tracking-wider flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-[#D4AF37]" /> ট্রানজেকশন রেকর্ড তালিকা
+        <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
+          <h3 className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-indigo-300" /> ট্রানজেকশন রেকর্ড তালিকা
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-[#081A3A] text-[10px] uppercase text-[#D4AF37] border-b border-[#C59B27]/20">
+              <thead className="bg-slate-900 text-[10px] uppercase text-indigo-300 border-b border-slate-800">
                 <tr>
                   <th className="py-2.5 px-4">ট্রানজেকশন আইডি</th>
                   <th className="py-2.5 px-4">বিবরণ</th>
@@ -47,11 +47,11 @@ export default function ReceiptTab({ payments = [], user }) {
                   <th className="py-2.5 px-4">স্ট্যাটাস</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#C59B27]/15">
+              <tbody className="divide-y divide-slate-800">
                 {payments.map((p) => (
-                  <tr key={p._id || p.tranId} className="hover:bg-[#0B2545]/40">
+                  <tr key={p._id || p.tranId} className="hover:bg-slate-800">
                     <td className="py-3 px-4">
-                      <div className="font-mono font-bold text-[#D4AF37]">{p.tranId}</div>
+                      <div className="font-mono font-bold text-indigo-300">{p.tranId}</div>
                       <div className="text-[10px] text-slate-500">{formatDate(p.createdAt, { time: true })}</div>
                     </td>
                     <td className="py-3 px-4">
@@ -59,7 +59,7 @@ export default function ReceiptTab({ payments = [], user }) {
                       {p.courseName && <div className="text-[10px] text-slate-500">{p.courseName}</div>}
                     </td>
                     <td className="py-3 px-4 text-slate-300">{paymentMethodText(p)}</td>
-                    <td className="py-3 px-4 font-bold text-[#D4AF37] whitespace-nowrap">{formatAmount(p.amount, p.currency)}</td>
+                    <td className="py-3 px-4 font-bold text-indigo-300 whitespace-nowrap">{formatAmount(p.amount, p.currency)}</td>
                     <td className="py-3 px-4">
                       <PaymentStatusBadge status={p.status} />
                     </td>
@@ -72,13 +72,13 @@ export default function ReceiptTab({ payments = [], user }) {
       )}
 
       {latestValid ? (
-        <div className="max-w-2xl mx-auto bg-[#051329] border-2 border-[#C59B27]/35 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-          <div className="flex items-center justify-between border-b border-[#C59B27]/25 pb-4 gap-3">
+        <div className="max-w-2xl mx-auto bg-slate-950 border-2 border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-4 gap-3">
             <div className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/fajr-logo.png" alt="Fajr Academy" className="w-10 h-10 rounded-xl object-cover border border-[#C59B27]/40" />
+              <img src="/fajr-logo.png" alt="Fajr Academy" className="w-10 h-10 rounded-xl object-cover border border-slate-800" />
               <div>
-                <span className="text-[10px] uppercase font-extrabold text-[#D4AF37] tracking-wider">FAJR ACADEMY INVOICE</span>
+                <span className="text-[10px] uppercase font-extrabold text-indigo-300 tracking-wider">FAJR ACADEMY INVOICE</span>
                 <h3 className="text-lg font-black text-white mt-0.5">টাকা প্রাপ্তি রসিদ (সর্বশেষ)</h3>
               </div>
             </div>
@@ -96,7 +96,7 @@ export default function ReceiptTab({ payments = [], user }) {
             </div>
             <div>
               <p className="text-slate-400">ট্রানজেকশন আইডি:</p>
-              <p className="font-mono font-bold text-[#D4AF37] mt-0.5 break-all">{latestValid.tranId}</p>
+              <p className="font-mono font-bold text-indigo-300 mt-0.5 break-all">{latestValid.tranId}</p>
             </div>
             <div>
               <p className="text-slate-400">পেমেন্ট মেথড:</p>
@@ -108,7 +108,7 @@ export default function ReceiptTab({ payments = [], user }) {
             </div>
           </div>
 
-          <div className="bg-[#081A3A] p-4 rounded-2xl border border-[#C59B27]/25 space-y-2 text-xs">
+          <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
             <div className="flex justify-between gap-3 text-slate-300">
               <span>
                 {PAYMENT_PURPOSE[latestValid.purpose] || "কোর্স ফি"}
@@ -116,16 +116,16 @@ export default function ReceiptTab({ payments = [], user }) {
               </span>
               <span className="whitespace-nowrap">{formatAmount(latestValid.amount, latestValid.currency)}</span>
             </div>
-            <div className="border-t border-[#C59B27]/20 pt-2 flex justify-between font-bold text-white text-sm">
+            <div className="border-t border-slate-800 pt-2 flex justify-between font-bold text-white text-sm">
               <span>মোট পরিশোধিত:</span>
-              <span className="text-[#D4AF37]">{formatAmount(latestValid.amount, latestValid.currency)}</span>
+              <span className="text-indigo-300">{formatAmount(latestValid.amount, latestValid.currency)}</span>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
             <Link
               href={`/payments?invoice=${encodeURIComponent(latestValid.tranId)}`}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#C59B27] via-[#D4AF37] to-[#B8860B] hover:from-[#D4AF37] hover:to-[#C59B27] text-[#051329] font-black text-xs flex items-center gap-2 shadow-lg shadow-[#C59B27]/20 transition-all border border-[#FDFBF7]/30"
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-indigo-900/20 transition-all border "
             >
               <Printer className="w-4 h-4" /> পূর্ণ ইনভয়েস দেখুন / প্রিন্ট করুন
             </Link>
@@ -133,8 +133,8 @@ export default function ReceiptTab({ payments = [], user }) {
         </div>
       ) : (
         payments.length > 0 && (
-          <div className="p-4 rounded-2xl bg-[#081A3A]/70 border border-slate-700/60 text-xs text-slate-300 flex items-center gap-2">
-            <Info className="w-4 h-4 text-[#D4AF37] shrink-0" />
+          <div className="p-4 rounded-2xl bg-slate-900 border border-slate-700/60 text-xs text-slate-300 flex items-center gap-2">
+            <Info className="w-4 h-4 text-indigo-300 shrink-0" />
             কোনো সফল (VALID) পেমেন্ট না থাকায় এখনো টাকা প্রাপ্তির রসিদ তৈরি হয়নি।
           </div>
         )
