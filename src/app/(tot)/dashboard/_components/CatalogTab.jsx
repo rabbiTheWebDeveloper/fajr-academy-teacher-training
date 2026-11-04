@@ -8,7 +8,14 @@ import { checkoutHref, formatAmount, usableLink } from "../../_shared/format";
  * Course catalogue. "Enrolled" is decided by the trainee's own enrolments only; the
  * buy button (→ /payment/ssl-checkout?course=…) appears only for courses they don't have.
  */
-export default function CatalogTab({ catalog = [], catalogError = false, enrolledCourses = [], pendingIds = [], onOpenCourse }) {
+export default function CatalogTab({
+  catalog = [],
+  catalogError = false,
+  enrolledCourses = [],
+  pendingIds = [],
+  onOpenCourse,
+  onOpenDetails,
+}) {
   const enrolledById = Object.fromEntries(enrolledCourses.map((c) => [c.courseId, c]));
   // Enrolled courses that are not (or no longer) in the public catalogue are still listed.
   const list = [...catalog, ...enrolledCourses.filter((c) => !catalog.some((k) => k.courseId === c.courseId))];
@@ -117,12 +124,21 @@ export default function CatalogTab({ catalog = [], catalogError = false, enrolle
               <div className="pt-5 mt-4 border-t border-slate-800/80">
                 {enrolled ? (
                   <div className="flex items-center gap-3">
+                    {onOpenDetails && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenDetails(course.courseId)}
+                        className="flex-1 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        কোর্সের বিস্তারিত
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => onOpenCourse(course.courseId)}
-                      className="flex-1 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                      className="flex-1 py-2.5 rounded-lg border border-slate-700 hover:border-slate-600 text-slate-200 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors"
                     >
-                      <Video className="w-4 h-4" /> লাইভ ক্লাস হাবে যান
+                      <Video className="w-4 h-4" /> লাইভ ক্লাস
                     </button>
                     {whatsapp && (
                       <a

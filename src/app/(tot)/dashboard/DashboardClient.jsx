@@ -8,7 +8,6 @@ import {
   Layers,
   Receipt,
   GraduationCap,
-  FileText,
   CheckCircle2,
   AlertCircle,
   AlertTriangle,
@@ -18,7 +17,6 @@ import {
 } from "lucide-react";
 import TOTLogoutButton from "@/components/TOTLogoutButton";
 import PaymentRequiredCard, { latestUnpaidAttempt } from "../_shared/PaymentRequiredCard";
-import MaterialCard from "../_shared/MaterialCard";
 import NoticeList from "../_shared/NoticeList";
 import {
   evalStatusInfo,
@@ -31,28 +29,16 @@ import {
 } from "../_shared/format";
 import ProfileModal from "./_components/ProfileModal";
 import OverviewTab from "./_components/OverviewTab";
-import CurriculumTab from "./_components/CurriculumTab";
+import MyCoursesTab from "./_components/MyCoursesTab";
 import CatalogTab from "./_components/CatalogTab";
 import ReceiptTab from "./_components/ReceiptTab";
 
 const TABS = [
+  { id: "mycourses", label: "আমার কোর্স", icon: BookOpen },
   { id: "overview", label: "লাইভ সেশন", icon: Layers },
-  { id: "courses", label: "কোর্সসমূহ", icon: GraduationCap },
-  { id: "curriculum", label: "কারিকুলাম", icon: BookOpen },
-  { id: "materials", label: "স্টাডি শিট", icon: FileText },
+  { id: "courses", label: "কোর্স ক্যাটালগ", icon: GraduationCap },
   { id: "receipt", label: "ইনভয়েস", icon: Receipt },
 ];
-
-const MATERIALS_PREVIEW = 6;
-
-function SectionTitle({ children, action }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-base font-semibold text-white sm:text-lg">{children}</h2>
-      {action}
-    </div>
-  );
-}
 
 export default function DashboardClient({
   user: initialUser,
@@ -70,7 +56,8 @@ export default function DashboardClient({
 }) {
   const router = useRouter();
   const [user, setUser] = useState(initialUser);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("mycourses");
+  const [detailId, setDetailId] = useState(null); // course open in "আমার কোর্স" (null = list)
   const [courseIndex, setCourseIndex] = useState(0);
   const [profileOpen, setProfileOpen] = useState(false);
   const [toast, setToast] = useState(null);
@@ -97,6 +84,12 @@ export default function DashboardClient({
     const index = courses.findIndex((c) => c.courseId === courseId);
     if (index >= 0) setCourseIndex(index);
     setActiveTab("overview");
+  };
+
+  // Jump to one purchased course's details (links, modules, resources).
+  const openDetails = (courseId) => {
+    setDetailId(courseId);
+    setActiveTab("mycourses");
   };
 
   const dismissFlash = () => {
@@ -269,58 +262,26 @@ export default function DashboardClient({
           ) : (
             <>
               {courseSelector}
-              <OverviewTab key={course.courseId} course={course} participant={participant} />
+              <OverviewTab key={course.courseId} course={course} participant={participant} onOpenDetails={() => openDetails(course.courseId)} />
             </>
           )}
         </div>
       )}
 
-      {/* Curriculum */}
-      {activeTab === "curriculum" && (
-        <div className="space-y-4">
-          {!paid ? (
-            <PaymentRequiredCard courseId={primaryCourseId} lastAttempt={lastAttempt} compact />
-          ) : !course ? (
-            noCourseNotice
-          ) : (
-            <>
-              {courseSelector}
-              <CurriculumTab key={course.courseId} course={course} />
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Materials */}
-      {activeTab === "materials" && (
-        <div className="space-y-4">
-          <SectionTitle
-            action={
-              paid && materials.length > 0 ? (
-                <Link href="/materials" className="text-xs font-medium text-indigo-400 hover:text-indigo-300">
-                  সব দেখুন ({toBn(materials.length)}) →
-                </Link>
-              ) : null
-            }
-          >
-            স্টাডি শিট ও সহায়ক বই
-          </SectionTitle>
-
-          {!paid ? (
-            <PaymentRequiredCard courseId={primaryCourseId} lastAttempt={lastAttempt} compact />
-          ) : materials.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 p-10 text-center text-sm text-slate-400">
-              <BookOpen className="h-7 w-7 text-slate-600" />
-              <p>এখনো কোনো স্টাডি ম্যাটেরিয়াল প্রকাশ করা হয়নি।</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {materials.slice(0, MATERIALS_PREVIEW).map((item) => (
-                <MaterialCard key={item.key} item={item} showCourse={courses.length > 1} />
-              ))}
-            </div>
-          )}
-        </div>
+      {/* My courses: purchased courses → details, links, modules, resources */}
+      {activeTab === "mycourses" && (
+        <MyCoursesTab
+          paid={paid}
+          courses={courses}
+          participants={participants}
+          materials={materials}
+          payments={payments}
+          primaryCourseId={primaryCourseId}
+          lastAttempt={lastAttempt}
+          openId={detailId}
+          onOpen={setDetailId}
+          onBrowse={() => setActiveTab("courses")}
+        />
       )}
 
       {/* Receipts */}
@@ -334,6 +295,7 @@ export default function DashboardClient({
           enrolledCourses={courses}
           pendingIds={pendingIds}
           onOpenCourse={openCourse}
+          onOpenDetails={openDetails}
         />
       )}
 

@@ -3,7 +3,7 @@ import { CreditCard, Lock, Clock } from "lucide-react";
 import { checkoutHref, formatAmount, formatDate, paymentStatusInfo, TONE_BADGE } from "./format";
 
 /**
- * Shown instead of class links / materials / ID card while the trainee has not paid.
+ * Shown instead of class links / modules / materials while the trainee has not paid.
  * `lastAttempt` is the trainee's most recent non-VALID payment (if any).
  */
 export default function PaymentRequiredCard({ courseId, lastAttempt = null, compact = false }) {
@@ -12,9 +12,7 @@ export default function PaymentRequiredCard({ courseId, lastAttempt = null, comp
 
   return (
     <div
-      className={`rounded-3xl bg-gradient-to-br from-[#051329] via-[#081A3A] to-[#0B2545] border-2 border-amber-500/40 shadow-2xl ${
-        compact ? "p-5" : "p-6 sm:p-8"
-      } space-y-4`}
+      className={`rounded-xl border border-amber-500/30 bg-slate-900 ${compact ? "p-5" : "p-6 sm:p-7"} space-y-4`}
     >
       <div className="flex items-start gap-3.5">
         <div className="p-2.5 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-300 shrink-0">
@@ -27,15 +25,15 @@ export default function PaymentRequiredCard({ courseId, lastAttempt = null, comp
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
             {pending
               ? "পেমেন্ট গেটওয়ে থেকে নিশ্চিতকরণ এলে আপনার অ্যাক্সেস স্বয়ংক্রিয়ভাবে সক্রিয় হবে। কয়েক মিনিট পর পেজটি রিফ্রেশ করুন। টাকা কেটে গেলেও অ্যাক্সেস না পেলে হেল্পলাইনে ট্রানজেকশন আইডিসহ যোগাযোগ করুন।"
-              : "পেমেন্ট সম্পন্ন হলে লাইভ ক্লাসের লিংক, হোয়াটসঅ্যাপ গ্রুপ, স্টাডি ম্যাটেরিয়াল ও ডিজিটাল আইডি কার্ড সক্রিয় হবে।"}
+              : "পেমেন্ট সম্পন্ন হলে লাইভ ক্লাসের লিংক, হোয়াটসঅ্যাপ গ্রুপ ও স্টাডি ম্যাটেরিয়াল সক্রিয় হবে।"}
           </p>
         </div>
       </div>
 
       {lastAttempt && (
-        <div className="bg-[#051329]/80 border border-slate-700/60 rounded-2xl p-3.5 text-xs text-slate-300 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <div className="bg-slate-950 border border-slate-800 rounded-lg p-3.5 text-xs text-slate-300 flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <span className="text-slate-400">সর্বশেষ পেমেন্ট চেষ্টা:</span>
-          <span className="font-mono font-bold text-[#D4AF37]">{lastAttempt.tranId}</span>
+          <span className="font-mono font-semibold text-white">{lastAttempt.tranId}</span>
           <span>{formatAmount(lastAttempt.amount, lastAttempt.currency)}</span>
           <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${TONE_BADGE[info.tone]}`}>
             {info.en} • {info.label}
@@ -47,11 +45,11 @@ export default function PaymentRequiredCard({ courseId, lastAttempt = null, comp
       <div className="flex flex-wrap items-center gap-3">
         <Link
           href={checkoutHref(courseId)}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 transition-all"
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors"
         >
           <CreditCard className="w-4 h-4" /> {pending ? "আবার পেমেন্ট করুন" : "পেমেন্ট সম্পন্ন করুন"} →
         </Link>
-        <Link href="/payments" className="text-xs font-bold text-slate-300 hover:text-[#D4AF37]">
+        <Link href="/payments" className="text-xs font-medium text-slate-400 hover:text-white">
           পেমেন্ট হিস্টোরি দেখুন
         </Link>
       </div>

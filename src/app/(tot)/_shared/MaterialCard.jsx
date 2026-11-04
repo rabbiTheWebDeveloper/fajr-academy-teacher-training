@@ -7,57 +7,55 @@ export default function MaterialCard({ item, showCourse = false }) {
   const downloadable = item.isDownloadable !== false;
 
   return (
-    <div className="bg-gradient-to-br from-[#051329] via-[#081A3A] to-[#0B2545] border border-[#C59B27]/30 rounded-3xl p-5 sm:p-6 flex flex-col justify-between gap-5 hover:border-[#C59B27]/70 transition-all shadow-xl group">
+    <div className="flex flex-col justify-between gap-4 rounded-xl border border-slate-800 bg-slate-900 p-5 transition-colors hover:border-slate-700">
       <div className="space-y-2.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#081A3A] text-[#D4AF37] border border-[#C59B27]/30 truncate">
+          <span className="truncate rounded-md bg-slate-800 px-2 py-0.5 text-[11px] text-slate-300">
             {item.category || "স্টাডি ম্যাটেরিয়াল"}
           </span>
           {(item.format || item.size) && (
-            <span className="text-[11px] font-mono text-slate-400 whitespace-nowrap">
-              {[item.format, item.size].filter(Boolean).join(" • ")}
-            </span>
+            <span className="whitespace-nowrap text-[11px] text-slate-500">{[item.format, item.size].filter(Boolean).join(" · ")}</span>
           )}
         </div>
 
-        <h3 className="text-sm font-bold text-white leading-snug group-hover:text-[#D4AF37] transition-colors flex items-start gap-2">
-          <FileText className="w-4 h-4 text-[#D4AF37] shrink-0 mt-0.5" />
+        <h3 className="flex items-start gap-2 text-sm font-semibold leading-snug text-white">
+          <FileText className="mt-0.5 h-4 w-4 shrink-0 text-indigo-400" />
           <span>{item.title}</span>
         </h3>
-        {item.desc && <p className="text-xs text-slate-300 leading-relaxed line-clamp-3">{item.desc}</p>}
+        {item.desc && <p className="line-clamp-3 text-xs leading-relaxed text-slate-400">{item.desc}</p>}
         {showCourse && item.courseName && <p className="text-[11px] text-slate-500">কোর্স: {item.courseName}</p>}
       </div>
 
-      <div className="pt-4 border-t border-[#C59B27]/20 flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 border-t border-slate-800 pt-3">
         {!url ? (
           <>
-            <span className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
-              <Link2Off className="w-3.5 h-3.5" /> ফাইলের লিংক এখনো যুক্ত করা হয়নি
+            <span className="flex items-center gap-1 text-[11px] text-slate-500">
+              <Link2Off className="h-3.5 w-3.5" /> ফাইলের লিংক এখনো যুক্ত করা হয়নি
             </span>
-            <span className="px-3 py-1.5 rounded-xl bg-slate-800/70 text-slate-500 text-xs font-bold cursor-not-allowed">অনুপলব্ধ</span>
+            <span className="cursor-not-allowed rounded-lg bg-slate-800 px-3 py-1.5 text-xs text-slate-500">অনুপলব্ধ</span>
           </>
         ) : downloadable ? (
           <>
-            <span className="text-[11px] text-emerald-400 font-semibold">ডাউনলোডযোগ্য</span>
+            <span className="text-[11px] text-emerald-400">ডাউনলোডযোগ্য</span>
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#C59B27] via-[#D4AF37] to-[#B8860B] hover:from-[#D4AF37] hover:to-[#C59B27] text-[#051329] font-black text-xs flex items-center gap-1.5 transition-all shadow border border-[#FDFBF7]/30"
+              className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-500"
             >
-              <Download className="w-3.5 h-3.5" /> ডাউনলোড
+              <Download className="h-3.5 w-3.5" /> ডাউনলোড
             </a>
           </>
         ) : (
           <>
-            <span className="text-[11px] text-amber-300 font-semibold">শুধু দেখা যাবে</span>
+            <span className="text-[11px] text-amber-300">শুধু দেখা যাবে</span>
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2 rounded-xl bg-[#081A3A] hover:bg-[#0B2545] text-[#D4AF37] font-bold text-xs flex items-center gap-1.5 transition-all border border-[#C59B27]/40"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-700 px-3.5 py-1.5 text-xs font-medium text-slate-200 transition-colors hover:border-slate-600 hover:text-white"
             >
-              <Eye className="w-3.5 h-3.5" /> অনলাইনে দেখুন
+              <Eye className="h-3.5 w-3.5" /> অনলাইনে দেখুন
             </a>
           </>
         )}

@@ -68,10 +68,10 @@ export default function SessionCountdown({ course }) {
         {parts.map((p) => (
           <div
             key={p.label}
-            className="bg-[#081A3A] border border-[#C59B27]/30 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl min-w-[55px] sm:min-w-[65px]"
+            className="min-w-[55px] rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 sm:min-w-[65px] sm:px-4 sm:py-2.5"
           >
-            <div className="text-lg sm:text-xl font-black text-[#D4AF37] font-mono">{toBn(String(p.value).padStart(2, "0"))}</div>
-            <div className="text-[9px] uppercase font-bold text-slate-400 mt-0.5">{p.label}</div>
+            <div className="font-mono text-lg font-bold text-white sm:text-xl">{toBn(String(p.value).padStart(2, "0"))}</div>
+            <div className="mt-0.5 text-[10px] text-slate-400">{p.label}</div>
           </div>
         ))}
       </div>
@@ -82,11 +82,11 @@ export default function SessionCountdown({ course }) {
 function Shell({ icon: Icon, label, live = false, children }) {
   return (
     <div
-      className={`bg-[#051329]/90 border p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 ${
-        live ? "border-rose-500/40" : "border-[#C59B27]/25"
+      className={`flex flex-col items-center justify-between gap-4 rounded-xl border bg-slate-950/60 p-4 sm:flex-row sm:p-5 ${
+        live ? "border-rose-500/40" : "border-slate-800"
       }`}
     >
-      <div className={`text-xs font-bold flex items-center gap-1.5 ${live ? "text-rose-300" : "text-[#D4AF37]"}`}>
+      <div className={`flex items-center gap-1.5 text-xs font-medium ${live ? "text-rose-300" : "text-slate-300"}`}>
         <Icon className={`w-4 h-4 ${live ? "animate-pulse" : ""}`} /> {label}
       </div>
       {children}

@@ -81,6 +81,11 @@ export function classView(course, paid) {
     routine: course.routine,
     duration: course.duration,
     instructor: course.instructor,
+    summary: course.summary || "",
+    perks: course.perks || [],
+    status: course.status || "",
+    currency: course.currency || "BDT",
+    videoUrl: course.videoUrl || "",
     meetLink: paid ? course.meetLink || "" : "",
     whatsappLink: paid ? course.whatsappLink || "" : "",
     curriculum: (course.curriculum || []).map((m) => ({

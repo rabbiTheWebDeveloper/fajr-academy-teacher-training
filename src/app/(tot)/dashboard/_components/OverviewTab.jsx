@@ -22,7 +22,7 @@ function Fact({ icon: Icon, label, value }) {
  * "Live session" for one enrolled course: the next (or last) session from the
  * course's own curriculum, its trainer and time, a real countdown and the course links.
  */
-export default function OverviewTab({ course, participant }) {
+export default function OverviewTab({ course, participant, onOpenDetails }) {
   const now = useNow();
   const modules = course.curriculum || [];
   const event = nextEvent(course, now);
@@ -122,6 +122,16 @@ export default function OverviewTab({ course, participant }) {
         <Fact icon={Clock} label="ক্লাস রুটিন" value={course.routine || "—"} />
         <Fact icon={Hourglass} label="কোর্সের মেয়াদ" value={course.duration || "—"} />
       </section>
+
+      {onOpenDetails && (
+        <button
+          type="button"
+          onClick={onOpenDetails}
+          className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm font-medium text-indigo-300 transition-colors hover:border-indigo-500/50 hover:text-indigo-200"
+        >
+          কোর্সের সব তথ্য, লিংক, মডিউল ও রিসোর্স দেখুন →
+        </button>
+      )}
     </div>
   );
 }
