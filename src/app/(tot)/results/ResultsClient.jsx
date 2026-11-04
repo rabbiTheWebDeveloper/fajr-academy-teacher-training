@@ -164,12 +164,6 @@ export default function ResultsClient({ trainee, paid = false, evaluation = null
               <BadgeCheck className="w-3.5 h-3.5" /> {evaluation ? statusInfo.label : "মূল্যায়ন বাকি"}
             </div>
           </div>
-          <Link
-            href="/id-card"
-            className="px-3 py-1.5 rounded-lg bg-[#C59B27]/15 border border-[#C59B27]/30 text-xs text-[#D4AF37] hover:bg-[#C59B27]/25 font-semibold transition-colors"
-          >
-            ডিজিটাল আইডি কার্ড
-          </Link>
         </div>
       </div>
 

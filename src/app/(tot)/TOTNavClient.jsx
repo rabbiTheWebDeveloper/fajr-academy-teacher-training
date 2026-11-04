@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   BookOpen,
   Video,
-  CreditCard,
   Receipt,
   Award,
   Menu,
@@ -53,11 +52,6 @@ export default function TOTNavClient({ role = "" }) {
       label: "ফলাফল ও সনদ",
       href: "/results",
       icon: Award,
-    },
-    {
-      label: "আইডি কার্ড",
-      href: "/id-card",
-      icon: CreditCard,
     },
     {
       label: "পেমেন্ট ও রসিদ",

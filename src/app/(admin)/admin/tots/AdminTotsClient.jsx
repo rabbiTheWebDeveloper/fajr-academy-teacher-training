@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { BookOpen, Search, Trash2, X, Plus, RefreshCw, Power, KeyRound } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
 import {
@@ -320,15 +319,6 @@ export default function AdminTotsClient({ initialTots, courses = [], loadError: 
 
   const rowActions = (u, busy) => (
     <div className="flex items-center justify-end gap-2">
-      <Link
-        href={`/id-card?user=${encodeURIComponent(u._id)}`}
-        target="_blank"
-        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
-          isLight ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700 shadow-2xs" : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200"
-        }`}
-      >
-        আইডি
-      </Link>
       <button
         type="button"
         onClick={() => handleResetPassword(u)}

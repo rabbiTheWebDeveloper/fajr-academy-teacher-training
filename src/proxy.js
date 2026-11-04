@@ -9,9 +9,8 @@ import { ADMIN_ROLES, INSTRUCTOR_ROLES, TRAINEE_ROLES, accountTypeForRole, homeF
  */
 
 // Trainee ("TOT") panel pages — trainee accounts only (admins / instructors have their own
-// panels and no TOT record). /id-card is also open to staff, to view a trainee's card.
+// panels and no TOT record).
 const TRAINEE_PAGES = ["/dashboard", "/classes", "/materials", "/payments", "/results"];
-const SHARED_PAGES = ["/id-card"];
 
 const startsWithAny = (pathname, prefixes) =>
   prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -23,7 +22,6 @@ function rule(pathname) {
   if (startsWithAny(pathname, ["/admin"])) return { api: false, roles: ADMIN_ROLES };
   if (startsWithAny(pathname, ["/instructor"])) return { api: false, roles: INSTRUCTOR_ROLES };
   if (startsWithAny(pathname, TRAINEE_PAGES)) return { api: false, roles: TRAINEE_ROLES, quiet: true };
-  if (startsWithAny(pathname, SHARED_PAGES)) return { api: false, roles: null };
   return null;
 }
 
@@ -79,7 +77,6 @@ export const config = {
     "/materials/:path*",
     "/payments/:path*",
     "/results/:path*",
-    "/id-card/:path*",
     "/api/admin/:path*",
     "/api/instructor/:path*",
     "/api/tot/:path*",

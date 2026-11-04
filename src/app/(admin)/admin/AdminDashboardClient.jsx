@@ -533,15 +533,6 @@ export default function AdminDashboardClient({ stats, loadError }) {
                     >
                       {PAYMENT_BADGE[u.paymentStatus] || u.paymentStatus || "—"}
                     </span>
-                    <Link
-                      href={`/id-card?user=${encodeURIComponent(u._id)}`}
-                      target="_blank"
-                      className={`text-[11px] font-bold px-2 py-0.5 rounded-md transition-colors ${
-                        isLight ? "bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700" : "text-indigo-400 hover:underline"
-                      }`}
-                    >
-                      আইডি
-                    </Link>
                   </div>
                 </div>
               ))

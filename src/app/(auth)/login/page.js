@@ -4,8 +4,8 @@ import LoginForm from "../_component/LoginForm";
 import { Sparkles, ShieldCheck } from "lucide-react";
 
 export const metadata = {
-  title: "টিচার ট্রেইনি লগইন | ফজর একাডেমি TOT",
-  description: "ফজর একাডেমি ট্রেনিং অব ট্রেইনার্স (TOT) কোর্সের অফিসিয়াল টিচার লগইন পোর্টাল।",
+  title: "লগইন পোর্টাল (ট্রেইনি, ইনস্ট্রাক্টর ও অ্যাডমিন) | ফজর একাডেমি",
+  description: "ফজর একাডেমি ট্রেনিং অব ট্রেইনার্স (TOT) কোর্সের টিচার ট্রেইনি, ইনস্ট্রাক্টর ও অ্যাডমিন লগইন পোর্টাল।",
 };
 
 export default function LoginPage() {
@@ -17,7 +17,7 @@ export default function LoginPage() {
       }}
     >
       {/* Cinematic dark ambient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#050D1E]/75 via-[#061228]/40 to-[#030914]/80 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#050D1E]/85 via-[#061228]/50 to-[#030914]/90 pointer-events-none" />
 
       <div className="relative z-10 flex flex-col justify-between min-h-screen">
         {/* Top Header */}
@@ -34,14 +34,14 @@ export default function LoginPage() {
                 FAJR ACADEMY
               </span>
               <span className="text-[10px] sm:text-[11px] uppercase font-extrabold tracking-wider text-[#F59E0B]">
-                TEACHER TRAINING DIVISION
+                TEACHER TRAINING &amp; FACULTY PORTAL
               </span>
             </div>
           </Link>
 
           <Link
             href="/"
-            className="text-xs sm:text-sm font-semibold text-blue-200/90 hover:text-white transition-colors flex items-center gap-1.5"
+            className="text-xs sm:text-sm font-semibold text-blue-200/90 hover:text-white transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10"
           >
             ← হোমপেজ
           </Link>
@@ -56,14 +56,14 @@ export default function LoginPage() {
 
         {/* Bottom Footer Info */}
         <footer className="p-4 sm:p-6 max-w-7xl mx-auto w-full text-xs text-slate-300/80 border-t border-slate-700/40 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p>© 2026 Fajr Academy — Authorized Teacher Training Portal.</p>
+          <p>© 2026 Fajr Academy — Authorized Teacher Training &amp; Faculty Console.</p>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> 256-Bit SSL Encrypted
             </span>
             <span className="text-slate-500">•</span>
             <span className="flex items-center gap-1.5 text-amber-400 font-medium">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> TOT Men &amp; Women Batch 014
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Trainee • Instructor • Admin
             </span>
           </div>
         </footer>
@@ -71,4 +71,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

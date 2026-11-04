@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   Users,
   Search,
-  CreditCard,
   Phone,
   Mail,
   ArrowLeft,
@@ -612,16 +611,6 @@ export default function TraineesClient({ initialData = null, pageSize = 25, load
                           >
                             <Award className="w-3 h-3" /> গ্রেডিং
                           </button>
-
-                          <Link
-                            href={`/id-card?user=${encodeURIComponent(t._id)}`}
-                            prefetch={false}
-                            className="text-slate-400 hover:text-indigo-300 p-1.5 hover:bg-slate-800 rounded-lg transition-colors"
-                            title="আইডি কার্ড"
-                            aria-label="আইডি কার্ড"
-                          >
-                            <CreditCard className="w-3.5 h-3.5" />
-                          </Link>
                         </div>
                       </td>
                     </tr>
@@ -806,14 +795,6 @@ export default function TraineesClient({ initialData = null, pageSize = 25, load
                     <Phone className="w-3.5 h-3.5" /> কল করুন
                   </a>
                 )}
-
-                <Link
-                  href={`/id-card?user=${encodeURIComponent(sel._id)}`}
-                  prefetch={false}
-                  className="px-4 py-2.5 rounded-xl bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600 hover:text-white border border-indigo-500/30 text-xs font-bold transition-all flex items-center gap-1.5"
-                >
-                  <CreditCard className="w-3.5 h-3.5" /> আইডি কার্ড
-                </Link>
               </div>
             )}
           </div>

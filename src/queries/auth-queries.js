@@ -20,19 +20,34 @@ export { phoneVariants };
  */
 
 /**
- * Find an account by e-mail or phone (any collection), or by payment transaction ID
- * (trainees only). Returns the lean document with `accountType` added, or null.
+ * Find an account by e-mail or phone (any collection: users, instructors, tots),
+ * or by payment transaction ID (trainees only).
+ * If `expectedType` is provided ('tot', 'instructor', 'admin'), that collection is prioritized.
+ * Returns the lean document with `accountType` added, or null.
  */
-export async function findUserByIdentifier(identifier) {
+export async function findUserByIdentifier(identifier, expectedType = null) {
   if (!identifier) return null;
   const clean = convertBengaliToEnglishNumbers(identifier.toString().trim()).toLowerCase();
   if (!clean) return null;
 
   const phones = clean.includes("@") ? [] : phoneVariants(clean);
   const filter = phones.length ? { $or: [{ email: clean }, { phone: { $in: phones } }] } : { email: clean };
+
+  // If a specific portal/account type was requested, prioritize that collection first
+  if (expectedType) {
+    const Model = modelForType(expectedType);
+    if (Model) {
+      await dbConnect();
+      const direct = await Model.findOne(filter).lean();
+      if (direct) return { ...direct, accountType: expectedType };
+    }
+  }
+
+  // Cross-collection lookup: admin → instructor → tot
   const found = await findAccount(filter);
   if (found) return { ...found.account, accountType: found.type };
 
+  // Transaction ID lookup (trainees in TotModel only)
   if (!clean.includes("@")) {
     await dbConnect();
     const byTran = await TotModel.findOne({ tranId: clean.toUpperCase() }).lean();
@@ -41,11 +56,11 @@ export async function findUserByIdentifier(identifier) {
   return null;
 }
 
-/** Verify login credentials. Returns { success, user } or { success: false, message, ... }. */
-export async function verifyUserLoginCredentials(identifier, password) {
+/** Verify login credentials across InstructorModel, TotModel and UserModel. */
+export async function verifyUserLoginCredentials(identifier, password, expectedType = null) {
   let user;
   try {
-    user = await findUserByIdentifier(identifier);
+    user = await findUserByIdentifier(identifier, expectedType);
   } catch (err) {
     console.error("Login DB error:", err.message);
     return {
@@ -56,9 +71,15 @@ export async function verifyUserLoginCredentials(identifier, password) {
   }
 
   if (!user) {
+    const roleLabels = {
+      instructor: "ইনস্ট্রাক্টর",
+      tot: "টিচার ট্রেইনি",
+      admin: "অ্যাডমিন",
+    };
+    const roleText = expectedType && roleLabels[expectedType] ? `${roleLabels[expectedType]} ` : "";
     return {
       success: false,
-      message: "এই ইমেইল বা ফোন নম্বরে কোনো অ্যাকাউন্ট পাওয়া যায়নি। অনুগ্রহ করে আগে রেজিস্ট্রেশন করুন।",
+      message: `এই ইমেইল বা ফোন নম্বরে কোনো ${roleText}অ্যাকাউন্ট পাওয়া যায়নি। অনুগ্রহ করে তথ্য পুনরায় যাচাই করুন।`,
       notFound: true,
     };
   }
@@ -124,6 +145,9 @@ export async function verifyUserLoginCredentials(identifier, password) {
   if (!isHashedPassword(user.password)) update.password = String(password).trim();
   await Model.updateOne({ _id: user._id }, update).catch((err) => console.warn("Login update warning:", err.message));
 
+  const isInstructor = user.accountType === "instructor";
+  const isAdmin = user.accountType === "admin";
+
   return {
     success: true,
     user: {
@@ -132,10 +156,11 @@ export async function verifyUserLoginCredentials(identifier, password) {
       fullName: user.fullName,
       email: user.email,
       phone: user.phone,
-      role: user.role || "teacher",
+      role: user.role || (isInstructor ? "instructor" : isAdmin ? "admin" : "teacher"),
       track: user.track || "",
       gender: user.gender || "",
       ...(isTrainee ? { paymentStatus: user.paymentStatus, tranId: user.tranId } : {}),
+      ...(isInstructor ? { designation: user.designation, specialization: user.specialization } : {}),
     },
   };
 }

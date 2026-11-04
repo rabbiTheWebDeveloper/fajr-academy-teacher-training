@@ -7,9 +7,10 @@ import { homeForRole } from "@/lib/roles";
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { identifier, email, phone, password } = body;
+    const { identifier, email, phone, password, portal, accountType } = body;
 
     const loginId = (identifier || email || phone || "").trim();
+    const portalType = (portal || accountType || "").trim().toLowerCase();
 
     // Brute-force guard: per IP and per account identifier.
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
@@ -27,7 +28,7 @@ export async function POST(request) {
       );
     }
 
-    const result = await verifyUserLoginCredentials(loginId, password);
+    const result = await verifyUserLoginCredentials(loginId, password, portalType || null);
 
     if (!result.success) {
       const status = result.serviceUnavailable ? 503 : result.isUnpaid ? 402 : result.inactive ? 403 : 401;
