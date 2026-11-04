@@ -50,12 +50,10 @@ const CARD_FIELDS = [
   "orientationTime",
   "routine",
   "duration",
-  "meetLink",
   "whatsappLink",
   "instructor",
   "maxSeats",
   "status",
-  "videoUrl",
 ];
 const NUMERIC_FIELDS = ["fee", "regularFee", "maxSeats"];
 const STATUSES = ["Active & Enrolling", "Upcoming", "Closed"];
@@ -960,17 +958,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                   {/* Links Row */}
                   {isEditing ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className={labelCls}>Google Meet লিংক (https://)</label>
-                        <input
-                          type="url"
-                          value={view.meetLink || ""}
-                          onChange={(e) => setDraftField("meetLink", e.target.value)}
-                          placeholder="https://meet.google.com/..."
-                          className={`${editInput} font-mono`}
-                        />
-                      </div>
-                      <div>
+                                            <div>
                         <label className={labelCls}>WhatsApp গ্রুপ লিংক (https://)</label>
                         <input
                           type="url"
@@ -980,17 +968,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                           className={`${editInput} font-mono`}
                         />
                       </div>
-                      <div>
-                        <label className={labelCls}>প্রোমো ভিডিও লিংক (https://)</label>
-                        <input
-                          type="url"
-                          value={view.videoUrl || ""}
-                          onChange={(e) => setDraftField("videoUrl", e.target.value)}
-                          placeholder="https://youtube.com/..."
-                          className={`${editInput} font-mono`}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className={labelCls}>সর্বোচ্চ আসন</label>
                           <input
@@ -1999,17 +1977,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                 />
               </div>
 
-              <div>
-                <label className="font-bold block mb-1">Google Meet লিংক</label>
-                <input
-                  type="url"
-                  value={newCourse.meetLink}
-                  onChange={(e) => setNewCourse({ ...newCourse, meetLink: e.target.value })}
-                  placeholder="https://meet.google.com/..."
-                  className="w-full font-mono text-[11px] px-3 py-2 rounded-xl border"
-                />
-              </div>
-
+              
               <div>
                 <label className="font-bold block mb-1">WhatsApp গ্রুপ লিংক</label>
                 <input
