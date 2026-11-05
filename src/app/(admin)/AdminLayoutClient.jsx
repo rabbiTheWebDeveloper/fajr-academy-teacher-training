@@ -15,19 +15,19 @@ const NAV = [
   {
     label: 'মেনু',
     items: [
-      { href: '/admin', label: 'ড্যাশবোর্ড ওভারভিউ', icon: 'dashboard', exact: true },
-      { href: '/admin/tots', label: 'TOT ট্রেইনি (পেমেন্টকারী)', icon: 'trainees', module: 'tots' },
-      { href: '/admin/payments', label: 'পেমেন্ট ভেরিফিকেশন', icon: 'payments', module: 'payments' },
-      { href: '/admin/courses', label: 'কোর্স ও সেশন', icon: 'courses', module: 'courses' },
-      { href: '/admin/instructors', label: 'ইনস্ট্রাক্টর', icon: 'instructors', module: 'instructors' },
-      { href: '/admin/evaluations', label: 'মূল্যায়ন ও ফলাফল', icon: 'evaluations', module: 'evaluations' },
+      { href: '/admin', label: 'ড্যাশবোর্ড ওভারভিউ', short: 'হোম', icon: 'dashboard', exact: true, primary: true },
+      { href: '/admin/tots', label: 'TOT ট্রেইনি (পেমেন্টকারী)', short: 'ট্রেইনি', icon: 'trainees', module: 'tots', primary: true },
+      { href: '/admin/payments', label: 'পেমেন্ট ভেরিফিকেশন', short: 'পেমেন্ট', icon: 'payments', module: 'payments', primary: true },
+      { href: '/admin/courses', label: 'কোর্স ও সেশন', short: 'কোর্স', icon: 'courses', module: 'courses', primary: true },
+      { href: '/admin/instructors', label: 'ইনস্ট্রাক্টর', short: 'ইনস্ট্রাক্টর', icon: 'instructors', module: 'instructors' },
+      { href: '/admin/evaluations', label: 'মূল্যায়ন ও ফলাফল', short: 'মূল্যায়ন', icon: 'evaluations', module: 'evaluations' },
     ],
   },
   {
     label: 'সিস্টেম',
     items: [
-      { href: '/admin/users', label: 'অ্যাডমিন ইউজার ও রোল', icon: 'users', module: 'users' },
-      { href: '/admin/settings', label: 'সিস্টেম সেটিংস', icon: 'settings', module: 'settings' },
+      { href: '/admin/users', label: 'অ্যাডমিন ইউজার ও রোল', short: 'ইউজার', icon: 'users', module: 'users' },
+      { href: '/admin/settings', label: 'সিস্টেম সেটিংস', short: 'সেটিংস', icon: 'settings', module: 'settings' },
     ],
   },
 ];

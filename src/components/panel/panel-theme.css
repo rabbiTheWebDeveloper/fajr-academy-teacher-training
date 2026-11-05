@@ -169,6 +169,120 @@ html[data-panel-theme] ::-webkit-scrollbar-thumb:hover {
   transform: translateY(1px);
 }
 
+/* ---------- 2b. MOBILE APP FEEL (phones, and tablets in portrait: < 1024px) ---------- */
+
+/* Native-app touch behaviour everywhere in the panels */
+.panel-root {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+.panel-root a,
+.panel-root button,
+.panel-root select,
+.panel-root summary,
+.panel-root [role="button"],
+.panel-root [role="tab"] {
+  touch-action: manipulation; /* no 300ms tap delay, no double-tap zoom */
+}
+
+/* Page change: a short fade-and-rise, like switching screens in an app */
+@keyframes panel-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.panel-root .panel-page {
+  animation: panel-page-in 0.24s ease-out both;
+}
+
+@keyframes panel-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes panel-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-root .panel-page,
+  .panel-root .panel-content .fixed.inset-0,
+  .panel-root .panel-content .fixed.inset-0 > div:not(.fixed) {
+    animation: none !important;
+  }
+}
+
+/* Before React decides "this is a phone", the server-rendered desktop sidebar must not flash on
+   tablets (md ≤ width < lg). The mobile menu is a portal outside .panel-root, so it is unaffected. */
+@media (max-width: 1023px) {
+  .panel-root [data-slot="sidebar"] {
+    display: none !important;
+  }
+}
+
+/* iOS zooms the page when a field under 16px gets focus — keep fields at 16px on touch screens. */
+@media (max-width: 1023px) {
+  .panel-root .panel-content input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  .panel-root .panel-content select,
+  .panel-root .panel-content textarea {
+    font-size: 16px !important;
+  }
+}
+@media (max-width: 639px) {
+  .panel-root .panel-content input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+  .panel-root .panel-content select {
+    min-height: 44px;
+  }
+}
+
+/* Modals become bottom sheets on phones: full width, rounded top, scrolls inside, clear of the home bar. */
+@media (max-width: 639px) {
+  .panel-root .panel-content .fixed.inset-0 {
+    align-items: flex-end !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    animation: panel-backdrop-in 0.2s ease-out both;
+  }
+  .panel-root .panel-content .fixed.inset-0 > div:not(.fixed) {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    max-height: 92dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    border-top-left-radius: 1.75rem !important;
+    border-top-right-radius: 1.75rem !important;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom)) !important;
+    animation: panel-sheet-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  }
+  /* the little grab handle iOS / Android sheets have */
+  .panel-root .panel-content .fixed.inset-0 > div:not(.fixed)::before {
+    content: "";
+    display: block;
+    width: 2.5rem;
+    height: 0.25rem;
+    margin: -0.25rem auto 0.75rem;
+    border-radius: 9999px;
+    background: rgba(148, 140, 180, 0.45);
+  }
+}
+
 /* ---------- 3. CONTENT — BOTH THEMES: indigo accents → the panel's violet ---------- */
 
 .panel-root .panel-content .bg-indigo-500,

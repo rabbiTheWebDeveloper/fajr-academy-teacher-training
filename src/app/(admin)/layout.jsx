@@ -12,6 +12,15 @@ export const metadata = {
   description: "Fajr Academy Training of Trainers (TOT) Full Management & Executive Control Panel.",
 };
 
+// viewportFit "cover" lets the panel draw edge to edge and use the iPhone notch / home-bar insets
+// (env(safe-area-inset-*)); themeColor tints the mobile browser bar to match the gradient header.
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#6d4ae8",
+};
+
 export const dynamic = "force-dynamic";
 
 const ADMIN_ROLES = ["admin", "super-admin"];

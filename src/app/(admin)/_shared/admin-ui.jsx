@@ -72,7 +72,11 @@ export function AdminToast({ toast, onClose }) {
   if (!toast) return null;
   const isError = toast.type === "error";
   return (
-    <div className="fixed bottom-6 right-6 z-80 max-w-sm" role={isError ? "alert" : "status"}>
+    // Phones: full-width banner above the floating tab bar. Desktop: bottom-right corner.
+    <div
+      className="fixed inset-x-4 bottom-[calc(6rem_+_env(safe-area-inset-bottom))] z-80 lg:inset-x-auto lg:bottom-6 lg:right-6 lg:max-w-sm"
+      role={isError ? "alert" : "status"}
+    >
       <div
         className={`px-4 py-3 rounded-2xl shadow-2xl flex items-start gap-2.5 text-xs font-bold border ${
           isError ? "bg-rose-900 border-rose-700 text-white" : "bg-emerald-950 border-emerald-500 text-emerald-100"

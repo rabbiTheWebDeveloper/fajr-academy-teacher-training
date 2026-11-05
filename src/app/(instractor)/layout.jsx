@@ -10,6 +10,15 @@ export const metadata = {
   description: "ফজর একাডেমি ট্রেনিং অব ট্রেইনার্স (TOT) ইনস্ট্রাক্টর পোর্টাল।",
 };
 
+// viewportFit "cover" lets the panel draw edge to edge and use the iPhone notch / home-bar insets
+// (env(safe-area-inset-*)); themeColor tints the mobile browser bar to match the gradient header.
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#6d4ae8",
+};
+
 export default async function InstructorLayout({ children }) {
   // Real designation of the signed-in staff member (falls back to their role, never a made-up title).
   const { profile } = await getInstructorProfile();
