@@ -48,6 +48,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { usePanelTheme } from "./PanelThemeContext";
+import PushBell from "@/components/push/PushBell";
+import { forgetPushOnThisDevice } from "@/components/push/usePushNotifications";
 
 /**
  * One shell for the admin and the instructor panel, built to feel like a native app on phones:
@@ -228,8 +230,21 @@ function MobileTabBar({ items, isActive }) {
  * @param user         { name, email, roleLabel, avatar? }
  * @param menuLinks    [{ href, label, icon, external? }]   extra entries in the user menu
  * @param defaultOpen  sidebar expanded on first paint (read from the shadcn cookie by the layout)
+ * @param pushTopics   what this panel's push notifications are about (header bell text)
+ * @param pushSetupHint show the bell even when the server has no VAPID keys yet (admins)
  */
-export default function PanelShell({ brand, navGroups, user, menuLinks = [], defaultOpen = true, footerText, contentClassName = "max-w-7xl", children }) {
+export default function PanelShell({
+  brand,
+  navGroups,
+  user,
+  menuLinks = [],
+  defaultOpen = true,
+  footerText,
+  contentClassName = "max-w-7xl",
+  pushTopics,
+  pushSetupHint = false,
+  children,
+}) {
   const pathname = usePathname() || "";
   const router = useRouter();
   const { isLight, toggleTheme } = usePanelTheme();
@@ -243,6 +258,7 @@ export default function PanelShell({ brand, navGroups, user, menuLinks = [], def
   const handleLogout = async () => {
     setLogoutError("");
     try {
+      await forgetPushOnThisDevice(); // the next person on this device must not get this account's notifications
       // POST, not a link: a GET could be prefetched and log the user out silently.
       const res = await fetch("/api/auth/logout", { method: "POST", cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -342,6 +358,8 @@ export default function PanelShell({ brand, navGroups, user, menuLinks = [], def
               {user.roleLabel}
             </span>
           )}
+
+          {pushTopics && <PushBell variant="panel" topics={pushTopics} showWhenUnconfigured={pushSetupHint} />}
 
           <div className="hidden shrink-0 items-center gap-2.5 lg:flex">
             <div className="text-right leading-tight">

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut, Loader2 } from 'lucide-react';
+import { forgetPushOnThisDevice } from '@/components/push/usePushNotifications';
 
 /**
  * Logs out with a POST to /api/auth/logout (never a prefetchable GET link), then
@@ -25,6 +26,7 @@ export default function TOTLogoutButton({
     setLoading(true);
     setError('');
     try {
+      await forgetPushOnThisDevice(); // stop this account's notifications on this device
       const res = await fetch('/api/auth/logout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

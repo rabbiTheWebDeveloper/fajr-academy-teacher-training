@@ -11,6 +11,7 @@ import { courseIdForUserTrack } from "@/service/course-service";
 import { sendCustomEmail } from "@/utlis/mail";
 import { generatePassword } from "@/lib/password";
 import { emailInUse } from "@/service/account-service";
+import { notifyAdminsNewPayment, notifyPaymentVerified } from "@/service/push-service";
 
 /**
  * Payment lifecycle — the only code allowed to mark a payment VALID from the gateway.
@@ -107,6 +108,7 @@ export async function finalizeGatewayPayment({ tranId, valId, source = "gateway"
   }
 
   const user = await provisionForPayment(claimed);
+  notifyAdminsNewPayment(claimed, user); // only for money the gateway just confirmed, not admin re-verifications
   return { ok: true, code: "finalized", payment: claimed, user, firstTime: true, verifiedNow: true };
 }
 
@@ -201,6 +203,7 @@ export async function provisionForPayment(payment) {
   sendPaymentConfirmation(user, payment, courseId).catch((err) =>
     console.warn(`[payment ${payment.tranId}] confirmation email skipped:`, err.message)
   );
+  notifyPaymentVerified(user, payment); // push to the trainee's devices (a brand-new account has none yet)
 
   const out = user.toObject ? user.toObject() : user;
   if (generatedPassword) out.generatedPassword = generatedPassword;

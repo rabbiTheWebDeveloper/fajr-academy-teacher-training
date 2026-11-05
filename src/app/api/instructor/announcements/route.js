@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { NoticeModel } from "@/model/notice-model";
-import { requireAuth, INSTRUCTOR_ROLES, deleteScope, MSG_DELETE_DENIED, serverError } from "@/lib/api-auth";
+import { requireAuth, INSTRUCTOR_ROLES, deleteScope, MSG_DELETE_DENIED, serverError, isAdminRole } from "@/lib/api-auth";
 import { isObjectId } from "@/lib/query-helpers";
+import { notifyNoticePosted } from "@/service/push-service";
 
 const TRACKS = ["all", "TOT-MEN", "TOT-WOMEN-014", "TOT-WOMEN"];
 const PRIORITIES = ["normal", "important", "urgent"];
@@ -56,6 +57,8 @@ export async function POST(request) {
       instructorEmail: session.email || "",
     });
 
+    // Push to that batch's trainees (and, when an admin posts from here, the instructors too).
+    notifyNoticePosted(notice.toObject(), { fromAdmin: isAdminRole(session.role) });
     return NextResponse.json({
       success: true,
       message: "নোটিশ সফলভাবে সম্প্রচারিত (Broadcast) হয়েছে!",

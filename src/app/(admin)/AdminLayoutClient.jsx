@@ -54,6 +54,9 @@ export default function AdminLayoutClient({ adminUser, defaultOpen, children }) 
       menuLinks={MENU_LINKS}
       defaultOpen={defaultOpen}
       footerText="© 2026 Fajr Academy — TOT Enterprise Management System v2.0"
+      // Admins are notified about online payments only, so the bell is for those who may see payments.
+      pushTopics={can("payments", "read") ? "নতুন অনলাইন পেমেন্টের খবর" : undefined}
+      pushSetupHint={can("settings", "read")}
     >
       {children}
     </PanelShell>

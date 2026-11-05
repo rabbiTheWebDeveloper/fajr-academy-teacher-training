@@ -43,6 +43,8 @@ export default function InstructorLayoutClient({ user, isAdmin, defaultOpen, chi
       defaultOpen={defaultOpen}
       footerText="© 2026 Fajr Academy"
       contentClassName="max-w-6xl"
+      // An admin visiting this panel manages notifications from the admin panel instead.
+      pushTopics={isAdmin ? undefined : "অ্যাডমিনের নতুন নোটিশ"}
     >
       {children}
     </PanelShell>

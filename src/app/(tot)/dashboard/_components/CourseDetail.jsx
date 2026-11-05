@@ -238,9 +238,10 @@ export default function CourseDetail({ course, participant, materials = [], paym
           {trainers.length > 0 && (
             <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
               <h3 className="text-sm font-semibold text-white">ইনস্ট্রাক্টর ও ট্রেইনার প্যানেল</h3>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {/* grid-cols-1 (= minmax(0,1fr)) lets long, truncated names shrink instead of widening the page */}
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {trainers.map((t) => (
-                  <div key={t.name} className="flex items-center gap-3 rounded-lg bg-slate-950/60 p-3">
+                  <div key={t.name} className="flex min-w-0 items-center gap-3 rounded-lg bg-slate-950/60 p-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-slate-300">
                       <UserCheck className="h-5 w-5" />
                     </div>

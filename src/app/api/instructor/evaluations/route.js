@@ -5,6 +5,7 @@ import { TotModel } from "@/model/tot-model";
 import { ParticipantModel } from "@/model/participant-model";
 import { requireAuth, INSTRUCTOR_ROLES, deleteScope, MSG_DELETE_DENIED, serverError } from "@/lib/api-auth";
 import { courseIdForTrack, isObjectId, trackFilter } from "@/lib/query-helpers";
+import { notifyEvaluationSaved } from "@/service/push-service";
 
 const SCORE_KEYS = ["makhrajTajweed", "childPsychologyPedagogy", "digitalClassroomTools", "microTeachingDemo"];
 const clampScore = (v) => Math.min(Math.max(Math.round(Number(v) || 0), 0), 25);
@@ -104,6 +105,7 @@ export async function POST(request) {
       }
     ).catch((err) => console.warn("Participant grade sync warning:", err.message));
 
+    notifyEvaluationSaved(evaluation); // push "your result is out" to the trainee, after the response
     return NextResponse.json({
       success: true,
       message: `মূল্যায়ন সফলভাবে সংরক্ষিত হয়েছে! মোট স্কোর: ${totalScore}/১০০, গ্রেড: ${grade}`,

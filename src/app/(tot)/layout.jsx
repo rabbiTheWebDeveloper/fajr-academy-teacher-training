@@ -2,6 +2,8 @@ import Link from "next/link";
 import TOTNavClient from "./TOTNavClient";
 import TOTLogoutButton from "@/components/TOTLogoutButton";
 import { getSessionUser } from "@/lib/auth";
+import { TRAINEE_ROLES } from "@/lib/roles";
+import PushBell from "@/components/push/PushBell";
 import { Sparkles, MessageCircle } from "lucide-react";
 
 export const metadata = {
@@ -13,6 +15,8 @@ export default async function TOTLayout({ children }) {
   // Only used to decide whether the staff-panel shortcut is shown in the menu.
   const session = await getSessionUser();
   const role = session?.role || "";
+  // Push notifications here are trainee ones (notices, payment, results); staff manage theirs in their panel.
+  const isTrainee = TRAINEE_ROLES.includes(role);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans selection:bg-indigo-600 selection:text-white antialiased">
@@ -25,19 +29,19 @@ export default async function TOTLayout({ children }) {
 
       {/* Top Header Navigation Bar */}
       <header className="sticky top-0 z-40 bg-slate-950 backdrop-blur-xl border-b border-slate-800 px-4 sm:px-6 lg:px-8 py-3.5 no-print shadow-2xl transition-all">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          {/* Brand Logo & Portal Title */}
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-3 group">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+          {/* Brand Logo & Portal Title (just the logo on the narrowest phones, so the bell fits) */}
+          <div className="flex min-w-0 items-center gap-3">
+            <Link href="/" aria-label="Fajr Academy" className="flex min-w-0 items-center gap-3 group">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/fajr-logo.png"
                 alt="Fajr Academy"
                 className="w-10 h-10 rounded-2xl object-cover shadow-lg shadow-indigo-900/20 group-hover:scale-105 transition-all border border-slate-800"
               />
-              <div className="flex flex-col">
+              <div className="hidden min-[360px]:flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-black text-base sm:text-lg tracking-tight text-white">
+                  <span className="font-black text-base sm:text-lg tracking-tight text-white leading-tight">
                     FAJR ACADEMY
                   </span>
                   <span className="hidden sm:inline-block text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-slate-800">
@@ -54,23 +58,27 @@ export default async function TOTLayout({ children }) {
           {/* Interactive Client Navigation with active route detection */}
           <TOTNavClient role={role} />
 
-          {/* Right Action Bar */}
-          <div className="hidden sm:flex items-center gap-3">
+          {/* Right Action Bar (the notification bell stays visible on phones) */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {isTrainee && <PushBell variant="tot" topics="নতুন নোটিশ, পেমেন্ট যাচাই ও মূল্যায়নের ফলাফল" />}
+
             <Link
               href="/results"
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-slate-800 hover:bg-indigo-500/15 transition-all shadow-sm"
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-slate-800 hover:bg-indigo-500/15 transition-all shadow-sm"
             >
               <Sparkles className="w-3.5 h-3.5 text-indigo-300" /> ফলাফল ও সনদ
             </Link>
 
             <Link
               href="/"
-              className="text-xs font-medium text-slate-400 hover:text-white transition-colors bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full"
+              className="hidden sm:inline-flex text-xs font-medium text-slate-400 hover:text-white transition-colors bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-full"
             >
               হোমপেজ
             </Link>
 
-            <TOTLogoutButton variant="header" />
+            <div className="hidden sm:block">
+              <TOTLogoutButton variant="header" />
+            </div>
           </div>
         </div>
       </header>

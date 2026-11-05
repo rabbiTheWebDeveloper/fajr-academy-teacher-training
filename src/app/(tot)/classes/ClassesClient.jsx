@@ -101,12 +101,13 @@ export default function ClassesClient({ courses = [], notices = [], paid = false
                         {schedule.map(({ key, module: m, when }) => {
                           const state = STATE_LABEL[sessionState(when, now)];
                           return (
-                            <li key={key} className="text-[11px] flex items-start justify-between gap-3">
+                            <li key={key} className="text-[11px] flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                               <span className="text-slate-200">
                                 <strong className="text-[#D4AF37]">{m.sessionBadge || `সেশন ${toBn(m.moduleNo ?? "")}`}:</strong> {m.title}
                                 {m.trainerName && <span className="text-slate-500"> — {m.trainerName}</span>}
                               </span>
-                              <span className="text-right whitespace-nowrap text-slate-400">
+                              {/* phones: the date goes under the title instead of pushing the page wider */}
+                              <span className="text-slate-400 sm:text-right sm:whitespace-nowrap">
                                 {m.liveDate || m.sessionDate || "তারিখ ঘোষণা হয়নি"}
                                 {m.sessionTime ? `, ${m.sessionTime}` : ""}
                                 {state && <span className={`block font-bold ${state.cls}`}>{state.text}</span>}

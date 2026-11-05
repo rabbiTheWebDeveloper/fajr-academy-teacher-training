@@ -3,6 +3,7 @@ import { dbConnect } from "@/service/mongo";
 import { NoticeModel } from "@/model/notice-model";
 import { requirePermission, serverError } from "@/lib/api-auth";
 import { isObjectId } from "@/lib/query-helpers";
+import { notifyNoticePosted } from "@/service/push-service";
 
 const TRACKS = ["all", "TOT-MEN", "TOT-WOMEN-014", "TOT-WOMEN"];
 const PRIORITIES = ["normal", "important", "urgent"];
@@ -47,6 +48,7 @@ export async function POST(request) {
       instructorEmail: auth.session.email || "",
     });
 
+    notifyNoticePosted(notice.toObject(), { fromAdmin: true }); // push to that batch's trainees + instructors, after the response
     return NextResponse.json({ success: true, message: "ঘোষণা সফলভাবে ব্রডকাস্ট করা হয়েছে!", announcement: plain(notice.toObject()) });
   } catch (error) {
     return serverError(error, "Admin announcements POST");
