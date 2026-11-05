@@ -316,18 +316,18 @@ export default function InstructorDashboardClient({
             {!currentCourse && <p className="text-amber-300">এই ব্যাচের কোর্স তথ্য পাওয়া যায়নি।</p>}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="panel-grid2 flex flex-wrap items-center gap-2">
             {meetLink ? (
               <a
                 href={meetLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="panel-cta rounded-xl px-5 py-2.5 text-sm"
+                className="panel-cta rounded-xl px-5 py-2.5 text-sm text-center"
               >
                 সেশন শুরু করুন
               </a>
             ) : (
-              <Link href="/instructor/live" className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-slate-300 hover:text-white">
+              <Link href="/instructor/live" className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-center text-slate-300 hover:text-white">
                 মিট লিঙ্ক যুক্ত করুন
               </Link>
             )}
@@ -347,12 +347,12 @@ export default function InstructorDashboardClient({
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-slate-300 hover:text-white"
+                className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-center text-slate-300 hover:text-white"
               >
                 WhatsApp গ্রুপ
               </a>
             ) : (
-              <span className="rounded-lg border border-slate-800 px-4 py-2.5 text-sm text-slate-600">WhatsApp: {NOT_SET}</span>
+              <span className="rounded-lg border border-slate-800 px-4 py-2.5 text-sm text-center text-slate-600">WhatsApp: {NOT_SET}</span>
             )}
           </div>
         </div>
