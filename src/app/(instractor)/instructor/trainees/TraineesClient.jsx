@@ -405,7 +405,8 @@ export default function TraineesClient({ initialData = null, pageSize = 25, load
       {/* Top Header & Breadcrumb */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          {/* phones/tablets navigate with the bottom tab bar instead */}
+          <div className="hidden lg:flex items-center gap-2">
             <Link href="/instructor" className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
               <ArrowLeft className="w-3.5 h-3.5" /> ড্যাশবোর্ড ওভারভিউ
             </Link>
@@ -422,7 +423,7 @@ export default function TraineesClient({ initialData = null, pageSize = 25, load
           type="button"
           onClick={handleExportCSV}
           disabled={isExporting}
-          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-60 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-2 border border-slate-700 shadow-sm transition-all"
+          className="w-full sm:w-auto justify-center px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-60 text-slate-200 hover:text-white text-xs font-semibold flex items-center gap-2 border border-slate-700 shadow-sm transition-all"
         >
           {isExporting ? (
             <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
@@ -438,7 +439,7 @@ export default function TraineesClient({ initialData = null, pageSize = 25, load
 
       {/* Filter Bar & Search */}
       <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-3xl shadow-xl space-y-3">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           <div className="relative flex-1">
             <input
               type="search"
@@ -454,7 +455,7 @@ export default function TraineesClient({ initialData = null, pageSize = 25, load
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="panel-grid2 flex flex-wrap items-center gap-2 text-xs">
             <select
               value={trackFilter}
               onChange={(e) => changeTrack(e.target.value)}
@@ -503,9 +504,96 @@ export default function TraineesClient({ initialData = null, pageSize = 25, load
         </div>
       )}
 
-      {/* Trainees Table */}
+      {/* Trainees: cards on phones/tablets (< lg), a table on desktop */}
       <div className={`bg-slate-900/90 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl ${loading ? "opacity-70" : ""}`}>
-        <div className="overflow-x-auto">
+        <div className="lg:hidden">
+          {visible.length === 0 ? (
+            <div className="p-10 text-center text-xs text-slate-500 space-y-2">
+              <Users className="w-8 h-8 text-slate-600 mx-auto" />
+              <p>{loading ? "লোড হচ্ছে..." : "কোনো ট্রেইনি তথ্য পাওয়া যায়নি।"}</p>
+            </div>
+          ) : (
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3">
+              {visible.map((t) => {
+                const pay = paymentMeta(t.paymentStatus);
+                const st = t.evaluation ? statusMeta(t.evaluation.qualificationStatus) : null;
+                return (
+                  <li key={t._id} className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 space-y-3 text-xs text-slate-300">
+                    <div className="flex items-start justify-between gap-3">
+                      <button type="button" onClick={() => openProfile(t)} className="min-w-0 text-left">
+                        <div className="font-bold text-white text-sm leading-snug">{t.fullName}</div>
+                        <div className="text-[11px] text-slate-500 font-mono mt-0.5 break-all">{t.tranId || "TrxID নেই"}</div>
+                        {t.createdAt && <div className="text-[10px] text-slate-500 mt-0.5">{formatDate(t.createdAt)}</div>}
+                      </button>
+                      <span className={`shrink-0 text-[10px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${trackBadge(t.track)}`}>
+                        {trackLabel(t.track)}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {t.phone ? (
+                        <a href={`tel:${t.phone}`} className="flex items-center gap-1.5 text-slate-300">
+                          <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" /> {t.phone}
+                        </a>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-slate-500">
+                          <Phone className="w-3.5 h-3.5 shrink-0" /> —
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5 text-slate-400 text-[11px] min-w-0">
+                        <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" /> <span className="truncate">{t.email}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                        <span className="flex items-center gap-1">
+                          <BookOpen className="w-3 h-3 text-indigo-400" /> কুরআন: <strong className="text-white">{skillLabel(QURAN_SKILLS, t.quranSkill)}</strong>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Laptop className="w-3 h-3 text-emerald-400" /> ল্যাপটপ:{" "}
+                          <strong className="text-white">{t.hasLaptop === "yes" ? "আছে" : t.hasLaptop === "no" ? "নেই" : "—"}</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${pay.badge}`}>
+                        {t.paymentStatus === "paid" ? `✓ ${formatTaka(t.paidAmount ?? 0)} ${pay.label}` : pay.label}
+                      </span>
+                      {t.evaluation ? (
+                        <>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${st.badge}`}>
+                            {t.evaluation.grade} ({bn(t.evaluation.totalScore)}/১০০)
+                          </span>
+                          <span className={`text-[10px] font-semibold ${st.color}`}>{st.label}</span>
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-slate-500 italic">মূল্যায়ন বাকি</span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => openProfile(t)}
+                        className="py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <Eye className="w-4 h-4" /> প্রোফাইল
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEvalModalTrainee(t)}
+                        className="py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 font-bold flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <Award className="w-4 h-4" /> গ্রেডিং
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-950/80 text-slate-400 font-bold border-b border-slate-800">
               <tr>
@@ -632,7 +720,7 @@ export default function TraineesClient({ initialData = null, pageSize = 25, load
               type="button"
               onClick={() => goToPage(data.page - 1)}
               disabled={data.page <= 1 || loading}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 flex items-center gap-1"
+              className="px-4 py-2.5 lg:px-3 lg:py-1.5 rounded-xl lg:rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 flex items-center gap-1"
             >
               <ChevronLeft className="w-3.5 h-3.5" /> আগের
             </button>
@@ -640,7 +728,7 @@ export default function TraineesClient({ initialData = null, pageSize = 25, load
               type="button"
               onClick={() => goToPage(data.page + 1)}
               disabled={data.page >= data.totalPages || loading}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 flex items-center gap-1"
+              className="px-4 py-2.5 lg:px-3 lg:py-1.5 rounded-xl lg:rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 flex items-center gap-1"
             >
               পরের <ChevronRight className="w-3.5 h-3.5" />
             </button>

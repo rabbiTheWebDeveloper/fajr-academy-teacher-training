@@ -185,7 +185,10 @@ html[data-panel-theme] ::-webkit-scrollbar-thumb:hover {
   touch-action: manipulation; /* no 300ms tap delay, no double-tap zoom */
 }
 
-/* Page change: a short fade-and-rise, like switching screens in an app */
+/* Page change: a short fade-and-rise, like switching screens in an app.
+   Fill mode must stay `backwards`: an animation on `transform` that keeps filling after it ends
+   turns .panel-page into the containing block of every `position: fixed` child, and the pages'
+   modals would then be trapped inside the content area instead of covering the screen. */
 @keyframes panel-page-in {
   from {
     opacity: 0;
@@ -197,7 +200,7 @@ html[data-panel-theme] ::-webkit-scrollbar-thumb:hover {
   }
 }
 .panel-root .panel-page {
-  animation: panel-page-in 0.24s ease-out both;
+  animation: panel-page-in 0.24s ease-out backwards;
 }
 
 @keyframes panel-sheet-up {
@@ -258,6 +261,9 @@ html[data-panel-theme] ::-webkit-scrollbar-thumb:hover {
     animation: panel-backdrop-in 0.2s ease-out both;
   }
   .panel-root .panel-content .fixed.inset-0 > div:not(.fixed) {
+    padding-top: 1.25rem !important;
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -269,7 +275,7 @@ html[data-panel-theme] ::-webkit-scrollbar-thumb:hover {
     border-top-left-radius: 1.75rem !important;
     border-top-right-radius: 1.75rem !important;
     padding-bottom: max(1.25rem, env(safe-area-inset-bottom)) !important;
-    animation: panel-sheet-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+    animation: panel-sheet-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) backwards; /* backwards: see .panel-page */
   }
   /* the little grab handle iOS / Android sheets have */
   .panel-root .panel-content .fixed.inset-0 > div:not(.fixed)::before {
@@ -280,6 +286,65 @@ html[data-panel-theme] ::-webkit-scrollbar-thumb:hover {
     margin: -0.25rem auto 0.75rem;
     border-radius: 9999px;
     background: rgba(148, 140, 180, 0.45);
+  }
+}
+
+/* App-style layout helpers, phones only (< 640px); from sm: up the markup's own flex/grid rules apply.
+   .panel-grid2 — filter / action rows become an even two-column grid; an odd last item takes the row.
+   .panel-kpis  — stat tiles two per row; with an odd count the first (headline) tile takes the row.
+   .panel-scroll-x — a row of chips that scrolls sideways instead of wrapping onto many lines. */
+@media (max-width: 639px) {
+  /* big desktop card padding (p-6 / p-8) eats a third of a small phone's width */
+  .panel-root .panel-content .rounded-3xl.p-6,
+  .panel-root .panel-content .rounded-3xl.p-8 {
+    padding: 1rem;
+  }
+
+  .panel-root .panel-grid2 {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem !important;
+    width: 100%;
+  }
+  .panel-root .panel-grid2 > * {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+  .panel-root .panel-grid2 > :is(button, a) {
+    justify-content: center;
+  }
+  .panel-root .panel-grid2 > :last-child:nth-child(odd),
+  .panel-root .panel-grid2 > .panel-span-2 {
+    grid-column: 1 / -1;
+  }
+
+  .panel-root .panel-kpis {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.75rem !important;
+  }
+  .panel-root .panel-kpis > * {
+    min-width: 0;
+  }
+  .panel-root .panel-kpis > :first-child:nth-last-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .panel-root .panel-scroll-x {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+  .panel-root .panel-scroll-x::-webkit-scrollbar {
+    display: none;
+  }
+  .panel-root .panel-scroll-x > * {
+    flex-shrink: 0;
+    scroll-snap-align: start;
   }
 }
 

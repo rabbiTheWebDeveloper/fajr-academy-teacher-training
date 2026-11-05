@@ -141,7 +141,7 @@ export default function CurriculumClient({ initialCourses = [], initialCourseId 
         <div>
           <Link
             href="/instructor"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-2"
+            className="hidden lg:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-2"
           >
             <ArrowLeft className="w-4 h-4" /> ড্যাশবোর্ডে ফিরে যান
           </Link>

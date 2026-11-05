@@ -274,7 +274,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
   const filterSelectCls = `rounded-2xl px-4 py-3 text-xs font-bold border shadow-xs outline-hidden transition-all w-full sm:w-auto cursor-pointer ${
     isLight ? "bg-white border-slate-300 text-slate-800 focus:border-amber-500" : "bg-slate-900 border-slate-800 text-white focus:border-amber-500"
   }`;
-  const smallBtn = `px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1`;
+  const smallBtn = `px-2.5 py-1.5 max-sm:px-3.5 max-sm:py-2.5 max-sm:rounded-xl rounded-lg text-[11px] font-bold border transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1`;
 
   const emptyText = payments.length === 0 ? "কোনো পেমেন্ট রেকর্ড নেই" : "ফিল্টারের সাথে মেলে এমন কোনো পেমেন্ট পাওয়া যায়নি";
   const subtle = isLight ? "text-slate-500" : "text-slate-400";
@@ -381,7 +381,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
           disabled={busy}
           onChange={(e) => handleUpdateStatus(p, e.target.value)}
           aria-label={`${p.tranId}-এর স্ট্যাটাস পরিবর্তন`}
-          className={`block border rounded-lg px-2 py-1 text-[10px] font-bold cursor-pointer outline-hidden disabled:opacity-50 ${
+          className={`block w-full sm:w-auto border rounded-lg px-2 py-1 text-[10px] font-bold cursor-pointer outline-hidden disabled:opacity-50 ${
             isLight ? "bg-white border-slate-300 text-slate-700" : "bg-slate-950 border-slate-800 text-slate-300"
           }`}
         >
@@ -404,7 +404,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
           <button
             onClick={() => handleUpdateStatus(p, "VALID")}
             disabled={busy}
-            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+            className="px-3 py-1.5 max-sm:px-4 max-sm:py-2.5 max-sm:rounded-xl rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50"
           >
             ✓ অনুমোদন দিন
           </button>
@@ -448,8 +448,9 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
           <button
             onClick={() => handleDelete(p)}
             disabled={busy}
-            className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-500 transition-colors cursor-pointer disabled:opacity-50"
+            className="p-1.5 max-sm:p-2.5 max-sm:rounded-xl rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-500 transition-colors cursor-pointer disabled:opacity-50"
             title="রেকর্ড মুছুন"
+            aria-label="রেকর্ড মুছুন"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -475,9 +476,9 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <div
-            className={`px-4 py-2.5 rounded-2xl flex items-center gap-3 border shadow-xs transition-all ${
+            className={`w-full sm:w-auto justify-between px-4 py-2.5 rounded-2xl flex items-center gap-3 border shadow-xs transition-all ${
               isLight ? "bg-emerald-50/90 border-emerald-200 text-emerald-950" : "bg-slate-900 border-slate-800 text-white shadow-xl"
             }`}
             title="VALID পেমেন্টের মোট পরিমাণ (আংশিক রিফান্ড বাদে)"
@@ -493,7 +494,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
             onClick={() => reload()}
             disabled={reloading}
             title="ডাটাবেজ থেকে আবার লোড করুন"
-            className={`px-3 py-2.5 rounded-2xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-60 ${
+            className={`flex-1 sm:flex-none justify-center px-3 py-2.5 rounded-2xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-60 ${
               isLight ? "bg-white border-slate-300 text-slate-800 hover:bg-slate-50" : "bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800"
             }`}
           >
@@ -503,7 +504,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
           {mayCreate && (
             <button
               onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#D4AF37] to-[#C59B27] text-[#051329] font-bold text-xs shadow-lg hover:shadow-[#D4AF37]/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              className="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#D4AF37] to-[#C59B27] text-[#051329] font-bold text-xs shadow-lg hover:shadow-[#D4AF37]/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
             >
               <Plus className="w-4 h-4" /> ম্যানুয়াল পেমেন্ট
             </button>
@@ -512,8 +513,8 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
       </div>
 
       {/* Search & Filters */}
-      <div className="flex flex-col sm:flex-row items-center gap-3">
-        <div className="relative flex-1 w-full">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:items-center sm:gap-3">
+        <div className="relative flex-1 w-full col-span-2">
           <input
             type="text"
             value={search}

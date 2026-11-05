@@ -184,7 +184,7 @@ export default function AdminSettingsClient({ initialSettings, isDefault, gatewa
             <Database className="w-3.5 h-3.5 text-amber-500" />
             MongoDB Persisted Config System
           </div>
-          <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
+          <h1 className={`text-xl sm:text-3xl font-black tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
             গ্লোবাল সিস্টেম সেটিংস ও মডেল কনফিগারেশন
           </h1>
           <p className={`text-xs sm:text-sm mt-1 font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>

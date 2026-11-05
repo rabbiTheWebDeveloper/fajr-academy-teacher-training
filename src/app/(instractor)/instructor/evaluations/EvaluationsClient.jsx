@@ -210,7 +210,7 @@ export default function EvaluationsClient({
         <div>
           <Link
             href="/instructor"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-2"
+            className="hidden lg:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-2"
           >
             <ArrowLeft className="w-4 h-4" /> ড্যাশবোর্ডে ফিরে যান
           </Link>
@@ -222,7 +222,7 @@ export default function EvaluationsClient({
           </p>
         </div>
 
-        <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
+        <span className="hidden sm:flex text-xs font-bold px-3 py-1.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 items-center gap-1.5">
           <ShieldCheck className="w-4 h-4 text-indigo-400" /> MASTER RUBRIC EVALUATION
         </span>
       </div>
@@ -230,30 +230,30 @@ export default function EvaluationsClient({
       <ErrorBanner message={loadError} />
 
       {/* Quick Performance Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl">
+      <div className="panel-kpis grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-slate-900/90 border border-slate-800 p-4 sm:p-5 rounded-2xl">
           <span className="text-xs text-slate-400 block font-bold">মোট মূল্যায়নকৃত শিক্ষক</span>
-          <div className="text-2xl font-black text-white mt-1">{loadError ? "—" : `${bn(totalGraded)} জন`}</div>
+          <div className="text-xl sm:text-2xl font-black text-white mt-1">{loadError ? "—" : `${bn(totalGraded)} জন`}</div>
           <p className="text-[11px] text-slate-500 mt-1">
             {bn(certifiedCount)} সার্টিফাইড • {bn(retakeCount)} পুনরায় মূল্যায়ন প্রয়োজন
           </p>
         </div>
 
-        <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl">
+        <div className="bg-slate-900/90 border border-slate-800 p-4 sm:p-5 rounded-2xl">
           <span className="text-xs text-slate-400 block font-bold">সরাসরি নিয়োগপ্রাপ্ত (A+ গ্রেড)</span>
-          <div className="text-2xl font-black text-emerald-400 mt-1">{loadError ? "—" : `${bn(hiredCount)} জন`}</div>
+          <div className="text-xl sm:text-2xl font-black text-emerald-400 mt-1">{loadError ? "—" : `${bn(hiredCount)} জন`}</div>
           <p className="text-[11px] text-emerald-400/80 mt-1">৮৫+ স্কোর অর্জনকারী শিক্ষক</p>
         </div>
 
-        <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl">
+        <div className="bg-slate-900/90 border border-slate-800 p-4 sm:p-5 rounded-2xl">
           <span className="text-xs text-slate-400 block font-bold">গড় পারফরম্যান্স স্কোর</span>
-          <div className="text-2xl font-black text-indigo-400 mt-1">{loadError ? "—" : `${bn(avgScore)} / ১০০`}</div>
+          <div className="text-xl sm:text-2xl font-black text-indigo-400 mt-1">{loadError ? "—" : `${bn(avgScore)} / ১০০`}</div>
           <p className="text-[11px] text-indigo-300/80 mt-1">চারটি মূল মানদণ্ডের সমষ্টির গড়</p>
         </div>
       </div>
 
       {/* Evaluation Rubric Form Card */}
-      <div className="bg-slate-900/95 border border-indigo-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+      <div className="bg-slate-900/95 border border-indigo-500/30 rounded-3xl p-4 sm:p-8 shadow-2xl space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
           <div>
             <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">ইন্টারঅ্যাক্টিভ গ্রেডিং ফরম</span>
@@ -416,7 +416,7 @@ export default function EvaluationsClient({
       </div>
 
       {/* Graded Evaluations Roster Table */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+      <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl space-y-4">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 pb-3 border-b border-slate-800">
           <div>
             <h3 className="text-sm font-bold text-white">
@@ -426,14 +426,14 @@ export default function EvaluationsClient({
           </div>
 
           {/* Search & Filter */}
-          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-            <div className="relative flex-1 sm:w-56">
+          <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:flex-wrap sm:items-center lg:w-auto">
+            <div className="relative col-span-2 sm:flex-1 sm:w-56">
               <input
                 type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="নাম বা মোবাইল দিয়ে খুঁজুন..."
-                className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 pl-8 text-xs text-white placeholder-slate-500 focus:outline-none"
+                className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2.5 lg:py-1.5 pl-8 text-xs text-white placeholder-slate-500 focus:outline-none"
               />
               <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
             </div>
@@ -441,7 +441,7 @@ export default function EvaluationsClient({
             <select
               value={trackFilter}
               onChange={(e) => setTrackFilter(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white"
+              className="w-full min-w-0 sm:w-auto bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white"
               aria-label="ব্যাচ ফিল্টার"
             >
               <option value="all">সকল ব্যাচ</option>
@@ -452,7 +452,7 @@ export default function EvaluationsClient({
             <select
               value={gradeFilter}
               onChange={(e) => setGradeFilter(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white"
+              className="w-full min-w-0 sm:w-auto bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white"
               aria-label="গ্রেড ফিল্টার"
             >
               <option value="all">সকল গ্রেড</option>
@@ -466,7 +466,7 @@ export default function EvaluationsClient({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white"
+              className="col-span-2 w-full min-w-0 sm:w-auto bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white"
               aria-label="স্ট্যাটাস ফিল্টার"
             >
               <option value="all">সকল স্ট্যাটাস</option>
@@ -481,7 +481,92 @@ export default function EvaluationsClient({
 
         <FlashMessage flash={listFlash.flash} onClose={listFlash.clear} />
 
-        <div className="overflow-x-auto">
+        {/* Phones/tablets: one card per evaluation */}
+        <div className="lg:hidden">
+          {filteredEvaluations.length === 0 ? (
+            <p className="p-6 text-center text-xs text-slate-500">
+              {evaluations.length === 0
+                ? "কোনো মূল্যায়ন রেকর্ড পাওয়া যায়নি। উপরের ফরম থেকে মূল্যায়ন শুরু করুন।"
+                : "এই ফিল্টারে কোনো মূল্যায়ন পাওয়া যায়নি।"}
+            </p>
+          ) : (
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {filteredEvaluations.map((ev) => {
+                const st = statusMeta(ev.qualificationStatus);
+                const parts = [
+                  ["মাখরাজ", ev.scores?.makhrajTajweed],
+                  ["পেডাগজি", ev.scores?.childPsychologyPedagogy],
+                  ["টুলস", ev.scores?.digitalClassroomTools],
+                  ["ডেমো", ev.scores?.microTeachingDemo],
+                ];
+                return (
+                  <li
+                    key={ev._id}
+                    className={`rounded-2xl border p-4 space-y-3 text-xs text-slate-300 ${
+                      ev.traineeId === selectedTraineeId ? "border-indigo-500/50 bg-indigo-950/30" : "border-slate-800 bg-slate-950/60"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="font-bold text-white text-sm block leading-snug">{ev.traineeName}</span>
+                        <span className="text-[11px] text-slate-400 block">{ev.traineePhone}</span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="font-black text-lg text-indigo-300 whitespace-nowrap">{bn(ev.totalScore ?? 0)}</span>
+                        <span className="text-[10px] text-slate-500"> / ১০০</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-indigo-300 whitespace-nowrap">{trackLabel(ev.track)}</span>
+                      <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border whitespace-nowrap ${st.badge}`}>
+                        {ev.grade} • {st.label}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-1.5 text-center">
+                      {parts.map(([label, value]) => (
+                        <div key={label} className="rounded-xl bg-slate-900/80 border border-slate-800 px-1 py-2">
+                          <div className="text-[10px] text-slate-500 truncate">{label}</div>
+                          <div className="font-black text-white text-sm">{bn(value ?? 0)}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {(ev.instructorName || ev.evaluatedAt) && (
+                      <p className="text-[10px] text-slate-500">
+                        {ev.instructorName ? `মূল্যায়নকারী: ${ev.instructorName}` : ""}
+                        {ev.evaluatedAt ? ` • ${formatDate(ev.evaluatedAt)}` : ""}
+                      </p>
+                    )}
+
+                    <div className={`grid gap-2 ${canDelete(ev) ? "grid-cols-2" : "grid-cols-1"}`}>
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(ev)}
+                        className="py-2.5 rounded-xl bg-slate-800 text-indigo-300 hover:text-white font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <Edit3 className="w-4 h-4" /> সম্পাদনা
+                      </button>
+                      {canDelete(ev) && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteEval(ev)}
+                          disabled={deletingId === ev._id}
+                          className="py-2.5 rounded-xl bg-slate-800 text-rose-400 hover:text-rose-300 disabled:opacity-50 font-bold flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          {deletingId === ev._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} মুছে ফেলুন
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
             <thead className="bg-slate-950/80 text-slate-400 font-bold border-b border-slate-800">
               <tr>

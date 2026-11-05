@@ -628,7 +628,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
             Curriculum, Modules & Learning Resources
           </div>
-          <h1 className={`text-2xl sm:text-3xl font-black tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
+          <h1 className={`text-xl sm:text-3xl font-black tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
             কোর্স, কারিকুলাম ও রিসোর্স কনফিগারেশন
           </h1>
           <p className={`text-xs sm:text-sm mt-1 font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
@@ -636,7 +636,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
           <button
             type="button"
             onClick={reload}
@@ -651,7 +651,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
           {mayCreate && (
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-2 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+              className="flex-1 sm:flex-none justify-center px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-2 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" /> নতুন কোর্স তৈরি
             </button>

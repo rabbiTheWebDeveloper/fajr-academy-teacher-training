@@ -379,7 +379,7 @@ export default function AdminTotsClient({ initialTots, courses = [], loadError: 
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs w-full sm:w-auto">
+        <div className="panel-grid2 flex flex-wrap items-center gap-2 text-xs w-full sm:w-auto">
           {canCreate && (
             <button
               onClick={() => setShowCreateModal(true)}

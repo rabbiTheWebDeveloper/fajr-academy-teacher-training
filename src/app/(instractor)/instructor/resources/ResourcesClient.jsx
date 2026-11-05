@@ -186,7 +186,7 @@ export default function ResourcesClient({ initialCourses = [], loadError = null 
         <div>
           <Link
             href="/instructor"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-2"
+            className="hidden lg:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-2"
           >
             <ArrowLeft className="w-4 h-4" /> ড্যাশবোর্ডে ফিরে যান
           </Link>
@@ -196,7 +196,7 @@ export default function ResourcesClient({ initialCourses = [], loadError = null 
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={reload}
@@ -210,7 +210,7 @@ export default function ResourcesClient({ initialCourses = [], loadError = null 
             type="button"
             onClick={openAddModal}
             disabled={courses.length === 0}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all"
+            className="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all"
           >
             <Plus className="w-4 h-4" /> নতুন রিসোর্স যোগ করুন
           </button>
@@ -233,7 +233,7 @@ export default function ResourcesClient({ initialCourses = [], loadError = null 
           <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="panel-grid2 flex flex-wrap items-center gap-2">
           <select
             value={courseFilter}
             onChange={(e) => setCourseFilter(e.target.value)}

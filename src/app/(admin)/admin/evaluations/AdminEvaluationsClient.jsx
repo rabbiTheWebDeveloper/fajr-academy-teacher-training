@@ -296,13 +296,13 @@ export default function AdminEvaluationsClient({ initialEvaluations = [], loadEr
             >
               <Award className="w-3.5 h-3.5" /> ট্রেইনার্স কোয়ালিফিকেশন মাস্টার পোর্টাল
             </div>
-            <h1 className={`text-2xl sm:text-3xl font-black ${isLight ? "text-slate-900" : "text-white"}`}>ট্রেইনি মূল্যায়ন, স্কোরকার্ড ও সনদপত্র</h1>
+            <h1 className={`text-xl sm:text-3xl font-black ${isLight ? "text-slate-900" : "text-white"}`}>ট্রেইনি মূল্যায়ন, স্কোরকার্ড ও সনদপত্র</h1>
             <p className={`text-xs sm:text-sm ${isLight ? "text-slate-600" : "text-slate-300"}`}>
               ইনস্ট্রাক্টর কর্তৃক মূল্যায়িত ৪-রুব্রিক নম্বর বিভাজন, ফাইনাল গ্রেড ও শিক্ষক নিয়োগ সুপারিশ
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="panel-grid2 flex flex-wrap items-center gap-2.5">
             <button
               type="button"
               onClick={reload}
@@ -383,7 +383,7 @@ export default function AdminEvaluationsClient({ initialEvaluations = [], loadEr
           isLight ? "bg-white border-slate-200" : "bg-[#051329] border-slate-800"
         }`}
       >
-        <div className="flex-1 min-w-[240px] relative">
+        <div className="flex-1 w-full sm:w-auto sm:min-w-[240px] relative">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -396,7 +396,7 @@ export default function AdminEvaluationsClient({ initialEvaluations = [], loadEr
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="panel-grid2 flex flex-wrap items-center gap-2.5">
           <select value={trackFilter} onChange={(e) => setTrackFilter(e.target.value)} className={selectCls}>
             <option value="all">সব ব্যাচ ট্র্যাক</option>
             <option value="TOT-MEN">TOT-MEN (পুরুষ ব্যাচ)</option>

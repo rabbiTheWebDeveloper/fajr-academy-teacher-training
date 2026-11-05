@@ -240,15 +240,15 @@ export default function AdminDashboardClient({ stats, loadError, notice: pageNot
       {/* Executive Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
+          <h1 className={`text-xl sm:text-3xl font-bold tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
             অ্যাডমিন ড্যাশবোর্ড
           </h1>
-          <p className={`text-xs sm:text-sm mt-1 font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+          <p className={`text-xs sm:text-sm mt-1 font-medium line-clamp-2 sm:line-clamp-none ${isLight ? "text-slate-600" : "text-slate-400"}`}>
             ফজর একাডেমি টিচার্স ট্রেনিং (TOT) প্রোগ্রামের লাইভ এনরোলমেন্ট, পেমেন্ট, মূল্যায়ন ও ইনস্ট্রাক্টর ট্র্যাকার
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="panel-grid2 flex flex-wrap items-center gap-2.5">
           <button
             type="button"
             onClick={refresh}
@@ -272,7 +272,7 @@ export default function AdminDashboardClient({ stats, loadError, notice: pageNot
       </div>
 
       {/* Welcome card: who you are, what this role may do, shortcuts */}
-      <section className="panel-hero rounded-3xl p-6 sm:p-8">
+      <section className="panel-hero rounded-3xl p-5 sm:p-8">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-center">
           <div className="space-y-4">
             <div className="space-y-2">
@@ -288,7 +288,7 @@ export default function AdminDashboardClient({ stats, loadError, notice: pageNot
             </div>
 
             {!isSuper && accessibleModules.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="panel-scroll-x -mx-5 flex flex-wrap gap-1.5 px-5 sm:mx-0 sm:px-0">
                 {accessibleModules.map((m) => (
                   <span key={m.id} title={m.hint} className="panel-glass rounded-full px-2.5 py-1 text-[10px] font-bold">
                     {m.label} ({m.actions.filter((a) => can(m.id, a)).map((a) => ACTION_LABEL[a]).join(", ")})
@@ -298,9 +298,9 @@ export default function AdminDashboardClient({ stats, loadError, notice: pageNot
             )}
 
             {quickLinks.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="panel-scroll-x -mx-5 flex flex-wrap gap-2 px-5 sm:mx-0 sm:px-0">
                 {quickLinks.map(({ href, Icon, text }) => (
-                  <Link key={href} href={href} className="panel-glass inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold">
+                  <Link key={href} href={href} className="panel-glass inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-bold whitespace-nowrap sm:py-2">
                     <Icon className="w-4 h-4" /> {text}
                   </Link>
                 ))}
@@ -367,17 +367,17 @@ export default function AdminDashboardClient({ stats, loadError, notice: pageNot
 
       {/* KPI Metrics Grid — one card per module this role can read */}
       {kpiCount > 0 && (
-      <div className={`grid grid-cols-1 sm:grid-cols-2 ${KPI_COLS[kpiCount]} gap-4`}>
+      <div className={`panel-kpis grid grid-cols-1 sm:grid-cols-2 ${KPI_COLS[kpiCount]} gap-4`}>
         {/* KPI 1: Revenue */}
         {canPayments && (
-        <div className={`p-5 rounded-3xl relative overflow-hidden border transition-all ${kpiBox}`}>
+        <div className={`p-4 sm:p-5 rounded-3xl relative overflow-hidden border transition-all ${kpiBox}`}>
           <div className="flex items-center justify-between mb-2">
             <span className={`text-xs font-bold ${isLight ? "text-slate-600" : "text-slate-400"}`}>মোট সংগৃহীত ফি</span>
             <div className={`p-2 rounded-xl ${isLight ? "bg-emerald-100 text-emerald-700" : "bg-emerald-500/20 text-emerald-400"}`}>
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className={`text-2xl sm:text-3xl font-black font-mono ${isLight ? "text-slate-900" : "text-white"}`}>
+          <div className={`text-xl sm:text-3xl font-black font-mono ${isLight ? "text-slate-900" : "text-white"}`}>
             ৳ {Number(stats.totalRevenue || 0).toLocaleString("en-US")}{" "}
             <span className={`text-xs font-sans font-medium ${isLight ? "text-slate-500" : "text-slate-400"}`}>BDT</span>
           </div>
@@ -389,14 +389,14 @@ export default function AdminDashboardClient({ stats, loadError, notice: pageNot
 
         {/* KPI 2: Paid Trainees */}
         {canTots && (
-        <div className={`p-5 rounded-3xl relative overflow-hidden border transition-all ${kpiBox}`}>
+        <div className={`p-4 sm:p-5 rounded-3xl relative overflow-hidden border transition-all ${kpiBox}`}>
           <div className="flex items-center justify-between mb-2">
             <span className={`text-xs font-bold ${isLight ? "text-slate-600" : "text-slate-400"}`}>পেইড / ফ্রি ট্রেইনি</span>
             <div className={`p-2 rounded-xl ${isLight ? "bg-blue-100 text-blue-700" : "bg-blue-500/20 text-blue-400"}`}>
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className={`text-2xl sm:text-3xl font-black font-mono ${isLight ? "text-blue-700" : "text-blue-400"}`}>
+          <div className={`text-xl sm:text-3xl font-black font-mono ${isLight ? "text-blue-700" : "text-blue-400"}`}>
             {stats.paidTrainees}{" "}
             <span className={`text-xs font-sans font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
               / {stats.totalTrainees} জন
@@ -414,7 +414,7 @@ export default function AdminDashboardClient({ stats, loadError, notice: pageNot
         <Link
           href="/admin/payments"
           title="পেমেন্ট ভেরিফিকেশন পেজে যান"
-          className={`p-5 rounded-3xl relative overflow-hidden border transition-all block hover:-translate-y-0.5 ${kpiBox}`}
+          className={`p-4 sm:p-5 rounded-3xl relative overflow-hidden border transition-all block hover:-translate-y-0.5 ${kpiBox}`}
         >
           <div className="flex items-center justify-between mb-2">
             <span className={`text-xs font-bold ${isLight ? "text-slate-600" : "text-slate-400"}`}>যাচাইয়ের অপেক্ষায়</span>
@@ -422,7 +422,7 @@ export default function AdminDashboardClient({ stats, loadError, notice: pageNot
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className={`text-2xl sm:text-3xl font-black font-mono ${isLight ? "text-amber-700" : "text-amber-400"}`}>
+          <div className={`text-xl sm:text-3xl font-black font-mono ${isLight ? "text-amber-700" : "text-amber-400"}`}>
             {stats.pendingPayments}{" "}
             <span className={`text-xs font-sans font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>টি পেমেন্ট</span>
           </div>
@@ -438,7 +438,7 @@ export default function AdminDashboardClient({ stats, loadError, notice: pageNot
         {canInstructors && (
         <Link
           href="/admin/instructors"
-          className={`group p-5 rounded-3xl relative overflow-hidden border transition-all block ${
+          className={`group p-4 sm:p-5 rounded-3xl relative overflow-hidden border transition-all block ${
             isLight
               ? "bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-purple-300"
               : "bg-slate-900/90 border-slate-800 shadow-xl hover:border-purple-500/40"
@@ -454,7 +454,7 @@ export default function AdminDashboardClient({ stats, loadError, notice: pageNot
               <Award className="w-4 h-4" />
             </div>
           </div>
-          <div className={`text-2xl sm:text-3xl font-black font-mono ${isLight ? "text-purple-700" : "text-purple-400"}`}>
+          <div className={`text-xl sm:text-3xl font-black font-mono ${isLight ? "text-purple-700" : "text-purple-400"}`}>
             {stats.totalInstructors}{" "}
             <span className={`text-xs font-sans font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>জন ট্রেইনার</span>
           </div>
@@ -475,7 +475,7 @@ export default function AdminDashboardClient({ stats, loadError, notice: pageNot
         {canEvaluations && (
         <Link
           href="/admin/evaluations"
-          className={`group p-5 rounded-3xl relative overflow-hidden border transition-all block ${
+          className={`group p-4 sm:p-5 rounded-3xl relative overflow-hidden border transition-all block ${
             isLight
               ? "bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-amber-300"
               : "bg-slate-900/90 border-slate-800 shadow-xl hover:border-[#D4AF37]/40"
@@ -491,7 +491,7 @@ export default function AdminDashboardClient({ stats, loadError, notice: pageNot
               <Award className="w-4 h-4" />
             </div>
           </div>
-          <div className={`text-2xl sm:text-3xl font-black font-mono ${isLight ? "text-amber-800" : "text-[#D4AF37]"}`}>
+          <div className={`text-xl sm:text-3xl font-black font-mono ${isLight ? "text-amber-800" : "text-[#D4AF37]"}`}>
             {stats.totalEvaluated}{" "}
             <span className={`text-xs font-sans font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>জন মূল্যায়িত</span>
           </div>

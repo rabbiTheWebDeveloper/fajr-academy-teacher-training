@@ -78,7 +78,7 @@ export default function LiveClient({ initialCourses = [], loadError = null }) {
         <div>
           <Link
             href="/instructor"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-2"
+            className="hidden lg:inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors mb-2"
           >
             <ArrowLeft className="w-4 h-4" /> ড্যাশবোর্ডে ফিরে যান
           </Link>
@@ -93,7 +93,7 @@ export default function LiveClient({ initialCourses = [], loadError = null }) {
           </p>
         </div>
 
-        <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1.5">
+        <span className="hidden sm:flex text-xs font-bold px-3 py-1.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 items-center gap-1.5">
           <ShieldCheck className="w-4 h-4 text-indigo-400" /> MASTER HOST CONSOLE
         </span>
       </div>
@@ -184,11 +184,14 @@ export default function LiveClient({ initialCourses = [], loadError = null }) {
                     <div className="pt-2 space-y-1">
                       <strong className="text-white block text-[11px]">সেশন সূচি:</strong>
                       {sessions.map((m) => (
-                        <div key={m.moduleNo} className="flex items-center justify-between gap-2 text-[11px]">
-                          <span className="text-slate-400 truncate">
+                        <div
+                          key={m.moduleNo}
+                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 sm:gap-2 text-[11px] py-1 sm:py-0 border-b border-slate-800/60 last:border-b-0 sm:border-b-0"
+                        >
+                          <span className="text-slate-400 sm:truncate">
                             {bn(m.moduleNo)}. {m.title}
                           </span>
-                          <span className="text-emerald-400 font-semibold shrink-0">
+                          <span className="text-emerald-400 font-semibold sm:shrink-0">
                             {m.liveDate || m.sessionDate}
                             {m.sessionTime ? ` • ${m.sessionTime}` : ""}
                           </span>
@@ -232,7 +235,7 @@ export default function LiveClient({ initialCourses = [], loadError = null }) {
                   </button>
                 )}
 
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => handleCopy(b.meetLink, b.courseId)}
@@ -258,10 +261,11 @@ export default function LiveClient({ initialCourses = [], loadError = null }) {
                     </a>
                   ) : (
                     <span
-                      className="py-2.5 px-3.5 rounded-xl bg-slate-800/60 text-slate-500 text-xs font-semibold flex items-center justify-center gap-1.5 border border-slate-700"
+                      className="py-2.5 px-3 rounded-xl bg-slate-800/60 text-slate-500 text-xs font-semibold flex items-center justify-center gap-1.5 border border-slate-700 text-center"
                       title={`WhatsApp লিঙ্ক ${NOT_SET}`}
                     >
-                      <MessageCircle className="w-3.5 h-3.5" /> WhatsApp: {NOT_SET}
+                      <MessageCircle className="w-3.5 h-3.5 shrink-0" /> <span className="sm:hidden">WhatsApp নেই</span>
+                      <span className="hidden sm:inline">WhatsApp: {NOT_SET}</span>
                     </span>
                   )}
                 </div>
