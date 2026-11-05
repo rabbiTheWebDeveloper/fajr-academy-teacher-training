@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { NoticeModel } from "@/model/notice-model";
-import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { requirePermission, serverError } from "@/lib/api-auth";
 import { isObjectId } from "@/lib/query-helpers";
 
 const TRACKS = ["all", "TOT-MEN", "TOT-WOMEN-014", "TOT-WOMEN"];
@@ -9,7 +9,7 @@ const PRIORITIES = ["normal", "important", "urgent"];
 const plain = (v) => JSON.parse(JSON.stringify(v));
 
 export async function GET(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "announcements", "read");
   if (auth.error) return auth.error;
 
   try {
@@ -24,7 +24,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "announcements", "create");
   if (auth.error) return auth.error;
 
   try {
@@ -54,7 +54,7 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "announcements", "update");
   if (auth.error) return auth.error;
 
   try {
@@ -73,7 +73,7 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "announcements", "delete");
   if (auth.error) return auth.error;
 
   try {

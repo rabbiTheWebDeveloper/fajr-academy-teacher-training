@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { NoticeModel } from "@/model/notice-model";
-import { requireAuth, INSTRUCTOR_ROLES, isAdminRole, serverError } from "@/lib/api-auth";
+import { requireAuth, INSTRUCTOR_ROLES, deleteScope, MSG_DELETE_DENIED, serverError } from "@/lib/api-auth";
 import { isObjectId } from "@/lib/query-helpers";
 
 const TRACKS = ["all", "TOT-MEN", "TOT-WOMEN-014", "TOT-WOMEN"];
@@ -71,6 +71,13 @@ export async function DELETE(request) {
   if (auth.error) return auth.error;
   const { session } = auth;
 
+  // Instructors may delete only their own notices; among admins only a super-admin may delete.
+  // Checked before touching the database, so a refused admin learns nothing about the record.
+  const scope = await deleteScope(session);
+  if (scope === "none") {
+    return NextResponse.json({ success: false, message: MSG_DELETE_DENIED }, { status: 403 });
+  }
+
   try {
     await dbConnect();
     const id = new URL(request.url).searchParams.get("id");
@@ -82,9 +89,9 @@ export async function DELETE(request) {
     if (!notice) {
       return NextResponse.json({ success: false, message: "নোটিশটি পাওয়া যায়নি।" }, { status: 404 });
     }
-    if (notice.instructorEmail !== session.email && !isAdminRole(session.role)) {
+    if (scope === "own" && notice.instructorEmail !== session.email) {
       return NextResponse.json(
-        { success: false, message: "শুধুমাত্র নোটিশ প্রদানকারী বা অ্যাডমিন এটি মুছতে পারবেন।" },
+        { success: false, message: "শুধুমাত্র নোটিশ প্রদানকারী বা সুপার-অ্যাডমিন এটি মুছতে পারবেন।" },
         { status: 403 }
       );
     }

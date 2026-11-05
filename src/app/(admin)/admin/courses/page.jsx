@@ -5,6 +5,7 @@ import { InstructorModel } from "@/model/instructor-model";
 import { ensureDefaultCourses, withLiveEnrolment } from "@/service/course-service";
 import { toPlain } from "@/lib/query-helpers";
 import { withCourseState } from "@/lib/course-state";
+import { requireAdminPage } from "../../_shared/server";
 
 export const metadata = {
   title: "কোর্স, কারিকুলাম ও রিসোর্স কনফিগারেশন | অ্যাডমিন প্যানেল",
@@ -14,6 +15,8 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminCoursesPage() {
+  await requireAdminPage("courses"); // redirects when the role may not open this page
+
   let courses = [];
   let instructors = [];
   let loadError = null;

@@ -5,7 +5,7 @@ import { ParticipantModel } from "@/model/participant-model";
 import { PaymentModel } from "@/model/payment-model";
 import { MEN_TOT_CURRICULUM, WOMEN_TOT_CURRICULUM } from "@/constant/course-defaults";
 import { ensureDefaultCourses, withLiveEnrolment } from "@/service/course-service";
-import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { requirePermission, serverError } from "@/lib/api-auth";
 import { isObjectId, pick } from "@/lib/query-helpers";
 import { COURSE_STATES, COURSE_STATE_LABEL, courseState, publishProblem, transitionProblem, withCourseState } from "@/lib/course-state";
 
@@ -71,6 +71,22 @@ function clean(input) {
   return { data: out };
 }
 
+const lessonTotal = (curriculum) => (curriculum || []).reduce((n, mod) => n + (Array.isArray(mod?.lessons) ? mod.lessons.length : 0), 0);
+
+/**
+ * Adding and editing modules, lessons and study files is an "update", but the UI removes
+ * them by saving a shorter list — which is a delete, and deleting is super-admin only.
+ * Returns what would be removed (for the error message) or null.
+ */
+function removedContent(current, data) {
+  if (data.curriculum !== undefined) {
+    if (data.curriculum.length < (current.curriculum || []).length) return "মডিউল";
+    if (lessonTotal(data.curriculum) < lessonTotal(current.curriculum)) return "লেসন";
+  }
+  if (data.resources !== undefined && data.resources.length < (current.resources || []).length) return "স্টাডি ফাইল";
+  return null;
+}
+
 const findCourse = (body) =>
   isObjectId(body?._id)
     ? CourseModel.findById(body._id).lean()
@@ -79,7 +95,7 @@ const findCourse = (body) =>
       : null;
 
 export async function GET(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "courses", "read");
   if (auth.error) return auth.error;
 
   try {
@@ -99,7 +115,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "courses", "create");
   if (auth.error) return auth.error;
 
   try {
@@ -150,7 +166,7 @@ export async function POST(request) {
 }
 
 export async function PUT(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "courses", "update");
   if (auth.error) return auth.error;
 
   try {
@@ -167,8 +183,13 @@ export async function PUT(request) {
 
     // A live course must stay publishable: no emptying its name or setting a 0 fee. Only the
     // fields this request changes are checked, so unrelated edits are never blocked.
-    const current = await CourseModel.findOne(query).select("publishState isPublished courseId").lean();
+    const current = await CourseModel.findOne(query).select("publishState isPublished courseId curriculum resources").lean();
     if (!current) return bad("কোর্স পাওয়া যায়নি।", 404);
+
+    if (!auth.access.isSuper) {
+      const removed = removedContent(current, data);
+      if (removed) return bad(`${removed} মুছে ফেলার অনুমতি শুধু সুপার-অ্যাডমিনের আছে।`, 403);
+    }
 
     // Course ID change: only for a non-official course with no payments or enrolments yet.
     let idChange = null;
@@ -214,7 +235,7 @@ const STATE_MESSAGE = {
 
 /** Publish / unpublish / archive / restore / move to draft. Body: { _id | courseId, publishState }. */
 export async function PATCH(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "courses", "update");
   if (auth.error) return auth.error;
 
   try {
@@ -253,7 +274,7 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "courses", "delete");
   if (auth.error) return auth.error;
 
   try {

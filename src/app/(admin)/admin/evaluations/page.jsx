@@ -2,6 +2,7 @@ import { dbConnect } from "@/service/mongo";
 import { EvaluationModel } from "@/model/evaluation-model";
 import { toPlain } from "@/lib/query-helpers";
 import AdminEvaluationsClient from "./AdminEvaluationsClient";
+import { requireAdminPage } from "../../_shared/server";
 
 export const metadata = {
   title: "ট্রেইনি মূল্যায়ন ও সনদপত্র ব্যবস্থাপনা | অ্যাডমিন প্যানেল",
@@ -11,6 +12,8 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminEvaluationsPage() {
+  await requireAdminPage("evaluations"); // redirects when the role may not open this page
+
   let initialEvaluations = [];
   let loadError = null;
 

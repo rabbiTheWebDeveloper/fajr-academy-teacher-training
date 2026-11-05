@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { initiateSSLCommerzRefund, querySSLCommerzRefund } from "@/lib/sslcommerz";
 import { dbConnect } from "@/service/mongo";
 import { PaymentModel } from "@/model/payment-model";
-import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { requirePermission, serverError } from "@/lib/api-auth";
 import { revokeForPayment } from "@/service/payment-service";
 
 /** GET ?refund_ref_id=… — refund status from the gateway (admin only). */
 export async function GET(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "payments", "read");
   if (auth.error) return auth.error;
 
   try {
@@ -32,7 +32,7 @@ export async function GET(request) {
  * The bank transaction ID and the maximum amount come from our own record, not the request.
  */
 export async function POST(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "payments", "update");
   if (auth.error) return auth.error;
 
   try {

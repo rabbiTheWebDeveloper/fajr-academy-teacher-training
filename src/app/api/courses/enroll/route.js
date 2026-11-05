@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { enrollUserInCourse } from "@/service/participant-service";
-import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { requirePermission, serverError } from "@/lib/api-auth";
 
 /**
  * Manual enrolment (admin only). Paid enrolments normally happen automatically when a
  * payment is verified (service/payment-service.js). This route never changes roles.
  */
 export async function POST(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, ["tots", "courses"], "create");
   if (auth.error) return auth.error;
 
   try {

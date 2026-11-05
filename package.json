@@ -10,6 +10,7 @@
     "seed:admin": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/scripts/create-admin.mjs"
   },
   "dependencies": {
+    "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.11.0",
     "clsx": "^2.1.1",
     "googleapis": "^178.1.1",
@@ -27,6 +28,7 @@
     "nodemailer": "^10.3.1",
     "pusher": "^5.3.4",
     "pusher-js": "^8.6.0",
+    "radix-ui": "^1.8.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "sslcommerz-lts": "^1.2.0",

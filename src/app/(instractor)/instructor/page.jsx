@@ -1,7 +1,6 @@
 import { dbConnect } from "@/service/mongo";
 import { NoticeModel } from "@/model/notice-model";
 import { getInstructorStats } from "@/service/instructor-service";
-import { isAdminRole } from "@/lib/api-auth";
 import { toPlain } from "@/lib/query-helpers";
 import InstructorDashboardClient from "./InstructorDashboardClient";
 import {
@@ -48,7 +47,8 @@ export default async function InstructorPage({ searchParams }) {
 
   return (
     <InstructorDashboardClient
-      instructor={{ ...profile, isAdmin: isAdminRole(profile.role) }}
+      // `isAdmin` only decides who may delete other people's notices — super-admin only.
+      instructor={{ ...profile, isAdmin: profile.role === "super-admin" }}
       initialBatch={initialBatch}
       initialStats={statsRes.status === "fulfilled" ? toPlain(statsRes.value) : null}
       courses={coursesRes.status === "fulfilled" ? coursesRes.value : []}

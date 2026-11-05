@@ -1,0 +1,568 @@
+/* =========================================================================
+   FAJR ACADEMY — ADMIN & INSTRUCTOR PANEL THEME
+   Lavender canvas · violet gradients · amber call-to-action.
+
+   Three layers:
+     1. Tokens      shadcn/ui semantic variables (--background, --sidebar, …) per theme.
+                    They live on the panel root AND on <html data-panel-theme>, because the
+                    mobile sidebar sheet, tooltips and menus render in a portal outside the root.
+     2. Shell       .panel-header / .panel-hero / .panel-glass / .panel-cta — the gradient pieces.
+     3. Content     everything inside .panel-content: the screens were written with dark slate
+                    classes (bg-slate-900, text-white …); in light mode these rules re-skin them
+                    to white cards on a lavender canvas, in dark mode to a violet-black palette.
+   The shell (sidebar, header) is outside .panel-content, so it is never touched by layer 3.
+   ========================================================================= */
+
+/* ---------- 1. TOKENS ---------- */
+
+.panel-root.theme-light,
+html[data-panel-theme="light"] {
+  --background: #f4f2fb;
+  --foreground: #1b1530;
+  --primary: #7c5cf0;
+  --primary-foreground: #ffffff;
+  --secondary: #eee9fd;
+  --secondary-foreground: #3b2a8f;
+  --accent: #f1edfe;
+  --accent-foreground: #4b2fd0;
+  --muted-foreground: #6b6485;
+  --popover: #ffffff;
+  --popover-foreground: #1b1530;
+  --destructive: #e11d48;
+  --border: #e9e4f7;
+  --input: #d9d2f0;
+  --ring: #8b6cf0;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #3a3354;
+  --sidebar-primary: #7c5cf0;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f3f0fe;
+  --sidebar-accent-foreground: #4b2fd0;
+  --sidebar-border: #ece8f8;
+  --sidebar-ring: #8b6cf0;
+
+  --panel-header-bg: linear-gradient(100deg, #5b3fd9 0%, #7c4deb 42%, #a855f7 78%, #d16be8 100%);
+  --panel-hero-bg: linear-gradient(135deg, #a58cf7 0%, #7c5ce8 48%, #5e3fd6 100%);
+  --panel-nav-active: linear-gradient(135deg, #9b80f5 0%, #6d4ae8 100%);
+  --panel-sb-track: #ede9fb;
+  --panel-sb-thumb: #b9a7f7;
+}
+
+.panel-root.theme-dark,
+html[data-panel-theme="dark"] {
+  --background: #0e0a1f;
+  --foreground: #f1eeff;
+  --primary: #8b6cf0;
+  --primary-foreground: #ffffff;
+  --secondary: #221a43;
+  --secondary-foreground: #ddd5ff;
+  --accent: #221a43;
+  --accent-foreground: #e7e0ff;
+  --muted-foreground: #a59dc8;
+  --popover: #1a1334;
+  --popover-foreground: #f1eeff;
+  --destructive: #f43f5e;
+  --border: rgba(167, 139, 250, 0.16);
+  --input: rgba(167, 139, 250, 0.24);
+  --ring: #a78bfa;
+
+  --sidebar: #130e27;
+  --sidebar-foreground: #cfc8ea;
+  --sidebar-primary: #8b6cf0;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #20183f;
+  --sidebar-accent-foreground: #e7e0ff;
+  --sidebar-border: rgba(167, 139, 250, 0.14);
+  --sidebar-ring: #a78bfa;
+
+  --panel-header-bg: linear-gradient(100deg, #2e1f7a 0%, #4b2bb8 42%, #6d35c9 78%, #8e3fc0 100%);
+  --panel-hero-bg: linear-gradient(135deg, #5b42c9 0%, #4a2fb0 50%, #35208f 100%);
+  --panel-nav-active: linear-gradient(135deg, #8b6cf0 0%, #5b35d5 100%);
+  --panel-sb-track: #130e27;
+  --panel-sb-thumb: #4b3a8f;
+}
+
+/* The page-level scrollbar is global (see globals.css: gold on navy); match it to the panel. */
+html[data-panel-theme] ::-webkit-scrollbar-track {
+  background: var(--panel-sb-track);
+}
+html[data-panel-theme] ::-webkit-scrollbar-thumb {
+  background: var(--panel-sb-thumb);
+}
+html[data-panel-theme] ::-webkit-scrollbar-thumb:hover {
+  background: #8b6cf0;
+}
+
+.panel-root {
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* ---------- 2. SHELL ---------- */
+
+/* Top bar: violet → fuchsia gradient with a soft glow underneath */
+.panel-root .panel-header {
+  background: var(--panel-header-bg);
+  color: #ffffff;
+  box-shadow: 0 10px 28px -14px rgba(91, 63, 217, 0.65);
+}
+
+/* Frosted chips and buttons that sit on a gradient */
+.panel-root .panel-glass {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  backdrop-filter: blur(8px);
+  transition: background-color 0.15s ease;
+}
+.panel-root button.panel-glass:hover,
+.panel-root a.panel-glass:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+/* Large gradient feature card (welcome / summary), with the glassy orbs from the reference */
+.panel-root .panel-hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--panel-hero-bg);
+  color: #ffffff;
+  box-shadow: 0 24px 48px -24px rgba(91, 63, 217, 0.75);
+}
+.panel-root .panel-hero::before,
+.panel-root .panel-hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+.panel-root .panel-hero::before {
+  width: 22rem;
+  height: 22rem;
+  top: -9rem;
+  right: -6rem;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0) 65%);
+}
+.panel-root .panel-hero::after {
+  width: 16rem;
+  height: 16rem;
+  bottom: -8rem;
+  left: 30%;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 214, 255, 0.22), rgba(255, 255, 255, 0) 70%);
+}
+.panel-root .panel-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Primary call-to-action: the amber → orange button from the reference */
+.panel-root .panel-cta {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 55%, #f97316 100%);
+  color: #2a1600;
+  font-weight: 800;
+  box-shadow: 0 10px 22px -10px rgba(245, 158, 11, 0.85);
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.panel-root .panel-cta:hover {
+  filter: brightness(1.06);
+}
+.panel-root .panel-cta:active {
+  transform: translateY(1px);
+}
+
+/* ---------- 3. CONTENT — BOTH THEMES: indigo accents → the panel's violet ---------- */
+
+.panel-root .panel-content .bg-indigo-500,
+.panel-root .panel-content .bg-indigo-600 {
+  background-color: #7c5cf0 !important;
+}
+.panel-root .panel-content .hover\:bg-indigo-500:hover,
+.panel-root .panel-content .hover\:bg-indigo-600:hover {
+  background-color: #6d4ae8 !important;
+}
+.panel-root .panel-content .border-indigo-500,
+.panel-root .panel-content .hover\:border-indigo-500:hover,
+.panel-root .panel-content .focus\:border-indigo-500:focus {
+  border-color: #8b6cf0 !important;
+}
+.panel-root .panel-content .from-indigo-500,
+.panel-root .panel-content .from-indigo-600 {
+  --tw-gradient-from: #8b6cf0 !important;
+}
+.panel-root .panel-content .to-purple-500,
+.panel-root .panel-content .to-purple-600 {
+  --tw-gradient-to: #6d4ae8 !important;
+}
+
+/* ---------- 3. CONTENT — LIGHT ---------- */
+
+/* Cards & panels: white on the lavender canvas */
+.panel-root.theme-light .panel-content .bg-slate-900,
+.panel-root.theme-light .panel-content .bg-slate-900\/95,
+.panel-root.theme-light .panel-content .bg-slate-900\/90,
+.panel-root.theme-light .panel-content .bg-slate-900\/80,
+.panel-root.theme-light .panel-content .bg-slate-950:not(select):not(input) {
+  background-color: #ffffff !important;
+  border: 1px solid #e9e4f7 !important;
+  box-shadow: 0 1px 2px rgba(76, 48, 170, 0.04), 0 10px 28px -16px rgba(76, 48, 170, 0.18) !important;
+}
+
+.panel-root.theme-light .panel-content .bg-slate-950\/80,
+.panel-root.theme-light .panel-content .bg-slate-950\/90 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+}
+
+/* Translucent dark fills (sunken wells, drop zones, disabled buttons, hover rows) → lavender tints */
+.panel-root.theme-light .panel-content .bg-slate-950\/15,
+.panel-root.theme-light .panel-content .bg-slate-950\/50,
+.panel-root.theme-light .panel-content .bg-slate-950\/60,
+.panel-root.theme-light .panel-content .bg-slate-950\/70,
+.panel-root.theme-light .panel-content .bg-slate-900\/60 {
+  background-color: #f6f3ff !important;
+}
+.panel-root.theme-light .panel-content .bg-slate-800\/30,
+.panel-root.theme-light .panel-content .bg-slate-800\/40,
+.panel-root.theme-light .panel-content .bg-slate-800\/50,
+.panel-root.theme-light .panel-content .bg-slate-800\/60,
+.panel-root.theme-light .panel-content .bg-slate-800\/80,
+.panel-root.theme-light .panel-content .bg-slate-800\/90,
+.panel-root.theme-light .panel-content .bg-slate-700\/60,
+.panel-root.theme-light .panel-content .hover\:bg-slate-800\/30:hover,
+.panel-root.theme-light .panel-content .hover\:bg-slate-800\/40:hover {
+  background-color: #efeafe !important;
+}
+
+/* Dark gradient surfaces (from-slate-950 … to-slate-950) → a lavender wash */
+.panel-root.theme-light .panel-content .from-slate-950,
+.panel-root.theme-light .panel-content .from-slate-900 {
+  --tw-gradient-from: #f7f4ff !important;
+}
+.panel-root.theme-light .panel-content .to-slate-950,
+.panel-root.theme-light .panel-content .to-slate-900 {
+  --tw-gradient-to: #f7f4ff !important;
+}
+.panel-root.theme-light .panel-content .via-indigo-950\/40,
+.panel-root.theme-light .panel-content .via-slate-900 {
+  --tw-gradient-via: #ece6ff !important;
+}
+
+/* Borders and dividers */
+.panel-root.theme-light .panel-content .border-slate-900,
+.panel-root.theme-light .panel-content .border-slate-800,
+.panel-root.theme-light .panel-content .border-slate-800\/80,
+.panel-root.theme-light .panel-content .border-slate-800\/90,
+.panel-root.theme-light .panel-content .border-slate-700,
+.panel-root.theme-light .panel-content .border-slate-200 {
+  border-color: #e9e4f7 !important;
+}
+.panel-root.theme-light .panel-content .border-slate-300 {
+  border-color: #ddd6f3 !important;
+}
+.panel-root.theme-light .panel-content .divide-slate-800,
+.panel-root.theme-light .panel-content .divide-slate-800\/80,
+.panel-root.theme-light .panel-content .divide-slate-800\/60,
+.panel-root.theme-light .panel-content .divide-slate-800\/50,
+.panel-root.theme-light .panel-content .divide-slate-200 {
+  border-color: #ede9f9 !important;
+}
+
+/* Light slate fills used by the screens' own "light" branches → lavender tints */
+.panel-root.theme-light .panel-content .bg-slate-50 {
+  background-color: #f8f6fe !important;
+}
+.panel-root.theme-light .panel-content .bg-slate-100 {
+  background-color: #f1edfe !important;
+}
+.panel-root.theme-light .panel-content .bg-slate-200 {
+  background-color: #e6dffb !important;
+}
+.panel-root.theme-light .panel-content .hover\:bg-slate-50:hover {
+  background-color: #f4f0ff !important;
+}
+.panel-root.theme-light .panel-content .hover\:bg-slate-100:hover {
+  background-color: #ebe5fd !important;
+}
+
+/* Dark pill buttons (bg-slate-800/700) → soft lavender */
+.panel-root.theme-light .panel-content button.bg-slate-800,
+.panel-root.theme-light .panel-content a.bg-slate-800,
+.panel-root.theme-light .panel-content span.bg-slate-800,
+.panel-root.theme-light .panel-content button.bg-slate-700,
+.panel-root.theme-light .panel-content a.bg-slate-700 {
+  background-color: #f1edfe !important;
+  border: 1px solid #ddd5f7 !important;
+  color: #3b2a8f !important;
+  font-weight: 700 !important;
+}
+.panel-root.theme-light .panel-content button.bg-slate-800:hover,
+.panel-root.theme-light .panel-content a.bg-slate-800:hover,
+.panel-root.theme-light .panel-content button.bg-slate-700:hover {
+  background-color: #e6dffb !important;
+  border-color: #c9bcf3 !important;
+  color: #2a1c75 !important;
+}
+
+/* Typography */
+.panel-root.theme-light .panel-content .text-white {
+  color: #1b1530 !important;
+}
+.panel-root.theme-light .panel-content h1,
+.panel-root.theme-light .panel-content h2,
+.panel-root.theme-light .panel-content h3,
+.panel-root.theme-light .panel-content h4 {
+  color: #1b1530 !important;
+  font-weight: 800 !important;
+}
+.panel-root.theme-light .panel-content .text-slate-100,
+.panel-root.theme-light .panel-content .text-slate-200 {
+  color: #2a2342 !important;
+}
+.panel-root.theme-light .panel-content .text-slate-300 {
+  color: #3a3354 !important;
+}
+.panel-root.theme-light .panel-content .text-slate-400 {
+  color: #5e5778 !important;
+  font-weight: 600 !important;
+}
+.panel-root.theme-light .panel-content .text-slate-500 {
+  color: #6f688a !important;
+}
+
+/* Solid-colour buttons and gradient surfaces keep their white text */
+.panel-root.theme-light .panel-content .bg-indigo-500.text-white,
+.panel-root.theme-light .panel-content .bg-indigo-600.text-white,
+.panel-root.theme-light .panel-content .bg-indigo-700.text-white,
+.panel-root.theme-light .panel-content .bg-violet-600.text-white,
+.panel-root.theme-light .panel-content .bg-purple-600.text-white,
+.panel-root.theme-light .panel-content .bg-blue-600.text-white,
+.panel-root.theme-light .panel-content .bg-emerald-600.text-white,
+.panel-root.theme-light .panel-content .bg-emerald-700.text-white,
+.panel-root.theme-light .panel-content .bg-rose-600.text-white,
+.panel-root.theme-light .panel-content .bg-rose-700.text-white,
+.panel-root.theme-light .panel-content .bg-gradient-to-r.text-white,
+.panel-root.theme-light .panel-content .bg-gradient-to-br.text-white,
+.panel-root.theme-light .panel-content .bg-indigo-500 .text-white,
+.panel-root.theme-light .panel-content .bg-indigo-600 .text-white,
+.panel-root.theme-light .panel-content .bg-indigo-700 .text-white,
+.panel-root.theme-light .panel-content .bg-violet-600 .text-white,
+.panel-root.theme-light .panel-content .bg-purple-600 .text-white,
+.panel-root.theme-light .panel-content .bg-emerald-600 .text-white,
+.panel-root.theme-light .panel-content .bg-rose-600 .text-white,
+.panel-root.theme-light .panel-content button.bg-gradient-to-r .text-white,
+.panel-root.theme-light .panel-content a.bg-gradient-to-r .text-white,
+.panel-root.theme-light .panel-content button.bg-gradient-to-br .text-white,
+.panel-root.theme-light .panel-content a.bg-gradient-to-br .text-white,
+.panel-root.theme-light .panel-content .panel-hero,
+.panel-root.theme-light .panel-content .panel-hero .text-white,
+.panel-root.theme-light .panel-content .panel-hero h1,
+.panel-root.theme-light .panel-content .panel-hero h2,
+.panel-root.theme-light .panel-content .panel-hero h3,
+.panel-root.theme-light .panel-content .panel-hero h4,
+.panel-root.theme-light .panel-content .panel-header .text-white {
+  color: #ffffff !important;
+}
+
+/* Accent text */
+.panel-root.theme-light .panel-content .text-blue-400,
+.panel-root.theme-light .panel-content .text-blue-300 {
+  color: #1d4ed8 !important;
+  font-weight: 700 !important;
+}
+.panel-root.theme-light .panel-content .text-indigo-400 {
+  color: #6d4ae8 !important;
+  font-weight: 700 !important;
+}
+.panel-root.theme-light .panel-content .text-indigo-300,
+.panel-root.theme-light .panel-content .text-indigo-200 {
+  color: #5b3fd9 !important;
+  font-weight: 700 !important;
+}
+.panel-root.theme-light .panel-content .text-amber-400,
+.panel-root.theme-light .panel-content .text-amber-300 {
+  color: #b45309 !important;
+  font-weight: 700 !important;
+}
+.panel-root.theme-light .panel-content .text-purple-400,
+.panel-root.theme-light .panel-content .text-purple-300 {
+  color: #6d28d9 !important;
+  font-weight: 700 !important;
+}
+.panel-root.theme-light .panel-content .text-emerald-400,
+.panel-root.theme-light .panel-content .text-emerald-300 {
+  color: #047857 !important;
+  font-weight: 700 !important;
+}
+.panel-root.theme-light .panel-content .text-rose-400,
+.panel-root.theme-light .panel-content .text-rose-300 {
+  color: #be123c !important;
+  font-weight: 700 !important;
+}
+
+/* Status badges: translucent dark-mode tints → crisp pastel pills */
+.panel-root.theme-light .panel-content .bg-emerald-500\/20,
+.panel-root.theme-light .panel-content .bg-emerald-500\/10 {
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+  border: 1px solid #6ee7b7 !important;
+  font-weight: 700 !important;
+}
+.panel-root.theme-light .panel-content .bg-blue-500\/20,
+.panel-root.theme-light .panel-content .bg-blue-500\/10 {
+  background-color: #eff6ff !important;
+  color: #1e40af !important;
+  border: 1px solid #93c5fd !important;
+  font-weight: 700 !important;
+}
+.panel-root.theme-light .panel-content .bg-amber-500\/20,
+.panel-root.theme-light .panel-content .bg-amber-500\/10 {
+  background-color: #fffbeb !important;
+  color: #92400e !important;
+  border: 1px solid #fcd34d !important;
+  font-weight: 700 !important;
+}
+.panel-root.theme-light .panel-content .bg-purple-500\/20,
+.panel-root.theme-light .panel-content .bg-purple-500\/10 {
+  background-color: #f5f3ff !important;
+  color: #5b21b6 !important;
+  border: 1px solid #c4b5fd !important;
+  font-weight: 700 !important;
+}
+.panel-root.theme-light .panel-content .bg-indigo-500\/20,
+.panel-root.theme-light .panel-content .bg-indigo-500\/10,
+.panel-root.theme-light .panel-content .bg-indigo-600\/20,
+.panel-root.theme-light .panel-content .bg-indigo-950\/30 {
+  background-color: #eef2ff !important;
+  color: #3730a3 !important;
+  border: 1px solid #c7d2fe !important;
+  font-weight: 700 !important;
+}
+.panel-root.theme-light .panel-content .bg-rose-500\/20,
+.panel-root.theme-light .panel-content .bg-rose-500\/10 {
+  background-color: #fff1f2 !important;
+  color: #9f1239 !important;
+  border: 1px solid #fecdd3 !important;
+  font-weight: 700 !important;
+}
+
+/* Inputs, selects, textareas */
+.panel-root.theme-light .panel-content input:not([type="checkbox"]):not([type="radio"]),
+.panel-root.theme-light .panel-content select,
+.panel-root.theme-light .panel-content textarea {
+  background-color: #ffffff !important;
+  border: 1px solid #d9d2f0 !important;
+  color: #1b1530 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px rgba(76, 48, 170, 0.05) !important;
+}
+.panel-root.theme-light .panel-content input::placeholder,
+.panel-root.theme-light .panel-content textarea::placeholder {
+  color: #9a93b6 !important;
+}
+.panel-root.theme-light .panel-content input:focus,
+.panel-root.theme-light .panel-content select:focus,
+.panel-root.theme-light .panel-content textarea:focus {
+  border-color: #8b6cf0 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(139, 108, 240, 0.2) !important;
+}
+
+/* Tables */
+.panel-root.theme-light .panel-content table {
+  background-color: #ffffff !important;
+}
+.panel-root.theme-light .panel-content thead,
+.panel-root.theme-light .panel-content th {
+  background-color: #f4f0ff !important;
+  color: #2a2342 !important;
+  border-bottom: 1px solid #ddd6f3 !important;
+  font-weight: 800 !important;
+}
+.panel-root.theme-light .panel-content tbody tr {
+  border-bottom: 1px solid #f1edfe !important;
+}
+.panel-root.theme-light .panel-content tbody tr:hover {
+  background-color: #faf8ff !important;
+}
+.panel-root.theme-light .panel-content tbody td {
+  color: #1b1530 !important;
+}
+
+/* Modals */
+.panel-root.theme-light .panel-content .fixed.inset-0 {
+  background-color: rgba(24, 14, 58, 0.55) !important;
+  backdrop-filter: blur(4px);
+}
+.panel-root.theme-light .panel-content .fixed .bg-slate-900,
+.panel-root.theme-light .panel-content .fixed .bg-slate-950 {
+  background-color: #ffffff !important;
+  border: 1px solid #ddd6f3 !important;
+  box-shadow: 0 24px 40px -12px rgba(40, 20, 110, 0.25), 0 8px 10px -6px rgba(40, 20, 110, 0.12) !important;
+}
+
+/* ---------- 3. CONTENT — DARK ---------- */
+
+/* The screens' slate surfaces are re-tinted from blue-grey to violet-black. */
+.panel-root.theme-dark .panel-content .bg-slate-950 {
+  background-color: #110c25 !important;
+}
+.panel-root.theme-dark .panel-content .bg-slate-950\/80 {
+  background-color: rgba(17, 12, 37, 0.8) !important;
+}
+.panel-root.theme-dark .panel-content .bg-slate-950\/90 {
+  background-color: rgba(17, 12, 37, 0.9) !important;
+}
+.panel-root.theme-dark .panel-content .bg-slate-900,
+.panel-root.theme-dark .panel-content .bg-slate-900\/95,
+.panel-root.theme-dark .panel-content .bg-slate-900\/90,
+.panel-root.theme-dark .panel-content .bg-slate-900\/80 {
+  background-color: #181231 !important;
+}
+.panel-root.theme-dark .panel-content .bg-slate-800 {
+  background-color: #221a43 !important;
+}
+.panel-root.theme-dark .panel-content .bg-slate-800\/40,
+.panel-root.theme-dark .panel-content .bg-slate-800\/50,
+.panel-root.theme-dark .panel-content .bg-slate-800\/60 {
+  background-color: rgba(34, 26, 67, 0.6) !important;
+}
+.panel-root.theme-dark .panel-content .bg-slate-700 {
+  background-color: #2d2352 !important;
+}
+.panel-root.theme-dark .panel-content .border-slate-900,
+.panel-root.theme-dark .panel-content .border-slate-800,
+.panel-root.theme-dark .panel-content .border-slate-800\/80,
+.panel-root.theme-dark .panel-content .border-slate-800\/90 {
+  border-color: rgba(167, 139, 250, 0.16) !important;
+}
+.panel-root.theme-dark .panel-content .border-slate-700 {
+  border-color: rgba(167, 139, 250, 0.26) !important;
+}
+.panel-root.theme-dark .panel-content .divide-slate-800,
+.panel-root.theme-dark .panel-content .divide-slate-800\/80,
+.panel-root.theme-dark .panel-content .divide-slate-800\/60,
+.panel-root.theme-dark .panel-content .divide-slate-800\/50 {
+  border-color: rgba(167, 139, 250, 0.14) !important;
+}
+.panel-root.theme-dark .panel-content .text-indigo-400,
+.panel-root.theme-dark .panel-content .text-indigo-300 {
+  color: #b9a7fa !important;
+}
+.panel-root.theme-dark .panel-content .text-slate-300 {
+  color: #cbc4e6 !important;
+}
+.panel-root.theme-dark .panel-content .text-slate-400 {
+  color: #a9a1cb !important;
+}
+.panel-root.theme-dark .panel-content .text-slate-500 {
+  color: #8a81ae !important;
+}
+.panel-root.theme-dark .panel-content .fixed.inset-0 {
+  background-color: rgba(8, 4, 24, 0.72) !important;
+  backdrop-filter: blur(4px);
+}
+.panel-root.theme-dark .panel-content input:focus,
+.panel-root.theme-dark .panel-content select:focus,
+.panel-root.theme-dark .panel-content textarea:focus {
+  border-color: #a78bfa !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.22) !important;
+}

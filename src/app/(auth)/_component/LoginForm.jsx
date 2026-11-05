@@ -186,6 +186,13 @@ export default function LoginForm() {
           </div>
         )}
 
+        {reasonParam === "account_disabled" && (
+          <div className="p-3 rounded-xl bg-rose-950/70 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2 mb-4 animate-fadeIn">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>এই অ্যাডমিন অ্যাকাউন্টটি নিষ্ক্রিয় করা হয়েছে বা আর নেই। সুপার-অ্যাডমিনের সাথে যোগাযোগ করুন।</span>
+          </div>
+        )}
+
         {/* Returned from the gateway after a verified payment */}
         {paymentParam === "success" && (
           <div className="p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs flex items-start gap-2.5 mb-4">

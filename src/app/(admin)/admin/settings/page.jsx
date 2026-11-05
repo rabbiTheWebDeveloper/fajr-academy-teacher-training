@@ -3,6 +3,7 @@ import { dbConnect } from "@/service/mongo";
 import { SettingModel } from "@/model/setting-model";
 import { gatewayMode, isGatewayConfigured } from "@/lib/sslcommerz";
 import { pick, toPlain } from "@/lib/query-helpers";
+import { requireAdminPage } from "../../_shared/server";
 
 export const metadata = {
   title: "সিস্টেম সেটিংস | অ্যাডমিন প্যানেল",
@@ -38,6 +39,8 @@ const EDITABLE = [
 ];
 
 export default async function AdminSettingsPage() {
+  await requireAdminPage("settings"); // redirects when the role may not open this page
+
   const gateway = { mode: gatewayMode(), configured: isGatewayConfigured() };
   let settings = null;
   let isDefault = false;

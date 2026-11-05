@@ -2,6 +2,7 @@ import { dbConnect } from "@/service/mongo";
 import { InstructorModel } from "@/model/instructor-model";
 import { toPlain } from "@/lib/query-helpers";
 import AdminInstructorsClient from "./AdminInstructorsClient";
+import { requireAdminPage } from "../../_shared/server";
 
 export const metadata = {
   title: "ইনস্ট্রাক্টর ও ট্রেইনার প্যানেল | অ্যাডমিন প্যানেল",
@@ -11,6 +12,8 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminInstructorsPage() {
+  await requireAdminPage("instructors"); // redirects when the role may not open this page
+
   let initialInstructors = [];
   let loadError = null;
 

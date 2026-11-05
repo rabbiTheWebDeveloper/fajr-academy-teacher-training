@@ -11,6 +11,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Award, BookOpen, ChevronDown, ChevronUp, Loader2, Search, Trash2, UserPlus, Users, X } from "lucide-react";
 import { useAdminTheme } from "../AdminThemeContext";
+import { useAdminAccess } from "../AdminAccessContext";
 import { callApi, formatDate, formatMoney } from "./admin-ui";
 import { COURSE_STATE_LABEL, courseState } from "@/lib/course-state";
 
@@ -53,6 +54,11 @@ function detailsOf(row) {
 
 export default function EnrolmentManager({ mode, subject, courses = [], closedReason = "", onClose, onChanged, showToast, confirm }) {
   const { isLight } = useAdminTheme();
+  // Used from both the trainee and the course screens, so either module's permission counts.
+  const { can, isSuper } = useAdminAccess();
+  const mayEnrol = can(["tots", "courses"], "create");
+  const mayChange = can(["tots", "courses"], "update");
+  // Removing someone from a course is a delete — super-admin only (isSuper); the API enforces it too.
   const isTrainee = mode === "trainee";
 
   const [rows, setRows] = useState(null); // null while loading
@@ -270,7 +276,7 @@ export default function EnrolmentManager({ mode, subject, courses = [], closedRe
           )}
 
           {/* Add form (not offered for draft / archived courses) */}
-          {closedReason ? (
+          {!mayEnrol ? null : closedReason ? (
             <p className={`p-3 rounded-xl border text-xs font-bold ${tone("amber")}`}>{closedReason}</p>
           ) : (
             <form onSubmit={handleAdd} className={`p-4 rounded-2xl border space-y-3 ${panel}`}>
@@ -439,7 +445,7 @@ export default function EnrolmentManager({ mode, subject, courses = [], closedRe
                         </span>
                         <select
                           value={row.status}
-                          disabled={busy}
+                          disabled={busy || !mayChange}
                           onChange={(e) => changeStatus(row, e.target.value)}
                           aria-label="এনরোলমেন্ট স্ট্যাটাস"
                           className={`border rounded-full px-2.5 py-1 text-[10px] font-extrabold cursor-pointer outline-hidden disabled:opacity-50 ${tone(st.tone)}`}
@@ -476,16 +482,20 @@ export default function EnrolmentManager({ mode, subject, courses = [], closedRe
                         {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                         অগ্রগতি, স্কোর ও সার্টিফিকেট
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => removeRow(row)}
-                        disabled={busy}
-                        className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer disabled:opacity-40 ${
-                          isLight ? "text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200" : "text-rose-400 hover:bg-rose-950/40"
-                        }`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> কোর্স থেকে সরান
-                      </button>
+                      {isSuper ? (
+                        <button
+                          type="button"
+                          onClick={() => removeRow(row)}
+                          disabled={busy}
+                          className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer disabled:opacity-40 ${
+                            isLight ? "text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200" : "text-rose-400 hover:bg-rose-950/40"
+                          }`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> কোর্স থেকে সরান
+                        </button>
+                      ) : (
+                        <span />
+                      )}
                     </div>
 
                     {open && (
@@ -526,7 +536,7 @@ export default function EnrolmentManager({ mode, subject, courses = [], closedRe
                           <button
                             type="button"
                             onClick={() => saveDetails(row)}
-                            disabled={busy}
+                            disabled={busy || !mayChange}
                             className="px-4 py-2 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                           >
                             {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" />} সংরক্ষণ করুন

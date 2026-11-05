@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { PaymentModel } from "@/model/payment-model";
 import { TotModel } from "@/model/tot-model";
-import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { requirePermission, serverError } from "@/lib/api-auth";
 import { generatePassword, hashPassword } from "@/lib/password";
 import { isObjectId, searchFilter } from "@/lib/query-helpers";
 import { REGISTRABLE_TRACKS, getPriceForTrack } from "@/service/course-service";
@@ -19,7 +19,7 @@ const bad = (message, status = 400) => NextResponse.json({ success: false, messa
 const plain = (v) => JSON.parse(JSON.stringify(v));
 
 export async function GET(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "payments", "read");
   if (auth.error) return auth.error;
 
   try {
@@ -40,7 +40,7 @@ export async function GET(request) {
 
 /** Change a payment's status. VALID provisions the account + enrolment; leaving VALID revokes it. */
 export async function PATCH(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "payments", "update");
   if (auth.error) return auth.error;
 
   try {
@@ -98,7 +98,7 @@ export async function PATCH(request) {
  * one is created with a generated password that is returned ONCE for the admin to share.
  */
 export async function POST(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "payments", "create");
   if (auth.error) return auth.error;
 
   try {
@@ -189,7 +189,7 @@ export async function POST(request) {
 
 /** Delete a payment record; a verified one first has its enrolment revoked. */
 export async function DELETE(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "payments", "delete");
   if (auth.error) return auth.error;
 
   try {

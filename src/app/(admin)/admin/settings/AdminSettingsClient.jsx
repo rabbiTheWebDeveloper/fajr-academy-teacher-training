@@ -20,6 +20,7 @@ import {
   Info,
 } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
+import { useAdminAccess } from "../../AdminAccessContext";
 import { DbErrorBanner, callApi, useConfirm } from "../../_shared/admin-ui";
 
 /** Exactly the keys PUT /api/admin/settings accepts (gateway credentials are env-only). */
@@ -68,6 +69,8 @@ export default function AdminSettingsClient({ initialSettings, isDefault, gatewa
   const [copiedField, setCopiedField] = useState(null);
   const { confirm, confirmDialog } = useConfirm();
   const { theme, setTheme, isLight } = useAdminTheme();
+  const { can } = useAdminAccess();
+  const canEdit = can("settings", "update"); // read-only roles can look but not save / reset
 
   const handleChange = (field, val) => {
     setSettings((prev) => ({ ...prev, [field]: val }));
@@ -165,7 +168,7 @@ export default function AdminSettingsClient({ initialSettings, isDefault, gatewa
   }`;
   const hintCls = "text-[11px] text-slate-400 mt-1 leading-relaxed";
   const val = (k) => settings[k] ?? "";
-  const disabled = saving || !loaded;
+  const disabled = saving || !loaded || !canEdit;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -289,7 +292,17 @@ export default function AdminSettingsClient({ initialSettings, isDefault, gatewa
 
       {/* Form Content Panel */}
       <form onSubmit={handleSave} className="space-y-6">
-        <fieldset disabled={!loaded} className="space-y-6 disabled:opacity-60">
+        {!canEdit && (
+          <div
+            role="status"
+            className={`p-3 rounded-xl border text-xs font-bold ${
+              isLight ? "bg-amber-50 border-amber-300 text-amber-900" : "bg-amber-500/10 border-amber-500/40 text-amber-200"
+            }`}
+          >
+            আপনার রোলে সেটিংস শুধু দেখার অনুমতি আছে — পরিবর্তন সংরক্ষণ করা যাবে না।
+          </div>
+        )}
+        <fieldset disabled={!loaded || !canEdit} className="space-y-6 disabled:opacity-60">
           {/* TAB 1: PRICING & ADMISSION */}
           {activeTab === "pricing" && (
             <div className={panelCls}>

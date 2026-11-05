@@ -387,13 +387,25 @@ export const TOT_ROLE_OPTIONS = [
   { value: "participant", label: "Participant (অংশগ্রহণকারী)" },
 ];
 
-/** Roles of admin accounts (UserModel — Admin → অ্যাডমিন ইউজার). */
-export const ADMIN_ROLE_OPTIONS = [
-  { value: "admin", label: "Admin (অ্যাডমিন)" },
-  { value: "super-admin", label: "Super Admin (সুপার অ্যাডমিন)" },
-];
-
 export const TRAINEE_ROLES = ["teacher", "student", "participant"];
+
+/**
+ * WhatsApp chat link (wa.me) for a phone number, or null when there is no usable number.
+ * Accepts 01XXXXXXXXX, 1XXXXXXXXX, 8801…, +8801… and Bengali digits; other country codes are kept.
+ * `text` pre-fills the message box (the admin still presses send).
+ */
+export function whatsappHref(phone, text = "") {
+  const bn = "০১২৩৪৫৬৭৮৯";
+  const digits = String(phone || "")
+    .replace(/[০-৯]/g, (d) => String(bn.indexOf(d)))
+    .replace(/\D/g, "");
+  if (digits.length < 10) return null;
+  let international = digits;
+  if (digits.startsWith("00")) international = digits.slice(2);
+  else if (digits.startsWith("0")) international = `88${digits}`; // local 01XXXXXXXXX
+  else if (digits.length === 10 && digits.startsWith("1")) international = `880${digits}`; // 1XXXXXXXXX
+  return `https://wa.me/${international}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
+}
 
 export function trackLabel(track) {
   if (track === "TOT-MEN") return "TOT MEN";

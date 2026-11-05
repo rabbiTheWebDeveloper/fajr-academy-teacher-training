@@ -1,7 +1,6 @@
 import { dbConnect } from "@/service/mongo";
 import { TotModel } from "@/model/tot-model";
 import { EvaluationModel } from "@/model/evaluation-model";
-import { isAdminRole } from "@/lib/api-auth";
 import { toPlain } from "@/lib/query-helpers";
 import EvaluationsClient from "./EvaluationsClient";
 import { DB_ERROR_MESSAGE, getInstructorProfile, requireInstructorPage } from "../../_shared/server";
@@ -42,7 +41,8 @@ export default async function EvaluationsPage({ searchParams }) {
     <EvaluationsClient
       initialEvaluations={initialEvaluations}
       trainees={trainees}
-      currentUser={{ id: profile?.id || "", email: profile?.email || "", isAdmin: isAdminRole(profile?.role) }}
+      // `isAdmin` only decides who may delete other instructors' grades — super-admin only.
+      currentUser={{ id: profile?.id || "", email: profile?.email || "", isAdmin: profile?.role === "super-admin" }}
       initialTraineeId={trainees.some((t) => t._id === preselect) ? preselect : ""}
       loadError={loadError}
     />

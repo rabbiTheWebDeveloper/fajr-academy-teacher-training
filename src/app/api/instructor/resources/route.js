@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { dbConnect } from "@/service/mongo";
 import { CourseModel } from "@/model/course-model";
-import { requireAuth, INSTRUCTOR_ROLES, serverError } from "@/lib/api-auth";
+import { requireAuth, INSTRUCTOR_ROLES, deleteScope, MSG_DELETE_DENIED, serverError } from "@/lib/api-auth";
 
 const FORMATS = ["PDF", "DOCX", "SLIDES", "VIDEO", "DRIVE", "ZIP", "LINK"];
 
@@ -79,6 +79,10 @@ export async function POST(request) {
 export async function DELETE(request) {
   const auth = await requireAuth(request, INSTRUCTOR_ROLES);
   if (auth.error) return auth.error;
+  // Instructors keep deleting study files; among admins only a super-admin may.
+  if ((await deleteScope(auth.session)) === "none") {
+    return NextResponse.json({ success: false, message: MSG_DELETE_DENIED }, { status: 403 });
+  }
 
   try {
     await dbConnect();

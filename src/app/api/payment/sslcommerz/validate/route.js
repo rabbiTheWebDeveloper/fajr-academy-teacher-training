@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { requirePermission, serverError } from "@/lib/api-auth";
 import { validateSSLCommerzPayment } from "@/lib/sslcommerz";
 import { finalizeGatewayPayment } from "@/service/payment-service";
 
@@ -9,7 +9,7 @@ import { finalizeGatewayPayment } from "@/service/payment-service";
  * POST { val_id }  (admin only)
  */
 export async function POST(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "payments", "update");
   if (auth.error) return auth.error;
 
   try {

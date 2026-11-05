@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { SettingModel } from "@/model/setting-model";
-import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { requirePermission, serverError } from "@/lib/api-auth";
 import { gatewayMode, isGatewayConfigured } from "@/lib/sslcommerz";
 import { pick } from "@/lib/query-helpers";
 
@@ -86,7 +86,7 @@ function validate(update) {
 }
 
 export async function GET(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "settings", "read");
   if (auth.error) return auth.error;
 
   try {
@@ -103,7 +103,7 @@ export async function GET(request) {
 }
 
 export async function PUT(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "settings", "update");
   if (auth.error) return auth.error;
 
   try {
@@ -134,7 +134,7 @@ export async function PUT(request) {
 
 /** POST { action: "reset" } restores defaults. */
 export async function POST(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "settings", "update");
   if (auth.error) return auth.error;
 
   try {

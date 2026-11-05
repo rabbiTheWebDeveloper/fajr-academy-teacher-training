@@ -30,6 +30,7 @@ import {
   Info,
 } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
+import { useAdminAccess } from "../../AdminAccessContext";
 import { WOMEN_TOT_CURRICULUM, MEN_TOT_CURRICULUM } from "@/constant/course-defaults";
 import { COURSE_STATE_LABEL, courseState } from "@/lib/course-state";
 import EnrolmentManager from "../../_shared/EnrolmentManager";
@@ -263,6 +264,10 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
   const [saving, setSaving] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const { isLight } = useAdminTheme();
+  const { can, isSuper } = useAdminAccess();
+  const mayCreate = can("courses", "create"); // new course, duplicate
+  const mayUpdate = can("courses", "update"); // edit details, publish state, modules, lessons, study files
+  // Deleting a course, module or study file is super-admin only (isSuper); the API enforces it too.
   const { toast, showToast, hideToast } = useToast();
   const { confirm, confirmDialog } = useConfirm();
 
@@ -643,12 +648,14 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
           >
             <RefreshCw className={`w-4 h-4 ${reloading ? "animate-spin" : ""}`} /> রিফ্রেশ
           </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-2 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" /> নতুন কোর্স তৈরি
-          </button>
+          {mayCreate && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-2 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> নতুন কোর্স তৈরি
+            </button>
+          )}
         </div>
       </div>
 
@@ -773,7 +780,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => (isEditing ? handleSaveCard() : startEdit(batch))}
-                      disabled={saving || (editingId && !isEditing)}
+                      disabled={!mayUpdate || saving || (editingId && !isEditing)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border disabled:opacity-50 ${
                         isLight ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800" : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200"
                       }`}
@@ -795,14 +802,16 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                       </button>
                     )}
 
-                    <button
-                      onClick={() => handleDeleteCourse(batch)}
-                      disabled={saving}
-                      className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition-colors cursor-pointer disabled:opacity-50"
-                      title="মুছে ফেলুন"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {isSuper && (
+                      <button
+                        onClick={() => handleDeleteCourse(batch)}
+                        disabled={saving}
+                        className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition-colors cursor-pointer disabled:opacity-50"
+                        title="মুছে ফেলুন"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1079,7 +1088,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
               {/* Publishing actions: publish / unpublish / archive / restore / draft + duplicate */}
               <div className={`pt-4 border-t space-y-2.5 ${isLight ? "border-slate-100" : "border-slate-800"}`}>
                 <div className="flex flex-wrap items-center gap-2">
-                  {stateActions(state, batch.enrolledCount || 0).map((action) => {
+                  {(mayUpdate ? stateActions(state, batch.enrolledCount || 0) : []).map((action) => {
                     const Icon = action.icon;
                     return (
                       <button
@@ -1098,7 +1107,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                     type="button"
                     title="Duplicate — এই কোর্সের কপি নতুন ড্রাফট হিসেবে তৈরি করুন"
                     onClick={() => openDuplicate(batch)}
-                    disabled={working || saving}
+                    disabled={!mayCreate || working || saving}
                     className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${actionCls("muted", isLight)}`}
                   >
                     <Copy className="w-3.5 h-3.5" /> ডুপ্লিকেট
@@ -1215,7 +1224,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                   <button
                     type="button"
                     onClick={openAddModule}
-                    disabled={saving}
+                    disabled={saving || !mayUpdate}
                     className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
                   >
                     <Plus className="w-4 h-4" /> নতুন সেশন
@@ -1225,7 +1234,8 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                 <button
                   type="button"
                   onClick={() => setShowAddResourceModal(true)}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  disabled={!mayUpdate}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="w-4 h-4" /> নতুন স্টাডি ফাইল
                 </button>
@@ -1341,7 +1351,7 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                           <button
                             type="button"
                             onClick={() => handleAddLessonToModule(modIdx)}
-                            disabled={saving}
+                            disabled={saving || !mayUpdate}
                             className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
                               isLight
                                 ? "bg-white hover:bg-slate-100 border-slate-300 text-slate-800"
@@ -1353,21 +1363,23 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                           <button
                             type="button"
                             onClick={() => openEditModule(modIdx)}
-                            disabled={saving}
+                            disabled={saving || !mayUpdate}
                             className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-500/10 border border-slate-300 dark:border-slate-700 cursor-pointer disabled:opacity-50"
                             title="মডিউল সম্পাদনা করুন"
                           >
                             <Edit className="w-3.5 h-3.5" />
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteModule(modIdx)}
-                            disabled={saving}
-                            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-500/10 border border-rose-500/30 cursor-pointer disabled:opacity-50"
-                            title="মডিউল মুছুন"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {isSuper && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteModule(modIdx)}
+                              disabled={saving}
+                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-500/10 border border-rose-500/30 cursor-pointer disabled:opacity-50"
+                              title="মডিউল মুছুন"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -1445,15 +1457,17 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                               {res.category || "স্টাডি ম্যাটেরিয়াল"}
                             </span>
 
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteResource(resIdx)}
-                              disabled={saving}
-                              className="text-rose-600 hover:text-rose-500 cursor-pointer p-1 disabled:opacity-50"
-                              title="ফাইল মুছুন"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            {isSuper && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteResource(resIdx)}
+                                disabled={saving}
+                                className="text-rose-600 hover:text-rose-500 cursor-pointer p-1 disabled:opacity-50"
+                                title="ফাইল মুছুন"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
 
                           <h4 className={`text-xs sm:text-sm font-black leading-snug ${isLight ? "text-slate-900" : "text-white"}`}>

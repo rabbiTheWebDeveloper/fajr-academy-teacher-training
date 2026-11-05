@@ -48,6 +48,7 @@ export const getInstructorProfile = cache(async () => {
       fullName: user?.fullName || session.fullName || session.email || "",
       email: user?.email || session.email || "",
       phone: user?.phone || "",
+      avatar: user?.avatar || "",
       designation: user?.designation || "",
       specialization: user?.specialization || "",
       role: user?.role || session.role || "",

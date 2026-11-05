@@ -7,7 +7,7 @@ import { ParticipantModel } from "@/model/participant-model";
 import { EvaluationModel } from "@/model/evaluation-model";
 import { SessionModel } from "@/model/session-model";
 import { CourseModel } from "@/model/course-model";
-import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { requirePermission, serverError } from "@/lib/api-auth";
 import { generatePassword, MIN_PASSWORD_LENGTH } from "@/lib/password";
 import { isObjectId, searchFilter, trackFilter } from "@/lib/query-helpers";
 import { phoneVariants } from "@/lib/phone";
@@ -30,7 +30,7 @@ const bad = (message, status = 400) => NextResponse.json({ success: false, messa
 const plain = (v) => JSON.parse(JSON.stringify(v));
 
 export async function GET(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "tots", "read");
   if (auth.error) return auth.error;
 
   try {
@@ -89,7 +89,7 @@ async function markPaid(tot, adminEmail) {
 }
 
 export async function POST(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "tots", "create");
   if (auth.error) return auth.error;
 
   try {
@@ -160,7 +160,7 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "tots", "update");
   if (auth.error) return auth.error;
 
   try {
@@ -253,7 +253,7 @@ export async function PATCH(request) {
 
 /** Deletes the trainee with their enrolments (seat counts), evaluations and sessions. Payments are kept. */
 export async function DELETE(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "tots", "delete");
   if (auth.error) return auth.error;
 
   try {

@@ -20,6 +20,9 @@ const userSchema = new Schema(
     employeeId: { type: String, trim: true, default: "" },
     gender: { type: String, enum: ["male", "female", "other", ""], default: "" },
     permissions: [{ type: String }],
+    // Custom access role (RoleModel) for role "admin"; null = the default admin permissions.
+    // Ignored for super-admins, who can do everything.
+    accessRole: { type: Schema.Types.ObjectId, ref: "Role", default: null, index: true },
   },
   { timestamps: true, versionKey: false, collection: "users" }
 );

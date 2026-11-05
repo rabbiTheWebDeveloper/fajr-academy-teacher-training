@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from "react";
-import { Search, Plus, Trash2, X, RefreshCw, Undo2, ShieldCheck, RotateCcw } from "lucide-react";
+import { Search, Plus, Trash2, X, RefreshCw, Undo2, ShieldCheck, RotateCcw, MessageCircle } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
+import { useAdminAccess } from "../../AdminAccessContext";
 import {
   AdminToast,
   DbErrorBanner,
@@ -13,6 +14,7 @@ import {
   trackLabel,
   useConfirm,
   useToast,
+  whatsappHref,
 } from "../../_shared/admin-ui";
 
 // Statuses an admin may set (REFUNDED is only reachable through the refund flow).
@@ -73,6 +75,10 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
   const [purposeFilter, setPurposeFilter] = useState("all");
   const [busyId, setBusyId] = useState(null);
   const { isLight } = useAdminTheme();
+  const { can, isSuper } = useAdminAccess();
+  const mayCreate = can("payments", "create"); // manual payments
+  const mayUpdate = can("payments", "update"); // verify, un-verify, refund, re-validate
+  // Deleting a payment record is super-admin only (isSuper); the API enforces it too.
   const { toast, showToast, hideToast } = useToast();
   const { confirm, confirmDialog } = useConfirm();
 
@@ -278,7 +284,32 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
     <>
       <div className={`font-bold wrap-break-word ${isLight ? "text-slate-900" : "text-white"}`}>{p.userName || "—"}</div>
       <div className={`text-[11px] font-mono break-all ${subtle}`}>{p.userEmail}</div>
-      {p.userPhone && <div className={`text-[11px] font-mono ${subtle}`}>{p.userPhone}</div>}
+      {p.userPhone && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+          <a href={`tel:${p.userPhone}`} title="কল করুন" className={`text-[11px] font-mono hover:underline ${subtle}`}>
+            {p.userPhone}
+          </a>
+          {whatsappHref(p.userPhone) && (
+            <a
+              href={whatsappHref(
+                p.userPhone,
+                `আসসালামু আলাইকুম${p.userName ? `, ${p.userName}` : ""}। ফজর একাডেমির পেমেন্ট (${p.tranId}) সম্পর্কে যোগাযোগ করছি।`
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="WhatsApp-এ মেসেজ করুন"
+              aria-label={`${p.userName || p.userPhone}-কে WhatsApp-এ মেসেজ করুন`}
+              className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full border transition-colors ${
+                isLight
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                  : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25"
+              }`}
+            >
+              <MessageCircle className="w-3 h-3" /> WhatsApp
+            </a>
+          )}
+        </div>
+      )}
     </>
   );
 
@@ -344,7 +375,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
           যাচাইকারী: {p.verifiedBy}
         </div>
       )}
-      {p.status !== "REFUNDED" && (
+      {p.status !== "REFUNDED" && mayUpdate && (
         <select
           value=""
           disabled={busy}
@@ -366,10 +397,10 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
   );
 
   const actionButtons = (p, busy) => {
-    const canRefund = p.status === "VALID" && p.paymentGateway === "sslcommerz" && !p.refund?.refId;
+    const canRefund = mayUpdate && p.status === "VALID" && p.paymentGateway === "sslcommerz" && !p.refund?.refId;
     return (
       <div className="flex items-center justify-end gap-1.5 flex-wrap">
-        {p.status !== "VALID" && p.status !== "REFUNDED" && (
+        {mayUpdate && p.status !== "VALID" && p.status !== "REFUNDED" && (
           <button
             onClick={() => handleUpdateStatus(p, "VALID")}
             disabled={busy}
@@ -378,7 +409,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
             ✓ অনুমোদন দিন
           </button>
         )}
-        {p.status === "VALID" && (
+        {mayUpdate && p.status === "VALID" && (
           <button
             onClick={() => handleUpdateStatus(p, "PENDING")}
             disabled={busy}
@@ -413,14 +444,16 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
             <RefreshCw className={`w-3 h-3 ${busy ? "animate-spin" : ""}`} /> রিফান্ড স্ট্যাটাস
           </button>
         )}
-        <button
-          onClick={() => handleDelete(p)}
-          disabled={busy}
-          className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-500 transition-colors cursor-pointer disabled:opacity-50"
-          title="রেকর্ড মুছুন"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        {isSuper && (
+          <button
+            onClick={() => handleDelete(p)}
+            disabled={busy}
+            className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-500 transition-colors cursor-pointer disabled:opacity-50"
+            title="রেকর্ড মুছুন"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
     );
   };
@@ -467,12 +500,14 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
             <RefreshCw className={`w-4 h-4 ${reloading ? "animate-spin" : ""}`} /> রিফ্রেশ
           </button>
 
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#D4AF37] to-[#C59B27] text-[#051329] font-bold text-xs shadow-lg hover:shadow-[#D4AF37]/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" /> ম্যানুয়াল পেমেন্ট
-          </button>
+          {mayCreate && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#D4AF37] to-[#C59B27] text-[#051329] font-bold text-xs shadow-lg hover:shadow-[#D4AF37]/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> ম্যানুয়াল পেমেন্ট
+            </button>
+          )}
         </div>
       </div>
 
@@ -513,6 +548,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
       </div>
 
       {/* Gateway re-validation tool */}
+      {mayUpdate && (
       <form
         onSubmit={handleValidate}
         className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center gap-3 text-xs ${
@@ -540,6 +576,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
           {validating ? "যাচাই হচ্ছে..." : "যাচাই করুন"}
         </button>
       </form>
+      )}
 
       {/* Payments table (≥ md) and cards (< md) */}
       <div
@@ -670,7 +707,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
                   </div>
 
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">ফোন নম্বর:</label>
+                    <label className="block text-slate-300 font-bold mb-1">ফোন / WhatsApp নম্বর:</label>
                     <input
                       type="text"
                       value={formData.userPhone}

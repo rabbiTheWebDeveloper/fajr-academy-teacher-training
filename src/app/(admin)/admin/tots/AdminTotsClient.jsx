@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { BookOpen, Search, Trash2, X, Plus, RefreshCw, Power, KeyRound } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
+import { useAdminAccess } from "../../AdminAccessContext";
 import {
   AdminToast,
   DbErrorBanner,
@@ -67,6 +68,10 @@ export default function AdminTotsClient({ initialTots, courses = [], loadError: 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [enrolFor, setEnrolFor] = useState(null); // trainee whose course enrolments are open
   const { isLight } = useAdminTheme();
+  const { can, isSuper } = useAdminAccess();
+  const canCreate = can("tots", "create");
+  const canUpdate = can("tots", "update");
+  // Deleting a trainee is super-admin only (isSuper); the API enforces it too.
   const { toast, showToast, hideToast } = useToast();
   const { confirm, confirmDialog } = useConfirm();
 
@@ -259,7 +264,7 @@ export default function AdminTotsClient({ initialTots, courses = [], loadError: 
   };
 
   const roleSelect = (u, busy) => (
-    <select value={u.role || "teacher"} disabled={busy} onChange={(e) => handleChangeRole(u, e.target.value)} aria-label={`${u.fullName}-এর রোল`} className={cellSelectCls}>
+    <select value={u.role || "teacher"} disabled={busy || !canUpdate} onChange={(e) => handleChangeRole(u, e.target.value)} aria-label={`${u.fullName}-এর রোল`} className={cellSelectCls}>
       {TOT_ROLE_OPTIONS.map((r) => (
         <option key={r.value} value={r.value}>
           {ROLE_SHORT[r.value]}
@@ -271,7 +276,7 @@ export default function AdminTotsClient({ initialTots, courses = [], loadError: 
   const paymentSelect = (u, busy) => (
     <select
       value={u.paymentStatus || "pending"}
-      disabled={busy}
+      disabled={busy || !canUpdate}
       onChange={(e) => handleChangePayment(u, e.target.value)}
       aria-label={`${u.fullName}-এর পেমেন্ট স্ট্যাটাস`}
       className={`border rounded-full px-2.5 py-1 text-[10px] font-extrabold cursor-pointer outline-hidden disabled:opacity-50 disabled:cursor-not-allowed ${
@@ -300,7 +305,7 @@ export default function AdminTotsClient({ initialTots, courses = [], loadError: 
     <button
       type="button"
       onClick={() => handleToggleActive(u)}
-      disabled={busy}
+      disabled={busy || !canUpdate}
       title={active ? "নিষ্ক্রিয় করুন" : "সক্রিয় করুন"}
       className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border flex items-center gap-1 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
         active
@@ -322,7 +327,7 @@ export default function AdminTotsClient({ initialTots, courses = [], loadError: 
       <button
         type="button"
         onClick={() => handleResetPassword(u)}
-        disabled={busy}
+        disabled={busy || !canUpdate}
         title="নতুন পাসওয়ার্ড তৈরি করুন"
         className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
           isLight ? "text-amber-700 hover:bg-amber-50 border border-transparent hover:border-amber-200" : "text-amber-400 hover:bg-amber-950/40"
@@ -330,17 +335,19 @@ export default function AdminTotsClient({ initialTots, courses = [], loadError: 
       >
         <KeyRound className="w-3.5 h-3.5" />
       </button>
-      <button
-        type="button"
-        onClick={() => handleDeleteUser(u)}
-        disabled={busy}
-        className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-          isLight ? "text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200" : "text-rose-400 hover:bg-rose-950/40"
-        }`}
-        title="মুছে ফেলুন"
-      >
-        <Trash2 className="w-3.5 h-3.5" />
-      </button>
+      {isSuper && (
+        <button
+          type="button"
+          onClick={() => handleDeleteUser(u)}
+          disabled={busy}
+          className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+            isLight ? "text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200" : "text-rose-400 hover:bg-rose-950/40"
+          }`}
+          title="মুছে ফেলুন"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 
@@ -373,12 +380,14 @@ export default function AdminTotsClient({ initialTots, courses = [], loadError: 
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs w-full sm:w-auto">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" /> নতুন ট্রেইনি
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" /> নতুন ট্রেইনি
+            </button>
+          )}
 
           <button
             type="button"

@@ -22,6 +22,7 @@ import {
   KeyRound,
 } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
+import { useAdminAccess } from "../../AdminAccessContext";
 import CloudinaryImageUpload from "@/components/CloudinaryImageUpload";
 import {
   AdminToast,
@@ -81,6 +82,10 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
   const [addResult, setAddResult] = useState(null); // { email, password }
   const [resetInfo, setResetInfo] = useState(null); // { name, email, password } shown once
   const { isLight } = useAdminTheme();
+  const { can, isSuper } = useAdminAccess();
+  const mayCreate = can("instructors", "create");
+  const mayUpdate = can("instructors", "update");
+  // Deleting an instructor is super-admin only (isSuper); the API enforces it too.
   const { toast, showToast, hideToast } = useToast();
   const { confirm, confirmDialog } = useConfirm();
 
@@ -282,12 +287,14 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
           >
             <RefreshCw className={`w-4 h-4 ${reloading ? "animate-spin" : ""}`} /> রিফ্রেশ
           </button>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-2 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" /> নতুন ইনস্ট্রাক্টর যোগ করুন
-          </button>
+          {mayCreate && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs flex items-center gap-2 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" /> নতুন ইনস্ট্রাক্টর যোগ করুন
+            </button>
+          )}
         </div>
       </div>
 
@@ -389,14 +396,16 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
                         {inst.fullName ? inst.fullName[0].toUpperCase() : "I"}
                       </div>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setEditingInstructor({ ...inst })}
-                      title="ছবি আপলোড / পরিবর্তন করুন"
-                      className="absolute -bottom-1 -right-1 p-1 rounded-full bg-slate-900 border border-slate-700 text-amber-400 hover:text-white hover:bg-amber-500 hover:border-amber-400 shadow transition-all cursor-pointer"
-                    >
-                      <Camera className="w-3 h-3" />
-                    </button>
+                    {mayUpdate && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingInstructor({ ...inst })}
+                        title="ছবি আপলোড / পরিবর্তন করুন"
+                        className="absolute -bottom-1 -right-1 p-1 rounded-full bg-slate-900 border border-slate-700 text-amber-400 hover:text-white hover:bg-amber-500 hover:border-amber-400 shadow transition-all cursor-pointer"
+                      >
+                        <Camera className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <h3 className={`font-black text-base tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>{inst.fullName}</h3>
@@ -450,7 +459,7 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
                   <button
                     type="button"
                     onClick={() => handleToggleActive(inst)}
-                    disabled={busy}
+                    disabled={busy || !mayUpdate}
                     className={`p-1.5 rounded-lg border transition-colors cursor-pointer disabled:opacity-50 ${
                       active
                         ? isLight
@@ -465,21 +474,23 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
                     <Power className="w-3.5 h-3.5" />
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setEditingInstructor({ ...inst })}
-                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-                      isLight ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700" : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300"
-                    }`}
-                    title="এডিট করুন"
-                  >
-                    <Edit className="w-3.5 h-3.5" />
-                  </button>
+                  {mayUpdate && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingInstructor({ ...inst })}
+                      className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                        isLight ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700" : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300"
+                      }`}
+                      title="এডিট করুন"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                  )}
 
                   <button
                     type="button"
                     onClick={() => handleResetPassword(inst)}
-                    disabled={busy}
+                    disabled={busy || !mayUpdate}
                     className={`p-1.5 rounded-lg border transition-colors cursor-pointer disabled:opacity-50 ${
                       isLight ? "bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-700" : "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-400"
                     }`}
@@ -488,15 +499,17 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
                     <KeyRound className="w-3.5 h-3.5" />
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteInstructor(inst)}
-                    disabled={busy}
-                    className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 cursor-pointer disabled:opacity-50"
-                    title="মুছে ফেলুন"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {isSuper && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteInstructor(inst)}
+                      disabled={busy}
+                      className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 cursor-pointer disabled:opacity-50"
+                      title="মুছে ফেলুন"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
 
                   <Link
                     href="/instructor"
@@ -616,18 +629,22 @@ export default function AdminInstructorsClient({ initialInstructors, loadError: 
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingInstructor({ ...selectedInstructorForProfile });
-                  setSelectedInstructorForProfile(null);
-                }}
-                className={`px-4 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer ${
-                  isLight ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800" : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200"
-                }`}
-              >
-                <Edit className="w-3.5 h-3.5" /> তথ্য সংশোধন করুন
-              </button>
+              {mayUpdate ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingInstructor({ ...selectedInstructorForProfile });
+                    setSelectedInstructorForProfile(null);
+                  }}
+                  className={`px-4 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer ${
+                    isLight ? "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800" : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-200"
+                  }`}
+                >
+                  <Edit className="w-3.5 h-3.5" /> তথ্য সংশোধন করুন
+                </button>
+              ) : (
+                <span />
+              )}
 
               <button
                 type="button"

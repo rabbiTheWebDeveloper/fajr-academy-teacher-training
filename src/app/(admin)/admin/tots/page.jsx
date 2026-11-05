@@ -6,6 +6,7 @@ import { withCourseState } from "@/lib/course-state";
 import { listEnrollableCourses } from "@/service/course-service";
 import { withEnrolmentCounts } from "@/service/participant-service";
 import AdminTotsClient from "./AdminTotsClient";
+import { requireAdminPage } from "../../_shared/server";
 
 export const metadata = {
   title: "TOT ট্রেইনি ম্যানেজমেন্ট | অ্যাডমিন প্যানেল",
@@ -15,6 +16,8 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminTotsPage() {
+  await requireAdminPage("tots"); // redirects when the role may not open this page
+
   let initialTots = [];
   let courses = [];
   let loadError = null;

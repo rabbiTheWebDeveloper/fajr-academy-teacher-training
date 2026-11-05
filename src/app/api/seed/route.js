@@ -3,7 +3,7 @@ import { dbConnect } from "@/service/mongo";
 import { PaymentModel } from "@/model/payment-model";
 import { enrollUserInCourse } from "@/service/participant-service";
 import { findAccountByEmail, modelForType } from "@/service/account-service";
-import { requireAuth, ADMIN_ROLES } from "@/lib/api-auth";
+import { requireSuperAdmin } from "@/lib/api-auth";
 import { generatePassword } from "@/lib/password";
 import { homeForRole } from "@/lib/roles";
 
@@ -11,7 +11,7 @@ import { homeForRole } from "@/lib/roles";
  * Demo-account seeder — one account per collection type:
  *   users (admin) · instructors · tots (paid trainees, with payment + enrolment).
  * - Development: GET or POST, demo passwords from the list below.
- * - Production: POST by an admin only, and every new account gets a RANDOM password that
+ * - Production: POST by a super-admin only, and every new account gets a RANDOM password that
  *   is returned once in this response (the demo passwords are public in the source).
  * Existing accounts (in any collection) are never touched.
  */
@@ -26,7 +26,8 @@ export async function GET() {
 
 export async function POST(request) {
   if (isProd) {
-    const auth = await requireAuth(request, ADMIN_ROLES);
+    // It can create an admin account, so it is a user-management action: super-admin only.
+    const auth = await requireSuperAdmin(request);
     if (auth.error) return auth.error;
   }
   return handleSeed();

@@ -17,6 +17,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
+import { useAdminAccess } from "../../AdminAccessContext";
 import { AdminToast, DbErrorBanner, callApi, formatDate, useConfirm, useToast } from "../../_shared/admin-ui";
 
 /** Must match calculateGradeAndStatus in src/model/evaluation-model.js. */
@@ -91,6 +92,7 @@ function StatusBadge({ status }) {
 
 export default function AdminEvaluationsClient({ initialEvaluations = [], loadError: initialLoadError }) {
   const { isLight } = useAdminTheme();
+  const { isSuper } = useAdminAccess(); // deleting an evaluation is super-admin only
   const [evaluations, setEvaluations] = useState(initialEvaluations);
   const [loadError, setLoadError] = useState(initialLoadError);
   const [reloading, setReloading] = useState(false);
@@ -260,14 +262,16 @@ export default function AdminEvaluationsClient({ initialEvaluations = [], loadEr
       >
         <Eye className="w-4 h-4" />
       </button>
-      <button
-        onClick={() => handleDelete(item)}
-        disabled={deletingId === item._id}
-        className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 transition-colors disabled:opacity-50 cursor-pointer"
-        title="মূল্যায়ন রেকর্ড মুছুন"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
+      {isSuper && (
+        <button
+          onClick={() => handleDelete(item)}
+          disabled={deletingId === item._id}
+          className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 transition-colors disabled:opacity-50 cursor-pointer"
+          title="মূল্যায়ন রেকর্ড মুছুন"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 

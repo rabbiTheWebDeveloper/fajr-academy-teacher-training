@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { dbConnect } from "@/service/mongo";
 import { CourseModel } from "@/model/course-model";
-import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { requirePermission, serverError } from "@/lib/api-auth";
 import { isObjectId } from "@/lib/query-helpers";
 import { withCourseState } from "@/lib/course-state";
 
@@ -37,7 +37,7 @@ async function freeCourseId(base) {
 }
 
 export async function POST(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "courses", "create");
   if (auth.error) return auth.error;
 
   try {

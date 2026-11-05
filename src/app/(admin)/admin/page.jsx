@@ -1,11 +1,15 @@
+import { redirect } from "next/navigation";
 import { dbConnect } from "@/service/mongo";
 import { UserModel } from "@/model/user-model";
+import { RoleModel } from "@/model/role-model";
 import { InstructorModel } from "@/model/instructor-model";
 import { TotModel } from "@/model/tot-model";
 import { PaymentModel } from "@/model/payment-model";
 import { EvaluationModel } from "@/model/evaluation-model";
 import { NoticeModel } from "@/model/notice-model";
 import { trackFilter, toPlain } from "@/lib/query-helpers";
+import { hasPermission } from "@/lib/rbac";
+import { getAdminAccess } from "../_shared/server";
 import AdminDashboardClient from "./AdminDashboardClient";
 
 export const metadata = {
@@ -29,6 +33,7 @@ const EMPTY_STATS = {
   womenTrainees: 0,
   totalInstructors: 0,
   totalAdmins: 0,
+  totalRoles: 0,
   totalEvaluated: 0,
   hiredCount: 0,
   certifiedCount: 0,
@@ -43,9 +48,15 @@ const EMPTY_STATS = {
 /**
  * Read-only: every number comes from the database, nothing is seeded or estimated.
  * Trainees = TotModel ("tots"), instructors = InstructorModel, admins = UserModel ("users").
+ *
+ * Role-wise: each group of queries runs only if the signed-in admin may read that module
+ * (payments, tots, instructors, evaluations, announcements); the admin/role counts are
+ * super-admin only. What a role may not read is never queried, so it never reaches the browser.
  */
-async function loadDashboard() {
+async function loadDashboard(access) {
   await dbConnect();
+  const can = (module) => hasPermission(access, module, "read");
+  const zero = (v) => Promise.resolve(v);
 
   const [
     totalTrainees,
@@ -53,49 +64,59 @@ async function loadDashboard() {
     pendingTrainees,
     menTrainees,
     womenTrainees,
+    recentUsers,
     totalInstructors,
-    totalAdmins,
+    recentInstructors,
     pendingPayments,
     revenue,
+    recentPayments,
     totalEvaluated,
     hiredCount,
     certifiedCount,
     inReviewCount,
     retakeCount,
-    recentPayments,
-    recentUsers,
-    recentInstructors,
     notices,
+    totalAdmins,
+    totalRoles,
   ] = await Promise.all([
-    TotModel.countDocuments({}),
+    // --- TOT trainees ---
+    can("tots") ? TotModel.countDocuments({}) : zero(0),
     // Same definitions as the instructor stats: paid = paid + free, pending = pending + failed.
-    TotModel.countDocuments({ paymentStatus: { $in: ["paid", "free"] } }),
-    TotModel.countDocuments({ paymentStatus: { $in: ["pending", "failed"] } }),
-    TotModel.countDocuments(trackFilter("men")),
-    TotModel.countDocuments(trackFilter("women")),
-    InstructorModel.countDocuments({}),
-    UserModel.countDocuments({ role: { $in: ["admin", "super-admin"] } }),
-    PaymentModel.countDocuments({ status: "PENDING" }),
+    can("tots") ? TotModel.countDocuments({ paymentStatus: { $in: ["paid", "free"] } }) : zero(0),
+    can("tots") ? TotModel.countDocuments({ paymentStatus: { $in: ["pending", "failed"] } }) : zero(0),
+    can("tots") ? TotModel.countDocuments(trackFilter("men")) : zero(0),
+    can("tots") ? TotModel.countDocuments(trackFilter("women")) : zero(0),
+    can("tots") ? TotModel.find({}).sort({ createdAt: -1 }).limit(6).select(SAFE_USER).lean() : zero([]),
+    // --- Instructors ---
+    can("instructors") ? InstructorModel.countDocuments({}) : zero(0),
+    can("instructors") ? InstructorModel.find({}).sort({ createdAt: -1 }).limit(6).select(SAFE_USER).lean() : zero([]),
+    // --- Payments ---
+    can("payments") ? PaymentModel.countDocuments({ status: "PENDING" }) : zero(0),
     // Net verified revenue: VALID payments minus any partial refund already sent.
-    PaymentModel.aggregate([
-      { $match: { status: "VALID" } },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$refund.amount", 0] }] } },
-          count: { $sum: 1 },
-        },
-      },
-    ]),
-    EvaluationModel.countDocuments(),
-    EvaluationModel.countDocuments({ qualificationStatus: "hired" }),
-    EvaluationModel.countDocuments({ qualificationStatus: "certified" }),
-    EvaluationModel.countDocuments({ qualificationStatus: "in-review" }),
-    EvaluationModel.countDocuments({ qualificationStatus: "retake-needed" }),
-    PaymentModel.find().sort({ createdAt: -1 }).limit(6).select(SAFE_PAYMENT).lean(),
-    TotModel.find({}).sort({ createdAt: -1 }).limit(6).select(SAFE_USER).lean(),
-    InstructorModel.find({}).sort({ createdAt: -1 }).limit(6).select(SAFE_USER).lean(),
-    NoticeModel.find().sort({ isPinned: -1, createdAt: -1 }).limit(20).lean(),
+    can("payments")
+      ? PaymentModel.aggregate([
+          { $match: { status: "VALID" } },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: { $subtract: [{ $ifNull: ["$amount", 0] }, { $ifNull: ["$refund.amount", 0] }] } },
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : zero([]),
+    can("payments") ? PaymentModel.find().sort({ createdAt: -1 }).limit(6).select(SAFE_PAYMENT).lean() : zero([]),
+    // --- Evaluations ---
+    can("evaluations") ? EvaluationModel.countDocuments() : zero(0),
+    can("evaluations") ? EvaluationModel.countDocuments({ qualificationStatus: "hired" }) : zero(0),
+    can("evaluations") ? EvaluationModel.countDocuments({ qualificationStatus: "certified" }) : zero(0),
+    can("evaluations") ? EvaluationModel.countDocuments({ qualificationStatus: "in-review" }) : zero(0),
+    can("evaluations") ? EvaluationModel.countDocuments({ qualificationStatus: "retake-needed" }) : zero(0),
+    // --- Notices ---
+    can("announcements") ? NoticeModel.find().sort({ isPinned: -1, createdAt: -1 }).limit(20).lean() : zero([]),
+    // --- Access control (super-admin only) ---
+    access.isSuper ? UserModel.countDocuments({ role: { $in: ["admin", "super-admin"] } }) : zero(0),
+    access.isSuper ? RoleModel.countDocuments({}) : zero(0),
   ]);
 
   return toPlain({
@@ -109,6 +130,7 @@ async function loadDashboard() {
     womenTrainees,
     totalInstructors,
     totalAdmins,
+    totalRoles,
     totalEvaluated,
     hiredCount,
     certifiedCount,
@@ -121,16 +143,22 @@ async function loadDashboard() {
   });
 }
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({ searchParams }) {
+  const { access } = await getAdminAccess();
+  if (!access) redirect("/login?redirect=/admin");
+
+  // ?error=no_access is set when a role is sent back from a page it may not open.
+  const { error } = (await searchParams) || {};
+
   let stats = EMPTY_STATS;
   let loadError = null;
 
   try {
-    stats = await loadDashboard();
-  } catch (error) {
-    console.error("Admin dashboard data fetch error:", error);
+    stats = await loadDashboard(access);
+  } catch (err) {
+    console.error("Admin dashboard data fetch error:", err);
     loadError = "ডাটাবেজের সাথে সংযোগ করা যায়নি — ড্যাশবোর্ডের সংখ্যাগুলো লোড হয়নি। কিছুক্ষণ পর পেজটি রিফ্রেশ করুন।";
   }
 
-  return <AdminDashboardClient stats={stats} loadError={loadError} />;
+  return <AdminDashboardClient stats={stats} loadError={loadError} notice={error === "no_access" ? "no_access" : null} />;
 }

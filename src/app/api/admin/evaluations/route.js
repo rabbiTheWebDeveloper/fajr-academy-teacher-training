@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/service/mongo";
 import { EvaluationModel } from "@/model/evaluation-model";
-import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { requirePermission, serverError } from "@/lib/api-auth";
 import { isObjectId, searchFilter, trackFilter } from "@/lib/query-helpers";
 
 /** Status values as stored by the evaluation model (see calculateGradeAndStatus). */
 export const QUALIFICATION_STATUSES = ["hired", "certified", "in-review", "retake-needed"];
 
 export async function GET(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "evaluations", "read");
   if (auth.error) return auth.error;
 
   try {
@@ -43,7 +43,7 @@ export async function GET(request) {
 }
 
 export async function DELETE(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "evaluations", "delete");
   if (auth.error) return auth.error;
 
   try {

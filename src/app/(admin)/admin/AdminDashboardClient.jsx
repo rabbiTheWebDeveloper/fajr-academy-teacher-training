@@ -26,8 +26,13 @@ import {
   Pin,
   PinOff,
   Trash2,
+  AlertTriangle,
+  Lock,
+  Sparkles,
 } from "lucide-react";
 import { useAdminTheme } from "../AdminThemeContext";
+import { useAdminAccess } from "../AdminAccessContext";
+import { ACTION_LABEL, PERMISSION_MODULES } from "@/lib/rbac";
 import {
   AdminToast,
   DbErrorBanner,
@@ -38,6 +43,7 @@ import {
   trackLabel,
   useConfirm,
   useToast,
+  whatsappHref,
 } from "../_shared/admin-ui";
 
 const PRIORITY_LABEL = { normal: "সাধারণ", important: "জরুরি", urgent: "অতি জরুরি" };
@@ -59,14 +65,32 @@ const PAYMENT_STATUS_LABEL = {
   REFUNDED: "রিফান্ডকৃত",
 };
 
-function whatsappHref(phone) {
-  const digits = String(phone || "").replace(/\D/g, "");
-  if (!digits) return null;
-  return `https://wa.me/${digits.startsWith("880") ? digits : `88${digits}`}`;
-}
-
-export default function AdminDashboardClient({ stats, loadError }) {
+export default function AdminDashboardClient({ stats, loadError, notice: pageNotice }) {
   const router = useRouter();
+  const { can, isSuper, roleLabel, fullName } = useAdminAccess();
+
+  // Role-wise dashboard: every card, list and button below follows what this role may do.
+  // (The server also skips the queries for modules the role cannot read.)
+  const canPayments = can("payments");
+  const canTots = can("tots");
+  const canInstructors = can("instructors");
+  const canEvaluations = can("evaluations");
+  const canNotices = can("announcements");
+  const canVerifyPayment = can("payments", "update");
+  const canEditInstructor = can("instructors", "update");
+  const canPostNotice = can("announcements", "create");
+  const canPinNotice = can("announcements", "update");
+  const canDeleteNotice = isSuper; // deleting is super-admin only
+  const accessibleModules = PERMISSION_MODULES.filter((m) => can(m.id));
+  const kpiCount = [canPayments, canTots, canPayments, canInstructors, canEvaluations].filter(Boolean).length;
+  const KPI_COLS = { 1: "lg:grid-cols-1", 2: "lg:grid-cols-2", 3: "lg:grid-cols-3", 4: "lg:grid-cols-4", 5: "lg:grid-cols-5" };
+  const quickLinks = [
+    { href: "/admin/evaluations", Icon: Award, text: "মূল্যায়ন ও ফলাফল", show: canEvaluations },
+    { href: "/admin/instructors", Icon: GraduationCap, text: "ইনস্ট্রাক্টর", show: canInstructors },
+    { href: "/admin/tots", Icon: Users, text: "TOT ট্রেইনি", show: canTots },
+    { href: "/admin/payments", Icon: CreditCard, text: "পেমেন্ট", show: canPayments },
+    { href: "/admin/users", Icon: ShieldCheck, text: "ইউজার ও রোল", show: isSuper },
+  ].filter((l) => l.show);
   const [isRefreshing, startRefresh] = useTransition();
   const [verifyingId, setVerifyingId] = useState(null);
   const { isLight } = useAdminTheme();
@@ -191,15 +215,18 @@ export default function AdminDashboardClient({ stats, loadError }) {
     refresh();
   };
 
-  const cardBox = isLight ? "bg-white border-slate-200 shadow-sm" : "bg-slate-900 border-slate-800 shadow-xl";
+  // Cards: white on the lavender canvas with a soft violet shadow (see components/panel/panel-theme.css).
+  const cardBox = isLight
+    ? "bg-white border-violet-100 shadow-[0_10px_30px_-16px_rgba(91,63,217,0.25)]"
+    : "bg-slate-900 border-violet-400/15 shadow-xl";
   const secondaryBtn = isLight
-    ? "bg-white hover:bg-slate-50 border-slate-300 text-slate-800"
-    : "bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-200";
+    ? "bg-white hover:bg-violet-50 border-violet-200 text-violet-900"
+    : "bg-slate-900 hover:bg-slate-800 border-violet-400/25 text-slate-200";
   const kpiBox = isLight
-    ? "bg-white border-slate-200 shadow-sm hover:shadow-md"
-    : "bg-slate-900/90 border-slate-800 shadow-xl";
+    ? "bg-white border-violet-100 shadow-[0_10px_30px_-16px_rgba(91,63,217,0.25)] hover:shadow-[0_16px_36px_-16px_rgba(91,63,217,0.38)]"
+    : "bg-slate-900/90 border-violet-400/15 shadow-xl";
   const inputCls = `w-full px-3.5 py-2.5 rounded-xl border text-xs outline-hidden font-medium ${
-    isLight ? "bg-slate-50 border-slate-300 text-slate-900 focus:border-purple-600" : "bg-slate-800 border-slate-700 text-white focus:border-purple-500"
+    isLight ? "bg-slate-50 border-slate-300 text-slate-900 focus:border-violet-500" : "bg-slate-800 border-slate-700 text-white focus:border-violet-400"
   }`;
   const notices = stats.notices || [];
 
@@ -233,44 +260,116 @@ export default function AdminDashboardClient({ stats, loadError }) {
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} /> রিফ্রেশ
           </button>
-          <button
-            onClick={() => setShowNoticeModal(true)}
-            className="px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-          >
-            <Megaphone className="w-4 h-4" /> ঘোষণা পাঠান
-          </button>
-          <Link
-            href="/admin/evaluations"
-            className={`px-3.5 py-2.5 rounded-xl border font-semibold text-xs flex items-center gap-1.5 transition-all ${secondaryBtn}`}
-          >
-            <Award className="w-4 h-4" /> মূল্যায়ন ও ফলাফল
-          </Link>
-          <Link
-            href="/admin/instructors"
-            className={`px-3.5 py-2.5 rounded-xl border font-semibold text-xs flex items-center gap-1.5 transition-all ${secondaryBtn}`}
-          >
-            <GraduationCap className="w-4 h-4" /> ইনস্ট্রাক্টর
-          </Link>
-          <Link
-            href="/admin/tots"
-            className={`px-3.5 py-2.5 rounded-xl border font-semibold text-xs flex items-center gap-1.5 transition-all ${secondaryBtn}`}
-          >
-            <Users className="w-4 h-4" /> TOT ট্রেইনি
-          </Link>
-          <Link
-            href="/admin/payments"
-            className={`px-3.5 py-2.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${
-              isLight ? "bg-white hover:bg-slate-50 border-slate-300 text-slate-800 shadow-xs" : "bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-200"
-            }`}
-          >
-            <CreditCard className="w-4 h-4" /> পেমেন্ট
-          </Link>
+          {canPostNotice && (
+            <button
+              onClick={() => setShowNoticeModal(true)}
+              className="panel-cta px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Megaphone className="w-4 h-4" /> ঘোষণা পাঠান
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 5 KPI Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Welcome card: who you are, what this role may do, shortcuts */}
+      <section className="panel-hero rounded-3xl p-6 sm:p-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-center">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <span className="panel-glass inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold">
+                <Sparkles className="w-3.5 h-3.5" /> {roleLabel}
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">স্বাগতম, {fullName}</h2>
+              <p className="max-w-xl text-sm font-medium leading-relaxed text-white/80">
+                {isSuper
+                  ? "সব মডিউলে আপনার পূর্ণ অ্যাক্সেস আছে। ইউজার ও রোল পরিচালনা এবং যেকোনো কিছু মুছে ফেলার অনুমতি শুধু আপনার।"
+                  : "নিচের মডিউলগুলোতে কাজ করার অনুমতি আপনার রোলে দেওয়া আছে। মুছে ফেলার অনুমতি শুধু সুপার অ্যাডমিনের।"}
+              </p>
+            </div>
+
+            {!isSuper && accessibleModules.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {accessibleModules.map((m) => (
+                  <span key={m.id} title={m.hint} className="panel-glass rounded-full px-2.5 py-1 text-[10px] font-bold">
+                    {m.label} ({m.actions.filter((a) => can(m.id, a)).map((a) => ACTION_LABEL[a]).join(", ")})
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {quickLinks.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {quickLinks.map(({ href, Icon, text }) => (
+                  <Link key={href} href={href} className="panel-glass inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold">
+                    <Icon className="w-4 h-4" /> {text}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right side: access-control numbers for the super-admin, a reminder for everyone else */}
+          {isSuper ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="panel-glass rounded-2xl p-4">
+                <div className="text-[11px] font-bold text-white/75">অ্যাডমিন অ্যাকাউন্ট</div>
+                <div className="mt-1 font-mono text-3xl font-black text-white">{stats.totalAdmins}</div>
+              </div>
+              <div className="panel-glass rounded-2xl p-4">
+                <div className="text-[11px] font-bold text-white/75">কাস্টম রোল</div>
+                <div className="mt-1 font-mono text-3xl font-black text-white">{stats.totalRoles}</div>
+              </div>
+              <Link href="/admin/users" className="panel-glass group col-span-2 flex items-center justify-between rounded-2xl px-4 py-3 text-xs font-bold">
+                <span className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4" /> ইউজার ও রোল পরিচালনা করুন
+                </span>
+                <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="panel-glass rounded-2xl p-4">
+                <div className="text-[11px] font-bold text-white/75">চালু মডিউল</div>
+                <div className="mt-1 font-mono text-3xl font-black text-white">{accessibleModules.length}</div>
+              </div>
+              <div className="panel-glass rounded-2xl p-4">
+                <div className="flex items-center gap-1 text-[11px] font-bold text-white/75">
+                  <Lock className="w-3 h-3" /> মুছে ফেলা
+                </div>
+                <div className="mt-2 text-xs font-bold leading-snug text-white">শুধু সুপার অ্যাডমিন</div>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {pageNotice === "no_access" && (
+        <div
+          role="alert"
+          className={`p-4 rounded-2xl border flex items-start gap-2.5 text-xs font-bold ${
+            isLight ? "bg-amber-50 border-amber-300 text-amber-900" : "bg-amber-500/10 border-amber-500/40 text-amber-200"
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
+          <span className="leading-relaxed">আপনার রোলে সেই পেজটি দেখার অনুমতি দেওয়া হয়নি। প্রয়োজনে সুপার-অ্যাডমিনের সাথে যোগাযোগ করুন।</span>
+        </div>
+      )}
+
+      {accessibleModules.length === 0 && !isSuper && (
+        <div className={`rounded-3xl p-8 border text-center space-y-2 ${cardBox}`}>
+          <Lock className={`w-8 h-8 mx-auto ${isLight ? "text-slate-400" : "text-slate-500"}`} />
+          <h3 className={`text-sm font-black ${isLight ? "text-slate-900" : "text-white"}`}>এখনো কোনো মডিউলের অনুমতি দেওয়া হয়নি</h3>
+          <p className={`text-xs font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+            আপনার “{roleLabel}” রোলে এখনো কোনো মডিউল চালু করা হয়নি। সুপার-অ্যাডমিনকে রোলের অনুমতি ঠিক করে দিতে বলুন।
+          </p>
+        </div>
+      )}
+
+      {/* KPI Metrics Grid — one card per module this role can read */}
+      {kpiCount > 0 && (
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${KPI_COLS[kpiCount]} gap-4`}>
         {/* KPI 1: Revenue */}
+        {canPayments && (
         <div className={`p-5 rounded-3xl relative overflow-hidden border transition-all ${kpiBox}`}>
           <div className="flex items-center justify-between mb-2">
             <span className={`text-xs font-bold ${isLight ? "text-slate-600" : "text-slate-400"}`}>মোট সংগৃহীত ফি</span>
@@ -286,8 +385,10 @@ export default function AdminDashboardClient({ stats, loadError }) {
             <CheckCircle2 className="w-3.5 h-3.5" /> {stats.validPayments} টি যাচাইকৃত (VALID) পেমেন্ট থেকে
           </div>
         </div>
+        )}
 
         {/* KPI 2: Paid Trainees */}
+        {canTots && (
         <div className={`p-5 rounded-3xl relative overflow-hidden border transition-all ${kpiBox}`}>
           <div className="flex items-center justify-between mb-2">
             <span className={`text-xs font-bold ${isLight ? "text-slate-600" : "text-slate-400"}`}>পেইড / ফ্রি ট্রেইনি</span>
@@ -306,8 +407,10 @@ export default function AdminDashboardClient({ stats, loadError }) {
             <span>মহিলা: {stats.womenTrainees}</span>
           </div>
         </div>
+        )}
 
         {/* KPI 3: Pending */}
+        {canPayments && (
         <Link
           href="/admin/payments"
           title="পেমেন্ট ভেরিফিকেশন পেজে যান"
@@ -323,12 +426,16 @@ export default function AdminDashboardClient({ stats, loadError }) {
             {stats.pendingPayments}{" "}
             <span className={`text-xs font-sans font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>টি পেমেন্ট</span>
           </div>
-          <div className={`mt-2 text-[11px] font-bold ${isLight ? "text-amber-800" : "text-amber-300/80"}`}>
-            অ্যাকাউন্টে পেমেন্ট বাকি: {stats.pendingTrainees} জন ট্রেইনি
-          </div>
+          {canTots && (
+            <div className={`mt-2 text-[11px] font-bold ${isLight ? "text-amber-800" : "text-amber-300/80"}`}>
+              অ্যাকাউন্টে পেমেন্ট বাকি: {stats.pendingTrainees} জন ট্রেইনি
+            </div>
+          )}
         </Link>
+        )}
 
         {/* KPI 4: Instructors */}
+        {canInstructors && (
         <Link
           href="/admin/instructors"
           className={`group p-5 rounded-3xl relative overflow-hidden border transition-all block ${
@@ -362,8 +469,10 @@ export default function AdminDashboardClient({ stats, loadError }) {
             </span>
           </div>
         </Link>
+        )}
 
         {/* KPI 5: Evaluations */}
+        {canEvaluations && (
         <Link
           href="/admin/evaluations"
           className={`group p-5 rounded-3xl relative overflow-hidden border transition-all block ${
@@ -400,16 +509,21 @@ export default function AdminDashboardClient({ stats, loadError }) {
               </span>
             </div>
             <div className={isLight ? "text-slate-600" : "text-slate-400"}>
-              সনদপ্রাপ্ত {stats.hiredCount + stats.certifiedCount} / মোট ট্রেইনি {stats.totalTrainees} • পর্যালোচনাধীন {stats.inReviewCount} •
+              সনদপ্রাপ্ত {stats.hiredCount + stats.certifiedCount}
+              {canTots ? ` / মোট ট্রেইনি ${stats.totalTrainees}` : ""} • পর্যালোচনাধীন {stats.inReviewCount} •
               পুনঃমূল্যায়ন {stats.retakeCount}
             </div>
           </div>
         </Link>
+        )}
       </div>
+      )}
 
       {/* Grid: Recent Payments & Recent Trainees */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {(canPayments || canTots) && (
+      <div className={`grid grid-cols-1 ${canPayments && canTots ? "lg:grid-cols-2" : ""} gap-6`}>
         {/* Box 1: Recent Payments */}
+        {canPayments && (
         <div className={`rounded-3xl p-6 border space-y-4 transition-all ${cardBox}`}>
           <div className="flex items-center justify-between">
             <div>
@@ -465,13 +579,15 @@ export default function AdminDashboardClient({ stats, loadError }) {
                         <span className={`text-[10px] font-bold ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                           {PAYMENT_STATUS_LABEL[p.status] || p.status}
                         </span>
-                        <button
-                          onClick={() => handleVerifyPayment(p)}
-                          disabled={verifyingId === p._id || isRefreshing}
-                          className="px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-[10px] font-extrabold shadow-sm transition-colors cursor-pointer disabled:opacity-60"
-                        >
-                          {verifyingId === p._id ? "ভেরিফাই হচ্ছে..." : "ভেরিফাই করুন"}
-                        </button>
+                        {canVerifyPayment && (
+                          <button
+                            onClick={() => handleVerifyPayment(p)}
+                            disabled={verifyingId === p._id || isRefreshing}
+                            className="px-3 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-[10px] font-extrabold shadow-sm transition-colors cursor-pointer disabled:opacity-60"
+                          >
+                            {verifyingId === p._id ? "ভেরিফাই হচ্ছে..." : "ভেরিফাই করুন"}
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
@@ -480,8 +596,10 @@ export default function AdminDashboardClient({ stats, loadError }) {
             )}
           </div>
         </div>
+        )}
 
         {/* Box 2: Recent Trainees */}
+        {canTots && (
         <div className={`rounded-3xl p-6 border space-y-4 transition-all ${cardBox}`}>
           <div className="flex items-center justify-between">
             <div>
@@ -545,9 +663,12 @@ export default function AdminDashboardClient({ stats, loadError }) {
             )}
           </div>
         </div>
+        )}
       </div>
+      )}
 
       {/* Box 3: Notices board */}
+      {canNotices && (
       <div className={`rounded-3xl p-6 border space-y-4 transition-all ${cardBox}`}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
@@ -559,14 +680,16 @@ export default function AdminDashboardClient({ stats, loadError }) {
               ট্রেইনি ও শিক্ষক পোর্টালে প্রদর্শিত সকল নোটিশ — পিন / আনপিন ও মুছে ফেলা
             </p>
           </div>
-          <button
-            onClick={() => setShowNoticeModal(true)}
-            className={`text-xs font-bold px-3.5 py-2 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
-              isLight ? "bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100" : "bg-rose-500/10 text-rose-300 border-rose-500/30 hover:bg-rose-500/20"
-            }`}
-          >
-            <Megaphone className="w-3.5 h-3.5" /> নতুন ঘোষণা
-          </button>
+          {canPostNotice && (
+            <button
+              onClick={() => setShowNoticeModal(true)}
+              className={`text-xs font-bold px-3.5 py-2 rounded-xl border flex items-center gap-1.5 transition-all cursor-pointer ${
+                isLight ? "bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100" : "bg-rose-500/10 text-rose-300 border-rose-500/30 hover:bg-rose-500/20"
+              }`}
+            >
+              <Megaphone className="w-3.5 h-3.5" /> নতুন ঘোষণা
+            </button>
+          )}
         </div>
 
         {notices.length === 0 ? (
@@ -606,36 +729,42 @@ export default function AdminDashboardClient({ stats, loadError }) {
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleTogglePin(n)}
-                    disabled={busyNoticeId === n._id}
-                    title={n.isPinned ? "আনপিন করুন" : "উপরে পিন করুন"}
-                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer disabled:opacity-50 ${
-                      isLight ? "bg-white hover:bg-amber-50 border-slate-300 text-amber-700" : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-amber-400"
-                    }`}
-                  >
-                    {n.isPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteNotice(n)}
-                    disabled={busyNoticeId === n._id}
-                    title="নোটিশ মুছুন"
-                    className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50 ${
-                      isLight ? "text-rose-600 hover:bg-rose-50 border border-rose-200" : "text-rose-400 hover:bg-rose-950/40 border border-rose-900/50"
-                    }`}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {canPinNotice && (
+                    <button
+                      type="button"
+                      onClick={() => handleTogglePin(n)}
+                      disabled={busyNoticeId === n._id}
+                      title={n.isPinned ? "আনপিন করুন" : "উপরে পিন করুন"}
+                      className={`p-1.5 rounded-lg border transition-colors cursor-pointer disabled:opacity-50 ${
+                        isLight ? "bg-white hover:bg-amber-50 border-slate-300 text-amber-700" : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-amber-400"
+                      }`}
+                    >
+                      {n.isPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                  {canDeleteNotice && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteNotice(n)}
+                      disabled={busyNoticeId === n._id}
+                      title="নোটিশ মুছুন"
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50 ${
+                        isLight ? "text-rose-600 hover:bg-rose-50 border border-rose-200" : "text-rose-400 hover:bg-rose-950/40 border border-rose-900/50"
+                      }`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+      )}
 
       {/* Box 4: Instructors Roster & Quick Update */}
+      {canInstructors && (
       <div className={`rounded-3xl p-6 border space-y-5 transition-all ${cardBox}`}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
@@ -739,18 +868,21 @@ export default function AdminDashboardClient({ stats, loadError }) {
                   >
                     <Eye className="w-3 h-3 text-indigo-500" /> প্রোফাইল
                   </button>
-                  <button
-                    onClick={() => setEditingInstructor({ ...inst })}
-                    className="flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center gap-1 shadow-sm transition-colors cursor-pointer"
-                  >
-                    <Edit className="w-3 h-3" /> আপডেট
-                  </button>
+                  {canEditInstructor && (
+                    <button
+                      onClick={() => setEditingInstructor({ ...inst })}
+                      className="flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center gap-1 shadow-sm transition-colors cursor-pointer"
+                    >
+                      <Edit className="w-3 h-3" /> আপডেট
+                    </button>
+                  )}
                 </div>
               </div>
             ))
           )}
         </div>
       </div>
+      )}
 
       {/* ----------------- MODAL 1: VIEW INSTRUCTOR PROFILE ----------------- */}
       {selectedInstructorForProfile && (
@@ -862,15 +994,17 @@ export default function AdminDashboardClient({ stats, loadError }) {
                   <MessageCircle className="w-3.5 h-3.5" /> WhatsApp যোগাযোগ
                 </a>
               )}
-              <button
-                onClick={() => {
-                  setEditingInstructor({ ...selectedInstructorForProfile });
-                  setSelectedInstructorForProfile(null);
-                }}
-                className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Edit className="w-3.5 h-3.5" /> প্রোফাইল আপডেট
-              </button>
+              {canEditInstructor && (
+                <button
+                  onClick={() => {
+                    setEditingInstructor({ ...selectedInstructorForProfile });
+                    setSelectedInstructorForProfile(null);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Edit className="w-3.5 h-3.5" /> প্রোফাইল আপডেট
+                </button>
+              )}
             </div>
           </div>
         </div>

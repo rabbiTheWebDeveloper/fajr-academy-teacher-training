@@ -3,7 +3,7 @@ import { dbConnect } from "@/service/mongo";
 import { InstructorModel } from "@/model/instructor-model";
 import { SAFE_ACCOUNT_SELECT } from "@/model/account-schema";
 import { SessionModel } from "@/model/session-model";
-import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { requirePermission, serverError } from "@/lib/api-auth";
 import { generatePassword, MIN_PASSWORD_LENGTH } from "@/lib/password";
 import { isObjectId, pick, searchFilter } from "@/lib/query-helpers";
 import { phoneVariants } from "@/lib/phone";
@@ -41,7 +41,7 @@ function cleanProfile(input) {
 }
 
 export async function GET(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "instructors", "read");
   if (auth.error) return auth.error;
 
   try {
@@ -64,7 +64,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "instructors", "create");
   if (auth.error) return auth.error;
 
   try {
@@ -113,7 +113,7 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "instructors", "update");
   if (auth.error) return auth.error;
 
   try {
@@ -158,7 +158,7 @@ export async function PATCH(request) {
 
 /** Deletes the instructor account and its login sessions. Grades they gave stay intact (evaluator name/email are stored on each evaluation). */
 export async function DELETE(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, "instructors", "delete");
   if (auth.error) return auth.error;
 
   try {

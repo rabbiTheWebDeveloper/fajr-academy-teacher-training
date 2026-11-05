@@ -2,6 +2,7 @@ import { dbConnect } from "@/service/mongo";
 import { PaymentModel } from "@/model/payment-model";
 import { toPlain } from "@/lib/query-helpers";
 import AdminPaymentsClient from "./AdminPaymentsClient";
+import { requireAdminPage } from "../../_shared/server";
 
 export const metadata = {
   title: "পেমেন্ট ভেরিফিকেশন ও লেজার | অ্যাডমিন প্যানেল",
@@ -11,6 +12,8 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminPaymentsPage() {
+  await requireAdminPage("payments"); // redirects when the role may not open this page
+
   let initialPayments = [];
   let loadError = null;
 

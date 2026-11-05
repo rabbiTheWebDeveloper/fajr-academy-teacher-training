@@ -4,7 +4,7 @@ import { ParticipantModel } from "@/model/participant-model";
 import { TotModel } from "@/model/tot-model";
 import { CourseModel } from "@/model/course-model";
 import { enrollUserInCourse } from "@/service/participant-service";
-import { requireAuth, ADMIN_ROLES, serverError } from "@/lib/api-auth";
+import { requirePermission, serverError } from "@/lib/api-auth";
 import { escapeRegex, isObjectId } from "@/lib/query-helpers";
 import { courseState, withCourseState } from "@/lib/course-state";
 
@@ -113,7 +113,7 @@ function shape(p) {
 
 // GET: enrolments with filters & search (a trainee's courses, or a course's roster)
 export async function GET(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, ["tots", "courses"], "read");
   if (auth.error) return auth.error;
 
   try {
@@ -159,7 +159,7 @@ export async function GET(request) {
 
 // POST: enrol a trainee into a course (or update the existing enrolment)
 export async function POST(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, ["tots", "courses"], "create");
   if (auth.error) return auth.error;
 
   try {
@@ -219,7 +219,7 @@ export async function POST(request) {
 
 // PATCH: change one enrolment's status, payment status, progress, certificate or notes
 export async function PATCH(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, ["tots", "courses"], "update");
   if (auth.error) return auth.error;
 
   try {
@@ -252,7 +252,7 @@ export async function PATCH(request) {
 
 // DELETE: remove a trainee from a course (the payment record is kept)
 export async function DELETE(request) {
-  const auth = await requireAuth(request, ADMIN_ROLES);
+  const auth = await requirePermission(request, ["tots", "courses"], "delete");
   if (auth.error) return auth.error;
 
   try {
