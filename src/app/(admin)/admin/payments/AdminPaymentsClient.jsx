@@ -245,41 +245,36 @@ export default function AdminPaymentsClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const resolvedInitialTab = normalizeTabParam(searchParams?.get("tab") || searchParams?.get("status") || initialTab);
-  const resolvedInitialPhone = searchParams?.get("phone") || initialPhoneFilter || "all";
+  // Derive activeTab, statusFilter, and phoneFilter directly from URL searchParams
+  // (avoids redundant state and prevents cascading renders from setState inside useEffect).
+  const rawTabParam = searchParams?.get("tab") || searchParams?.get("status") || initialTab;
+  const activeTab = normalizeTabParam(rawTabParam); // "pending" | "cancelled" | "valid" | "all"
+
+  const rawStatusParam = searchParams?.get("status");
+  const statusFilter =
+    activeTab !== "all"
+      ? tabToStatus(activeTab)
+      : rawStatusParam && ALL_STATUSES.includes(rawStatusParam)
+      ? rawStatusParam
+      : "all";
+
+  const rawPhoneParam = searchParams?.get("phone") || initialPhoneFilter || "all";
+  const phoneFilter = ["all", "duplicate", "unique", "missing"].includes(rawPhoneParam) ? rawPhoneParam : "all";
 
   const [payments, setPayments] = useState(initialPayments || []);
   const [loadError, setLoadError] = useState(initialLoadError);
   const [reloading, setReloading] = useState(false);
   const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState(resolvedInitialTab); // "pending" | "cancelled" | "valid" | "all"
-  const [statusFilter, setStatusFilter] = useState(tabToStatus(resolvedInitialTab));
   const [purposeFilter, setPurposeFilter] = useState("all");
-  const [phoneFilter, setPhoneFilter] = useState(resolvedInitialPhone); // "all" | "duplicate" | "unique" | "missing"
   const [busyId, setBusyId] = useState(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const exportMenuRef = useRef(null);
 
-  // Sync local state if URL searchParams change (e.g. browser back/forward navigation)
-  useEffect(() => {
-    const urlTab = searchParams?.get("tab") || searchParams?.get("status");
-    if (urlTab) {
-      const nextTab = normalizeTabParam(urlTab);
-      setActiveTab(nextTab);
-      setStatusFilter(tabToStatus(nextTab));
-    }
-    const urlPhone = searchParams?.get("phone");
-    if (urlPhone && ["all", "duplicate", "unique", "missing"].includes(urlPhone)) {
-      setPhoneFilter(urlPhone);
-    }
-  }, [searchParams]);
-
   const updateUrlParams = (updates) => {
     const params = new URLSearchParams(searchParams ? searchParams.toString() : "");
-    params.delete("status");
     Object.entries(updates).forEach(([k, v]) => {
-      if (!v || (k === "phone" && v === "all")) {
+      if (!v || (k === "phone" && v === "all") || (k === "status" && v === "all")) {
         params.delete(k);
       } else {
         params.set(k, v);
@@ -291,30 +286,24 @@ export default function AdminPaymentsClient({
 
   const handleTabChange = (nextTab) => {
     const cleanTab = normalizeTabParam(nextTab);
-    setActiveTab(cleanTab);
-    setStatusFilter(tabToStatus(cleanTab));
-    updateUrlParams({ tab: cleanTab });
+    updateUrlParams({ tab: cleanTab, status: null });
   };
 
   const handleStatusDropdownChange = (nextStatus) => {
-    setStatusFilter(nextStatus);
     if (nextStatus === "PENDING") {
-      setActiveTab("pending");
-      updateUrlParams({ tab: "pending" });
+      updateUrlParams({ tab: "pending", status: null });
     } else if (nextStatus === "CANCELLED") {
-      setActiveTab("cancelled");
-      updateUrlParams({ tab: "cancelled" });
+      updateUrlParams({ tab: "cancelled", status: null });
     } else if (nextStatus === "VALID") {
-      setActiveTab("valid");
-      updateUrlParams({ tab: "valid" });
+      updateUrlParams({ tab: "valid", status: null });
+    } else if (nextStatus === "all") {
+      updateUrlParams({ tab: "all", status: null });
     } else {
-      setActiveTab("all");
-      updateUrlParams({ tab: "all" });
+      updateUrlParams({ tab: "all", status: nextStatus });
     }
   };
 
   const handlePhoneFilterChange = (nextPhoneFilter) => {
-    setPhoneFilter(nextPhoneFilter);
     updateUrlParams({ tab: activeTab, phone: nextPhoneFilter });
   };
 
@@ -1155,7 +1144,7 @@ export default function AdminPaymentsClient({
                 type="button"
                 onClick={() => {
                   setSearch(p.userPhone);
-                  setPhoneFilter("all");
+                  handlePhoneFilterChange("all");
                   showToast(`নম্বর "${p.userPhone}"-এর ${count} টি পেমেন্ট ফিল্টার করা হয়েছে।`);
                 }}
                 title={`⚠ এই নম্বরটি ${count} টি পেমেন্টে ব্যবহৃত হয়েছে। ক্লিক করে সবগুলো দেখুন।`}
@@ -1863,12 +1852,9 @@ export default function AdminPaymentsClient({
           <button
             type="button"
             onClick={() => {
-              setActiveTab("all");
-              setStatusFilter("all");
               setPurposeFilter("all");
-              setPhoneFilter("all");
               setSearch("");
-              updateUrlParams({ tab: "all", phone: "all" });
+              updateUrlParams({ tab: "all", status: null, phone: "all" });
             }}
             className="text-[11px] text-rose-400 hover:text-rose-300 font-bold ml-auto flex items-center gap-1 cursor-pointer"
           >
