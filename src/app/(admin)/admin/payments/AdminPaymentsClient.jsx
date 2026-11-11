@@ -556,32 +556,30 @@ export default function AdminPaymentsClient({
 
   // Main Filter Logic (Search + Status + Purpose + Duplicate/Unique Phone)
   const q = search.trim().toLowerCase();
-  const filtered = useMemo(() => {
-    return payments.filter((p) => {
-      const matchesSearch =
-        !q ||
-        [p.tranId, p.userEmail, p.userName, p.userPhone, p.valId, p.bankTranId, p.courseId].some((v) =>
-          String(v || "").toLowerCase().includes(q)
-        );
+  const filtered = payments.filter((p) => {
+    const matchesSearch =
+      !q ||
+      [p.tranId, p.userEmail, p.userName, p.userPhone, p.valId, p.bankTranId, p.courseId].some((v) =>
+        String(v || "").toLowerCase().includes(q)
+      );
 
-      const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-      const matchesPurpose = purposeFilter === "all" || p.purpose === purposeFilter;
+    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
+    const matchesPurpose = purposeFilter === "all" || p.purpose === purposeFilter;
 
-      const norm = normalizePhone(p.userPhone);
-      const freq = norm ? phoneCounts.get(norm) || 0 : 0;
+    const norm = normalizePhone(p.userPhone);
+    const freq = norm ? phoneCounts.get(norm) || 0 : 0;
 
-      let matchesPhone = true;
-      if (phoneFilter === "duplicate") {
-        matchesPhone = Boolean(norm && freq > 1);
-      } else if (phoneFilter === "unique") {
-        matchesPhone = Boolean(norm && freq === 1);
-      } else if (phoneFilter === "missing") {
-        matchesPhone = !norm;
-      }
+    let matchesPhone = true;
+    if (phoneFilter === "duplicate") {
+      matchesPhone = Boolean(norm && freq > 1);
+    } else if (phoneFilter === "unique") {
+      matchesPhone = Boolean(norm && freq === 1);
+    } else if (phoneFilter === "missing") {
+      matchesPhone = !norm;
+    }
 
-      return matchesSearch && matchesStatus && matchesPurpose && matchesPhone;
-    });
-  }, [payments, q, statusFilter, purposeFilter, phoneFilter, phoneCounts]);
+    return matchesSearch && matchesStatus && matchesPurpose && matchesPhone;
+  });
 
   const pendingPayments = payments.filter((p) => p.status === "PENDING");
   const cancelledPayments = payments.filter((p) => p.status === "CANCELLED");
