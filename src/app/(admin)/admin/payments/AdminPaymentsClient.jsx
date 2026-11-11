@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   Search,
   Plus,
@@ -18,6 +19,9 @@ import {
   ChevronDown,
   AlertTriangle,
   CheckCircle,
+  Clock,
+  XCircle,
+  ListFilter,
   Phone,
   Copy,
   Check,
@@ -214,18 +218,105 @@ const escapeXml = (unsafe) => {
     .replace(/'/g, "&apos;");
 };
 
-export default function AdminPaymentsClient({ initialPayments, loadError: initialLoadError }) {
+/** Normalize URL ?tab=... param into one of the 4 canonical tab keys. */
+function normalizeTabParam(raw) {
+  const v = String(raw || "").trim().toLowerCase();
+  if (v === "pending") return "pending";
+  if (v === "cancel" || v === "cancelled" || v === "canceled") return "cancelled";
+  if (v === "valid" || v === "valide") return "valid";
+  if (v === "all") return "all";
+  return "pending";
+}
+
+function tabToStatus(tabKey) {
+  if (tabKey === "pending") return "PENDING";
+  if (tabKey === "cancelled") return "CANCELLED";
+  if (tabKey === "valid") return "VALID";
+  return "all";
+}
+
+export default function AdminPaymentsClient({
+  initialPayments,
+  loadError: initialLoadError,
+  initialTab = "pending",
+  initialPhoneFilter = "all",
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const resolvedInitialTab = normalizeTabParam(searchParams?.get("tab") || searchParams?.get("status") || initialTab);
+  const resolvedInitialPhone = searchParams?.get("phone") || initialPhoneFilter || "all";
+
   const [payments, setPayments] = useState(initialPayments || []);
   const [loadError, setLoadError] = useState(initialLoadError);
   const [reloading, setReloading] = useState(false);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState(resolvedInitialTab); // "pending" | "cancelled" | "valid" | "all"
+  const [statusFilter, setStatusFilter] = useState(tabToStatus(resolvedInitialTab));
   const [purposeFilter, setPurposeFilter] = useState("all");
-  const [phoneFilter, setPhoneFilter] = useState("all"); // "all" | "duplicate" | "unique" | "missing"
+  const [phoneFilter, setPhoneFilter] = useState(resolvedInitialPhone); // "all" | "duplicate" | "unique" | "missing"
   const [busyId, setBusyId] = useState(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const exportMenuRef = useRef(null);
+
+  // Sync local state if URL searchParams change (e.g. browser back/forward navigation)
+  useEffect(() => {
+    const urlTab = searchParams?.get("tab") || searchParams?.get("status");
+    if (urlTab) {
+      const nextTab = normalizeTabParam(urlTab);
+      setActiveTab(nextTab);
+      setStatusFilter(tabToStatus(nextTab));
+    }
+    const urlPhone = searchParams?.get("phone");
+    if (urlPhone && ["all", "duplicate", "unique", "missing"].includes(urlPhone)) {
+      setPhoneFilter(urlPhone);
+    }
+  }, [searchParams]);
+
+  const updateUrlParams = (updates) => {
+    const params = new URLSearchParams(searchParams ? searchParams.toString() : "");
+    params.delete("status");
+    Object.entries(updates).forEach(([k, v]) => {
+      if (!v || (k === "phone" && v === "all")) {
+        params.delete(k);
+      } else {
+        params.set(k, v);
+      }
+    });
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
+  const handleTabChange = (nextTab) => {
+    const cleanTab = normalizeTabParam(nextTab);
+    setActiveTab(cleanTab);
+    setStatusFilter(tabToStatus(cleanTab));
+    updateUrlParams({ tab: cleanTab });
+  };
+
+  const handleStatusDropdownChange = (nextStatus) => {
+    setStatusFilter(nextStatus);
+    if (nextStatus === "PENDING") {
+      setActiveTab("pending");
+      updateUrlParams({ tab: "pending" });
+    } else if (nextStatus === "CANCELLED") {
+      setActiveTab("cancelled");
+      updateUrlParams({ tab: "cancelled" });
+    } else if (nextStatus === "VALID") {
+      setActiveTab("valid");
+      updateUrlParams({ tab: "valid" });
+    } else {
+      setActiveTab("all");
+      updateUrlParams({ tab: "all" });
+    }
+  };
+
+  const handlePhoneFilterChange = (nextPhoneFilter) => {
+    setPhoneFilter(nextPhoneFilter);
+    updateUrlParams({ tab: activeTab, phone: nextPhoneFilter });
+  };
 
   const { isLight } = useAdminTheme();
   const { can, isSuper } = useAdminAccess();
@@ -503,10 +594,36 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
     });
   }, [payments, q, statusFilter, purposeFilter, phoneFilter, phoneCounts]);
 
+  const pendingPayments = payments.filter((p) => p.status === "PENDING");
+  const cancelledPayments = payments.filter((p) => p.status === "CANCELLED");
   const validPayments = payments.filter((p) => p.status === "VALID");
+
+  const pendingCount = pendingPayments.length;
+  const pendingAmount = pendingPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+
+  const cancelledCount = cancelledPayments.length;
+  const cancelledAmount = cancelledPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+
+  const validCount = validPayments.length;
   const totalCollected = validPayments.reduce((acc, p) => acc + netAmount(p), 0);
+
+  const allCount = payments.length;
+  const allGrossAmount = payments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+
   const filteredTotalNet = filtered.reduce((acc, p) => acc + netAmount(p), 0);
-  const pendingCount = payments.filter((p) => p.status === "PENDING").length;
+
+  const getExportTag = () => {
+    const tabPart =
+      activeTab === "pending"
+        ? "_Pending"
+        : activeTab === "cancelled"
+        ? "_Cancelled"
+        : activeTab === "valid"
+        ? "_Valid"
+        : "_All";
+    const phonePart = phoneFilter === "duplicate" ? "_Duplicates" : phoneFilter === "unique" ? "_Uniques" : "";
+    return `${tabPart}${phonePart}`;
+  };
 
   // Filter description for exports
   const getFilterDescription = () => {
@@ -652,8 +769,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    const filterTag = phoneFilter === "duplicate" ? "_Duplicates" : phoneFilter === "unique" ? "_Uniques" : "";
-    link.download = `Fajr_Academy_Payments${filterTag}_${new Date().toISOString().slice(0, 10)}.xls`;
+    link.download = `Fajr_Academy_Payments${getExportTag()}_${new Date().toISOString().slice(0, 10)}.xls`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -728,8 +844,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    const filterTag = phoneFilter === "duplicate" ? "_Duplicates" : phoneFilter === "unique" ? "_Uniques" : "";
-    link.download = `Fajr_Academy_Payments${filterTag}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `Fajr_Academy_Payments${getExportTag()}_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -738,7 +853,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
     showToast(`${filtered.length} টি পেমেন্ট রেকর্ড CSV ফাইলে ডাউনলোড হয়েছে!`);
   };
 
-  // 3. Export PDF (.pdf) via jsPDF + autoTable
+  // 3. Export PDF (.pdf) via jsPDF + autoTable (with ASCII formatting + Canvas fallback for Unicode/Bengali names)
   const handleExportPDF = async () => {
     if (filtered.length === 0) {
       showToast("এক্সপোর্ট করার মতো কোনো ডাটা নেই", "error");
@@ -754,22 +869,53 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
       const autoTable = (await import("jspdf-autotable")).default;
 
       const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      const totalGrossVal = filtered.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
       const totalNetVal = filtered.reduce((acc, p) => acc + netAmount(p), 0);
 
-      // Header Banner
+      // Clean English Filter Description for PDF Header
+      const filterParts = [];
+      if (statusFilter !== "all") filterParts.push(`Status: ${statusFilter}`);
+      if (purposeFilter !== "all") filterParts.push(`Purpose: ${PURPOSE_LABEL_EN[purposeFilter] || purposeFilter}`);
+      if (phoneFilter === "duplicate") filterParts.push("Phone: Duplicate Numbers Only");
+      else if (phoneFilter === "unique") filterParts.push("Phone: Unique Numbers Only");
+      else if (phoneFilter === "missing") filterParts.push("Phone: Without Phone Number");
+      if (search.trim()) {
+        const cleanSearch = sanitizePdfPunctuation(search.trim());
+        filterParts.push(/[^\x20-\x7E]/.test(cleanSearch) ? "Search: Custom Query" : `Search: "${cleanSearch}"`);
+      }
+      const filterSummaryEn = filterParts.length ? filterParts.join("  |  ") : "All Payment Records";
+
+      // Header Banner (100% ASCII)
+      doc.setFont("helvetica", "bold");
       doc.setFontSize(15);
       doc.setTextColor(7, 19, 40);
-      doc.text("FAJR ACADEMY — TOT PAYMENT AUDIT & FINANCIAL LEDGER", 40, 38);
+      doc.text("FAJR ACADEMY - TOT PAYMENT AUDIT & FINANCIAL LEDGER", 28, 36);
 
+      doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      doc.setTextColor(100, 116, 139);
-      const dateString = new Date().toLocaleString("en-US");
+      doc.setTextColor(71, 85, 105);
+      const now = new Date();
+      const genDate = `${now.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        numberingSystem: "latn",
+      })}, ${now.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+        numberingSystem: "latn",
+      })}`;
+
       doc.text(
-        `Generated: ${dateString}  |  Records: ${filtered.length}  |  Net Total: BDT ${totalNetVal.toLocaleString("en-US")}`,
-        40,
-        52
+        `Generated: ${genDate}   |   Records: ${filtered.length}   |   Gross: BDT ${totalGrossVal.toLocaleString(
+          "en-US"
+        )}   |   Net Total: BDT ${totalNetVal.toLocaleString("en-US")}`,
+        28,
+        51
       );
-      doc.text(`Filter: ${getFilterDescription()}`, 40, 65);
+      doc.text(`Filter: ${filterSummaryEn}`, 28, 64);
 
       // Columns
       const head = [
@@ -785,7 +931,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
           "Amount (BDT)",
           "Net (BDT)",
           "Status",
-          "Date",
+          "Date & Time",
         ],
       ];
 
@@ -795,63 +941,131 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
         const phoneStatus = count > 1 ? `DUPLICATE (${count}x)` : count === 1 ? "UNIQUE" : "NO PHONE";
 
         return [
-          idx + 1,
-          p.tranId || "—",
-          p.userName || "—",
-          p.userPhone || "—",
+          String(idx + 1),
+          sanitizePdfPunctuation(p.tranId || "-"),
+          sanitizePdfPunctuation(p.userName || "-"),
+          sanitizePdfPunctuation(p.userPhone || "-"),
           phoneStatus,
-          p.userEmail || "—",
-          trackLabel(p.track) || "—",
-          `${p.cardType || p.paymentMethod || "—"}`,
-          Number(p.amount) || 0,
-          netAmount(p),
-          p.status || "—",
-          formatDate(p.createdAt, true) || "—",
+          sanitizePdfPunctuation(p.userEmail || "-"),
+          trackLabelPdf(p.track),
+          sanitizePdfPunctuation(p.cardType || p.paymentMethod || p.paymentGateway || "-"),
+          (Number(p.amount) || 0).toLocaleString("en-US"),
+          netAmount(p).toLocaleString("en-US"),
+          sanitizePdfPunctuation(p.status || "-"),
+          formatDatePdf(p.createdAt),
         ];
       });
 
+      const colWidths = {
+        0: 24,
+        1: 82,
+        2: 92,
+        3: 72,
+        4: 68,
+        5: 102,
+        6: 62,
+        7: 52,
+        8: 52,
+        9: 50,
+        10: 62,
+        11: 67,
+      };
+
       autoTable(doc, {
-        startY: 78,
+        startY: 76,
+        margin: { left: 28, right: 28 },
         head: head,
         body: body,
         theme: "grid",
-        styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak" },
-        headStyles: { fillColor: [7, 19, 40], textColor: [245, 158, 11], fontStyle: "bold" },
+        styles: {
+          font: "helvetica",
+          fontSize: 8,
+          cellPadding: 4,
+          overflow: "linebreak",
+          valign: "middle",
+          textColor: [15, 23, 42],
+          lineColor: [203, 213, 225],
+          lineWidth: 0.5,
+        },
+        headStyles: {
+          fillColor: [7, 19, 40],
+          textColor: [245, 158, 11],
+          fontStyle: "bold",
+          halign: "left",
+        },
         alternateRowStyles: { fillColor: [248, 250, 252] },
         columnStyles: {
-          0: { cellWidth: 24 },
-          1: { cellWidth: 80, fontStyle: "bold" },
-          2: { cellWidth: 85 },
-          3: { cellWidth: 70 },
-          4: { cellWidth: 68 },
-          5: { cellWidth: 95 },
-          6: { cellWidth: 60 },
-          7: { cellWidth: 65 },
-          8: { cellWidth: 55, halign: "right" },
-          9: { cellWidth: 55, halign: "right" },
-          10: { cellWidth: 50, halign: "center" },
-          11: { cellWidth: 65 },
+          0: { cellWidth: colWidths[0], halign: "center" },
+          1: { cellWidth: colWidths[1], fontStyle: "bold" },
+          2: { cellWidth: colWidths[2] },
+          3: { cellWidth: colWidths[3] },
+          4: { cellWidth: colWidths[4], halign: "center" },
+          5: { cellWidth: colWidths[5] },
+          6: { cellWidth: colWidths[6] },
+          7: { cellWidth: colWidths[7] },
+          8: { cellWidth: colWidths[8], halign: "right" },
+          9: { cellWidth: colWidths[9], halign: "right", fontStyle: "bold" },
+          10: { cellWidth: colWidths[10], halign: "center" },
+          11: { cellWidth: colWidths[11] },
         },
         didParseCell: (data) => {
           if (data.section === "body") {
             // Status styling
             if (data.column.index === 10) {
-              const val = String(data.cell.raw);
-              if (val === "VALID") data.cell.styles.textColor = [22, 101, 52];
-              else if (val === "PENDING") data.cell.styles.textColor = [180, 83, 9];
-              else if (val === "REFUNDED") data.cell.styles.textColor = [71, 85, 105];
-              else data.cell.styles.textColor = [153, 27, 27];
+              const val = String(data.cell.raw || "");
+              if (val === "VALID") {
+                data.cell.styles.textColor = [22, 101, 52];
+                data.cell.styles.fillColor = [220, 252, 231];
+              } else if (val === "PENDING" || val === "UNATTEMPTED") {
+                data.cell.styles.textColor = [146, 64, 14];
+                data.cell.styles.fillColor = [254, 243, 199];
+              } else if (val === "REFUNDED") {
+                data.cell.styles.textColor = [71, 85, 105];
+                data.cell.styles.fillColor = [241, 245, 249];
+              } else {
+                data.cell.styles.textColor = [153, 27, 27];
+                data.cell.styles.fillColor = [254, 226, 226];
+              }
               data.cell.styles.fontStyle = "bold";
             }
-            // Phone duplicate highlight
+
+            // Phone duplicate / unique highlight
             if (data.column.index === 4) {
-              const val = String(data.cell.raw);
+              const val = String(data.cell.raw || "");
               if (val.startsWith("DUPLICATE")) {
                 data.cell.styles.fillColor = [254, 243, 199];
                 data.cell.styles.textColor = [146, 64, 14];
                 data.cell.styles.fontStyle = "bold";
+              } else if (val === "UNIQUE") {
+                data.cell.styles.textColor = [21, 128, 61];
+                data.cell.styles.fontStyle = "bold";
               }
             }
+
+            // If any cell contains non-ASCII characters (e.g. Bengali Trainee Name),
+            // render via high-DPI HTML5 Canvas so jsPDF never prints mojibake bytes.
+            const rawStr = String(data.cell.raw ?? "");
+            if (/[^\x00-\x7F]/.test(rawStr)) {
+              const cw = (colWidths[data.column.index] || 80) - 8;
+              const img = renderUnicodeTextToImage(rawStr, cw, 8, "#0f172a");
+              if (img) {
+                data.cell._unicodeImg = img;
+                data.cell.text = [""];
+                if (img.heightPt + 8 > (data.cell.styles.minCellHeight || 0)) {
+                  data.cell.styles.minCellHeight = img.heightPt + 8;
+                }
+              } else {
+                data.cell.text = [rawStr.replace(/[^\x20-\x7E]/g, "") || "-"];
+              }
+            }
+          }
+        },
+        didDrawCell: (data) => {
+          if (data.section === "body" && data.cell._unicodeImg) {
+            const img = data.cell._unicodeImg;
+            const x = data.cell.x + 4;
+            const y = data.cell.y + Math.max(2, (data.cell.height - img.heightPt) / 2);
+            doc.addImage(img.dataUrl, "PNG", x, y, img.widthPt, img.heightPt);
           }
         },
         foot: [
@@ -864,29 +1078,34 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
             "",
             "",
             "",
-            filtered.reduce((a, b) => a + (Number(b.amount) || 0), 0),
-            totalNetVal,
+            totalGrossVal.toLocaleString("en-US"),
+            totalNetVal.toLocaleString("en-US"),
             "",
             "",
           ],
         ],
-        footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: "bold" },
+        footStyles: {
+          fillColor: [241, 245, 249],
+          textColor: [15, 23, 42],
+          fontStyle: "bold",
+          halign: "right",
+        },
       });
 
       const pageCount = doc.internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
+        doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         doc.setTextColor(148, 163, 184);
         doc.text(
-          `Page ${i} of ${pageCount} • Fajr Academy Teacher Training Division`,
-          40,
-          doc.internal.pageSize.height - 18
+          `Page ${i} of ${pageCount}  |  Fajr Academy Teacher Training Division`,
+          28,
+          doc.internal.pageSize.height - 16
         );
       }
 
-      const filterTag = phoneFilter === "duplicate" ? "_Duplicates" : phoneFilter === "unique" ? "_Uniques" : "";
-      doc.save(`Fajr_Academy_Payments${filterTag}_${new Date().toISOString().slice(0, 10)}.pdf`);
+      doc.save(`Fajr_Academy_Payments${getExportTag()}_${new Date().toISOString().slice(0, 10)}.pdf`);
       showToast(`${filtered.length} টি পেমেন্ট রেকর্ড PDF ফাইলে ডাউনলোড হয়েছে!`);
     } catch (err) {
       console.error("PDF export error:", err);
@@ -1285,6 +1504,239 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
         </div>
       </div>
 
+      {/* 4-Tab Navigation Bar with URL Router Search Params (?tab=pending | cancelled | valid | all) */}
+      <div
+        role="tablist"
+        aria-label="পেমেন্ট স্ট্যাটাস ট্যাব"
+        className={`grid grid-cols-2 lg:grid-cols-4 gap-2.5 p-2 rounded-3xl border ${
+          isLight ? "bg-slate-100/90 border-slate-200/90" : "bg-slate-900/90 border-slate-800"
+        }`}
+      >
+        {/* Tab 1: Pending Payment */}
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "pending"}
+          onClick={() => handleTabChange("pending")}
+          className={`flex items-center justify-between gap-2.5 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+            activeTab === "pending"
+              ? isLight
+                ? "bg-amber-500 text-white border-amber-600 shadow-lg shadow-amber-500/25"
+                : "bg-gradient-to-br from-amber-500/25 to-amber-600/10 text-amber-300 border-amber-500/60 shadow-lg shadow-amber-500/10"
+              : isLight
+              ? "bg-white hover:bg-amber-50/60 text-slate-700 border-slate-200/80"
+              : "bg-slate-950/60 hover:bg-slate-800/70 text-slate-300 border-slate-800/80"
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                activeTab === "pending"
+                  ? isLight
+                    ? "bg-white/20 text-white"
+                    : "bg-amber-500/25 text-amber-300"
+                  : isLight
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-amber-500/10 text-amber-400"
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-black truncate">পেন্ডিং পেমেন্ট</div>
+              <div
+                className={`text-[10px] font-mono font-bold truncate ${
+                  activeTab === "pending" ? (isLight ? "text-amber-50" : "text-amber-300/80") : "text-slate-400"
+                }`}
+              >
+                Pending • ৳ {pendingAmount.toLocaleString("en-US")}
+              </div>
+            </div>
+          </div>
+          <span
+            className={`px-2.5 py-1 rounded-full text-xs font-black font-mono shrink-0 ${
+              activeTab === "pending"
+                ? isLight
+                  ? "bg-white text-amber-700"
+                  : "bg-amber-500 text-slate-950"
+                : isLight
+                ? "bg-amber-100 text-amber-800"
+                : "bg-amber-500/15 text-amber-300"
+            }`}
+          >
+            {pendingCount}
+          </span>
+        </button>
+
+        {/* Tab 2: Cancel Payment */}
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "cancelled"}
+          onClick={() => handleTabChange("cancelled")}
+          className={`flex items-center justify-between gap-2.5 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+            activeTab === "cancelled"
+              ? isLight
+                ? "bg-rose-600 text-white border-rose-700 shadow-lg shadow-rose-600/25"
+                : "bg-gradient-to-br from-rose-500/25 to-rose-600/10 text-rose-300 border-rose-500/60 shadow-lg shadow-rose-500/10"
+              : isLight
+              ? "bg-white hover:bg-rose-50/60 text-slate-700 border-slate-200/80"
+              : "bg-slate-950/60 hover:bg-slate-800/70 text-slate-300 border-slate-800/80"
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                activeTab === "cancelled"
+                  ? isLight
+                    ? "bg-white/20 text-white"
+                    : "bg-rose-500/25 text-rose-300"
+                  : isLight
+                  ? "bg-rose-100 text-rose-700"
+                  : "bg-rose-500/10 text-rose-400"
+              }`}
+            >
+              <XCircle className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-black truncate">বাতিল পেমেন্ট</div>
+              <div
+                className={`text-[10px] font-mono font-bold truncate ${
+                  activeTab === "cancelled" ? (isLight ? "text-rose-50" : "text-rose-300/80") : "text-slate-400"
+                }`}
+              >
+                Cancel • ৳ {cancelledAmount.toLocaleString("en-US")}
+              </div>
+            </div>
+          </div>
+          <span
+            className={`px-2.5 py-1 rounded-full text-xs font-black font-mono shrink-0 ${
+              activeTab === "cancelled"
+                ? isLight
+                  ? "bg-white text-rose-700"
+                  : "bg-rose-500 text-white"
+                : isLight
+                ? "bg-rose-100 text-rose-800"
+                : "bg-rose-500/15 text-rose-300"
+            }`}
+          >
+            {cancelledCount}
+          </span>
+        </button>
+
+        {/* Tab 3: Valid Payment */}
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "valid"}
+          onClick={() => handleTabChange("valid")}
+          className={`flex items-center justify-between gap-2.5 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+            activeTab === "valid"
+              ? isLight
+                ? "bg-emerald-600 text-white border-emerald-700 shadow-lg shadow-emerald-600/25"
+                : "bg-gradient-to-br from-emerald-500/25 to-emerald-600/10 text-emerald-300 border-emerald-500/60 shadow-lg shadow-emerald-500/10"
+              : isLight
+              ? "bg-white hover:bg-emerald-50/60 text-slate-700 border-slate-200/80"
+              : "bg-slate-950/60 hover:bg-slate-800/70 text-slate-300 border-slate-800/80"
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                activeTab === "valid"
+                  ? isLight
+                    ? "bg-white/20 text-white"
+                    : "bg-emerald-500/25 text-emerald-300"
+                  : isLight
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-emerald-500/10 text-emerald-400"
+              }`}
+            >
+              <CheckCircle className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-black truncate">ভ্যালিড পেমেন্ট</div>
+              <div
+                className={`text-[10px] font-mono font-bold truncate ${
+                  activeTab === "valid" ? (isLight ? "text-emerald-50" : "text-emerald-300/80") : "text-slate-400"
+                }`}
+              >
+                Valid • ৳ {totalCollected.toLocaleString("en-US")}
+              </div>
+            </div>
+          </div>
+          <span
+            className={`px-2.5 py-1 rounded-full text-xs font-black font-mono shrink-0 ${
+              activeTab === "valid"
+                ? isLight
+                  ? "bg-white text-emerald-700"
+                  : "bg-emerald-500 text-slate-950"
+                : isLight
+                ? "bg-emerald-100 text-emerald-800"
+                : "bg-emerald-500/15 text-emerald-300"
+            }`}
+          >
+            {validCount}
+          </span>
+        </button>
+
+        {/* Tab 4 (Last Part): All Payment List */}
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "all"}
+          onClick={() => handleTabChange("all")}
+          className={`flex items-center justify-between gap-2.5 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+            activeTab === "all"
+              ? isLight
+                ? "bg-slate-900 text-white border-slate-900 shadow-lg"
+                : "bg-gradient-to-br from-[#D4AF37]/25 to-[#C59B27]/10 text-[#D4AF37] border-[#D4AF37]/60 shadow-lg shadow-[#D4AF37]/10"
+              : isLight
+              ? "bg-white hover:bg-slate-50 text-slate-700 border-slate-200/80"
+              : "bg-slate-950/60 hover:bg-slate-800/70 text-slate-300 border-slate-800/80"
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                activeTab === "all"
+                  ? isLight
+                    ? "bg-white/20 text-white"
+                    : "bg-[#D4AF37]/25 text-[#D4AF37]"
+                  : isLight
+                  ? "bg-slate-100 text-slate-700"
+                  : "bg-slate-800 text-slate-300"
+              }`}
+            >
+              <ListFilter className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-black truncate">সকল পেমেন্ট তালিকা</div>
+              <div
+                className={`text-[10px] font-mono font-bold truncate ${
+                  activeTab === "all" ? (isLight ? "text-slate-200" : "text-[#D4AF37]/80") : "text-slate-400"
+                }`}
+              >
+                All List • ৳ {allGrossAmount.toLocaleString("en-US")}
+              </div>
+            </div>
+          </div>
+          <span
+            className={`px-2.5 py-1 rounded-full text-xs font-black font-mono shrink-0 ${
+              activeTab === "all"
+                ? isLight
+                  ? "bg-white text-slate-900"
+                  : "bg-[#D4AF37] text-[#051329]"
+                : isLight
+                ? "bg-slate-200 text-slate-800"
+                : "bg-slate-800 text-slate-300"
+            }`}
+          >
+            {allCount}
+          </span>
+        </button>
+      </div>
+
       {/* Search & Filters */}
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:items-center sm:gap-3">
         {/* Search Field */}
@@ -1313,7 +1765,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
         </div>
 
         {/* Status Filter */}
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={filterSelectCls}>
+        <select value={statusFilter} onChange={(e) => handleStatusDropdownChange(e.target.value)} className={filterSelectCls}>
           <option value="all">সকল স্ট্যাটাস</option>
           {ALL_STATUSES.map((s) => (
             <option key={s} value={s}>
@@ -1335,7 +1787,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
         {/* Duplicate / Unique Phone Number Filter */}
         <select
           value={phoneFilter}
-          onChange={(e) => setPhoneFilter(e.target.value)}
+          onChange={(e) => handlePhoneFilterChange(e.target.value)}
           className={`${filterSelectCls} ${
             phoneFilter === "duplicate"
               ? isLight
@@ -1362,7 +1814,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
         {/* All Chip */}
         <button
           type="button"
-          onClick={() => setPhoneFilter("all")}
+          onClick={() => handlePhoneFilterChange("all")}
           className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border ${
             phoneFilter === "all"
               ? isLight
@@ -1379,7 +1831,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
         {/* Unique Chip */}
         <button
           type="button"
-          onClick={() => setPhoneFilter("unique")}
+          onClick={() => handlePhoneFilterChange("unique")}
           className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
             phoneFilter === "unique"
               ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
@@ -1394,7 +1846,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
         {/* Duplicate Chip */}
         <button
           type="button"
-          onClick={() => setPhoneFilter("duplicate")}
+          onClick={() => handlePhoneFilterChange("duplicate")}
           className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
             phoneFilter === "duplicate"
               ? "bg-amber-600 text-white border-amber-600 shadow-md"
@@ -1411,10 +1863,12 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
           <button
             type="button"
             onClick={() => {
+              setActiveTab("all");
               setStatusFilter("all");
               setPurposeFilter("all");
               setPhoneFilter("all");
               setSearch("");
+              updateUrlParams({ tab: "all", phone: "all" });
             }}
             className="text-[11px] text-rose-400 hover:text-rose-300 font-bold ml-auto flex items-center gap-1 cursor-pointer"
           >

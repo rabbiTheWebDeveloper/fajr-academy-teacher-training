@@ -11,8 +11,12 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPaymentsPage() {
+export default async function AdminPaymentsPage({ searchParams }) {
   await requireAdminPage("payments"); // redirects when the role may not open this page
+
+  const sp = (await searchParams) || {};
+  const initialTab = sp.tab || sp.status || "pending";
+  const initialPhoneFilter = sp.phone || "all";
 
   let initialPayments = [];
   let loadError = null;
@@ -30,5 +34,12 @@ export default async function AdminPaymentsPage() {
     loadError = "ডাটাবেজের সাথে সংযোগ করা যায়নি — পেমেন্ট লেজার লোড হয়নি। কিছুক্ষণ পর আবার চেষ্টা করুন।";
   }
 
-  return <AdminPaymentsClient initialPayments={initialPayments} loadError={loadError} />;
+  return (
+    <AdminPaymentsClient
+      initialPayments={initialPayments}
+      loadError={loadError}
+      initialTab={initialTab}
+      initialPhoneFilter={initialPhoneFilter}
+    />
+  );
 }
