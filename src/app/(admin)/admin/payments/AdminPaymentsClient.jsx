@@ -1,7 +1,27 @@
 'use client';
 
-import React, { useState } from "react";
-import { Search, Plus, Trash2, X, RefreshCw, Undo2, ShieldCheck, RotateCcw, MessageCircle } from "lucide-react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import {
+  Search,
+  Plus,
+  Trash2,
+  X,
+  RefreshCw,
+  Undo2,
+  ShieldCheck,
+  RotateCcw,
+  MessageCircle,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Printer,
+  ChevronDown,
+  AlertTriangle,
+  CheckCircle,
+  Phone,
+  Copy,
+  Check,
+} from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
 import { useAdminAccess } from "../../AdminAccessContext";
 import {
@@ -16,6 +36,7 @@ import {
   useToast,
   whatsappHref,
 } from "../../_shared/admin-ui";
+import { convertBengaliToEnglishNumbers } from "@/lib/phone";
 
 // Statuses an admin may set (REFUNDED is only reachable through the refund flow).
 const SETTABLE_STATUSES = ["VALID", "PENDING", "FAILED", "CANCELLED", "UNATTEMPTED", "EXPIRED", "INVALID"];
@@ -56,15 +77,142 @@ const EMPTY_FORM = {
   notes: "",
 };
 
+/** Normalize phone string to standard 11-digit local format: 01XXXXXXXXX */
+export function normalizePhone(input) {
+  if (!input) return "";
+  const digits = convertBengaliToEnglishNumbers(String(input)).replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("880") && digits.length >= 13) return digits.slice(2);
+  if (digits.startsWith("88") && digits.length >= 12) return digits.slice(2);
+  if (digits.length === 10 && digits.startsWith("1")) return "0" + digits;
+  return digits;
+}
+
 const netAmount = (p) => (Number(p.amount) || 0) - (Number(p.refund?.amount) || 0);
 
 function statusBadgeCls(status, isLight) {
-  if (status === "VALID") return isLight ? "bg-emerald-50 text-emerald-800 border-emerald-300" : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
+  if (status === "VALID")
+    return isLight
+      ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+      : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
   if (status === "PENDING" || status === "UNATTEMPTED")
-    return isLight ? "bg-amber-50 text-amber-900 border-amber-300" : "bg-amber-500/20 text-amber-300 border-amber-500/30";
-  if (status === "REFUNDED") return isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-300 border-slate-700";
-  return isLight ? "bg-rose-50 text-rose-800 border-rose-300" : "bg-rose-500/20 text-rose-300 border-rose-500/30";
+    return isLight
+      ? "bg-amber-50 text-amber-900 border-amber-300"
+      : "bg-amber-500/20 text-amber-300 border-amber-500/30";
+  if (status === "REFUNDED")
+    return isLight
+      ? "bg-slate-100 text-slate-700 border-slate-300"
+      : "bg-slate-800 text-slate-300 border-slate-700";
+  return isLight
+    ? "bg-rose-50 text-rose-800 border-rose-300"
+    : "bg-rose-500/20 text-rose-300 border-rose-500/30";
 }
+
+const PURPOSE_LABEL_EN = {
+  registration: "New Registration",
+  "course-purchase": "Course Purchase",
+  manual: "Manual Entry",
+};
+
+/** Clean English date/time for PDF export (jsPDF built-in fonts are ASCII-only). */
+function formatDatePdf(value) {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "-";
+  const datePart = d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    numberingSystem: "latn",
+  });
+  const timePart = d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    numberingSystem: "latn",
+  });
+  return `${datePart}\n${timePart}`;
+}
+
+/** Clean ASCII track label for PDF export. */
+function trackLabelPdf(track) {
+  if (!track) return "-";
+  const clean = convertBengaliToEnglishNumbers(String(track).trim());
+  const upper = clean.toUpperCase();
+  if (upper.includes("WOMEN")) return clean;
+  if (upper.includes("MEN")) return clean;
+  return clean.replace(/[^\x20-\x7E]/g, "") || "-";
+}
+
+/** Normalize digits/punctuation to ASCII; returns string (may still contain non-ASCII letters like Bengali names). */
+function sanitizePdfPunctuation(str) {
+  if (str === null || str === undefined) return "-";
+  const s = convertBengaliToEnglishNumbers(String(str).trim())
+    .replace(/[\u2013\u2014\u2212]/g, "-")
+    .replace(/[\u2022\u00B7]/g, "|")
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"');
+  return s || "-";
+}
+
+/**
+ * Render non-ASCII text (e.g. Bengali trainee names) to a high-DPI PNG via HTML5 Canvas
+ * so jsPDF can embed it with full browser-shaped Bengali ligatures instead of garbled bytes.
+ */
+function renderUnicodeTextToImage(text, maxWidthPt, fontSizePt = 8, color = "#0f172a") {
+  if (typeof document === "undefined") return null;
+  const scale = 3;
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  const fontPx = Math.round(fontSizePt * 1.333 * scale);
+  const lineHeightPx = Math.round(fontPx * 1.35);
+  const padPx = Math.round(2 * scale);
+  const maxW = Math.max(Math.round(maxWidthPt * 1.333 * scale), 60 * scale);
+  const fontStack = `600 ${fontPx}px "Hind Siliguri", "Noto Sans Bengali", "Nirmala UI", "Segoe UI", sans-serif`;
+
+  ctx.font = fontStack;
+  const words = String(text || "").trim().split(/\s+/);
+  const lines = [];
+  let current = "";
+  for (const w of words) {
+    const test = current ? `${current} ${w}` : w;
+    if (ctx.measureText(test).width > maxW - padPx * 2 && current) {
+      lines.push(current);
+      current = w;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  if (!lines.length) lines.push("-");
+
+  canvas.width = maxW;
+  canvas.height = lines.length * lineHeightPx + padPx * 2;
+
+  ctx.font = fontStack;
+  ctx.fillStyle = color;
+  ctx.textBaseline = "top";
+  lines.forEach((line, i) => {
+    ctx.fillText(line, padPx, padPx + i * lineHeightPx);
+  });
+
+  return {
+    dataUrl: canvas.toDataURL("image/png"),
+    widthPt: maxW / (1.333 * scale),
+    heightPt: canvas.height / (1.333 * scale),
+  };
+}
+
+const escapeXml = (unsafe) => {
+  return String(unsafe ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+};
 
 export default function AdminPaymentsClient({ initialPayments, loadError: initialLoadError }) {
   const [payments, setPayments] = useState(initialPayments || []);
@@ -73,12 +221,16 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [purposeFilter, setPurposeFilter] = useState("all");
+  const [phoneFilter, setPhoneFilter] = useState("all"); // "all" | "duplicate" | "unique" | "missing"
   const [busyId, setBusyId] = useState(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const exportMenuRef = useRef(null);
+
   const { isLight } = useAdminTheme();
   const { can, isSuper } = useAdminAccess();
   const mayCreate = can("payments", "create"); // manual payments
   const mayUpdate = can("payments", "update"); // verify, un-verify, refund, re-validate
-  // Deleting a payment record is super-admin only (isSuper); the API enforces it too.
   const { toast, showToast, hideToast } = useToast();
   const { confirm, confirmDialog } = useConfirm();
 
@@ -87,7 +239,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [savingPayment, setSavingPayment] = useState(false);
   const [addError, setAddError] = useState("");
-  const [addResult, setAddResult] = useState(null); // { email, password }
+  const [addResult, setAddResult] = useState(null);
 
   // Refund modal
   const [refundTarget, setRefundTarget] = useState(null);
@@ -97,6 +249,59 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
   // Gateway re-validation tool
   const [valId, setValId] = useState("");
   const [validating, setValidating] = useState(false);
+
+  // Close export menu on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target)) {
+        setShowExportMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Compute normalized phone frequency map across all payments
+  const phoneCounts = useMemo(() => {
+    const map = new Map();
+    payments.forEach((p) => {
+      const norm = normalizePhone(p.userPhone);
+      if (norm) {
+        map.set(norm, (map.get(norm) || 0) + 1);
+      }
+    });
+    return map;
+  }, [payments]);
+
+  // Statistics for phone numbers
+  const { duplicatePaymentsCount, uniquePaymentsCount, missingPhoneCount, distinctDuplicatePhonesCount } = useMemo(() => {
+    let dupCount = 0;
+    let uqCount = 0;
+    let missCount = 0;
+
+    payments.forEach((p) => {
+      const norm = normalizePhone(p.userPhone);
+      if (!norm) {
+        missCount++;
+      } else {
+        const freq = phoneCounts.get(norm) || 0;
+        if (freq > 1) dupCount++;
+        else if (freq === 1) uqCount++;
+      }
+    });
+
+    let distinctDup = 0;
+    phoneCounts.forEach((freq) => {
+      if (freq > 1) distinctDup++;
+    });
+
+    return {
+      duplicatePaymentsCount: dupCount,
+      uniquePaymentsCount: uqCount,
+      missingPhoneCount: missCount,
+      distinctDuplicatePhonesCount: distinctDup,
+    };
+  }, [payments, phoneCounts]);
 
   const replacePayment = (updated) => setPayments((prev) => prev.map((p) => (p._id === updated._id ? updated : p)));
 
@@ -128,7 +333,14 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
     } else {
       text = `পেমেন্ট স্ট্যাটাস ${p.status} থেকে ${nextStatus} করবেন?`;
     }
-    if (!(await confirm(text, { tone: p.status === "VALID" && nextStatus !== "VALID" ? "warning" : "primary", title: nextStatus === "VALID" ? "পেমেন্ট যাচাই করবেন?" : "স্ট্যাটাস পরিবর্তন করবেন?", confirmLabel: nextStatus === "VALID" ? "হ্যাঁ, যাচাই করুন" : "হ্যাঁ, পরিবর্তন করুন" }))) return;
+    if (
+      !(await confirm(text, {
+        tone: p.status === "VALID" && nextStatus !== "VALID" ? "warning" : "primary",
+        title: nextStatus === "VALID" ? "পেমেন্ট যাচাই করবেন?" : "স্ট্যাটাস পরিবর্তন করবেন?",
+        confirmLabel: nextStatus === "VALID" ? "হ্যাঁ, যাচাই করুন" : "হ্যাঁ, পরিবর্তন করুন",
+      }))
+    )
+      return;
 
     setBusyId(p._id);
     const { ok, data, message } = await callApi("/api/admin/payments", {
@@ -149,7 +361,13 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
       p.status === "VALID"
         ? "\n\n⚠ এটি একটি যাচাইকৃত পেমেন্ট — মুছে ফেললে এই পেমেন্ট থেকে পাওয়া কোর্স এনরোলমেন্ট বাতিল হবে।"
         : "";
-    if (!(await confirm(`TrxID ${p.tranId} পেমেন্ট রেকর্ডটি স্থায়ীভাবে মুছে ফেলবেন?${extra}`, { tone: "danger", title: "পেমেন্ট রেকর্ড মুছে ফেলবেন?" }))) return;
+    if (
+      !(await confirm(`TrxID ${p.tranId} পেমেন্ট রেকর্ডটি স্থায়ীভাবে মুছে ফেলবেন?${extra}`, {
+        tone: "danger",
+        title: "পেমেন্ট রেকর্ড মুছে ফেলবেন?",
+      }))
+    )
+      return;
 
     setBusyId(p._id);
     const { ok, message } = await callApi(`/api/admin/payments?id=${encodeURIComponent(p._id)}`, { method: "DELETE" });
@@ -200,7 +418,10 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
     if (!refundTarget) return;
     const amount = Number(refundForm.amount);
     const full = !amount || amount >= Number(refundTarget.amount);
-    const text = `${refundTarget.userName || refundTarget.userEmail}-কে ${formatMoney(amount || refundTarget.amount, refundTarget.currency)} রিফান্ড করবেন?\n\nঅনুরোধটি সরাসরি SSLCommerz গেটওয়েতে যাবে এবং ফেরত নেওয়া যাবে না।${
+    const text = `${refundTarget.userName || refundTarget.userEmail}-কে ${formatMoney(
+      amount || refundTarget.amount,
+      refundTarget.currency
+    )} রিফান্ড করবেন?\n\nঅনুরোধটি সরাসরি SSLCommerz গেটওয়েতে যাবে এবং ফেরত নেওয়া যাবে না।${
       full ? "\n⚠ সম্পূর্ণ রিফান্ড হলে পেমেন্টটি REFUNDED হবে এবং ট্রেইনির কোর্স এনরোলমেন্ট বাতিল হবে।" : ""
     }`;
     if (!(await confirm(text, { tone: "danger", title: "রিফান্ড করবেন?", confirmLabel: "হ্যাঁ, রিফান্ড করুন" }))) return;
@@ -253,26 +474,440 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
     await reload(true);
   };
 
+  // Main Filter Logic (Search + Status + Purpose + Duplicate/Unique Phone)
   const q = search.trim().toLowerCase();
-  const filtered = payments.filter((p) => {
-    const matchesSearch =
-      !q ||
-      [p.tranId, p.userEmail, p.userName, p.userPhone, p.valId, p.bankTranId, p.courseId].some((v) =>
-        String(v || "").toLowerCase().includes(q)
-      );
-    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-    const matchesPurpose = purposeFilter === "all" || p.purpose === purposeFilter;
-    return matchesSearch && matchesStatus && matchesPurpose;
-  });
+  const filtered = useMemo(() => {
+    return payments.filter((p) => {
+      const matchesSearch =
+        !q ||
+        [p.tranId, p.userEmail, p.userName, p.userPhone, p.valId, p.bankTranId, p.courseId].some((v) =>
+          String(v || "").toLowerCase().includes(q)
+        );
+
+      const matchesStatus = statusFilter === "all" || p.status === statusFilter;
+      const matchesPurpose = purposeFilter === "all" || p.purpose === purposeFilter;
+
+      const norm = normalizePhone(p.userPhone);
+      const freq = norm ? phoneCounts.get(norm) || 0 : 0;
+
+      let matchesPhone = true;
+      if (phoneFilter === "duplicate") {
+        matchesPhone = Boolean(norm && freq > 1);
+      } else if (phoneFilter === "unique") {
+        matchesPhone = Boolean(norm && freq === 1);
+      } else if (phoneFilter === "missing") {
+        matchesPhone = !norm;
+      }
+
+      return matchesSearch && matchesStatus && matchesPurpose && matchesPhone;
+    });
+  }, [payments, q, statusFilter, purposeFilter, phoneFilter, phoneCounts]);
 
   const validPayments = payments.filter((p) => p.status === "VALID");
   const totalCollected = validPayments.reduce((acc, p) => acc + netAmount(p), 0);
+  const filteredTotalNet = filtered.reduce((acc, p) => acc + netAmount(p), 0);
   const pendingCount = payments.filter((p) => p.status === "PENDING").length;
+
+  // Filter description for exports
+  const getFilterDescription = () => {
+    const parts = [];
+    if (statusFilter !== "all") parts.push(`স্ট্যাটাস: ${statusFilter}`);
+    if (purposeFilter !== "all") parts.push(`ধরন: ${PURPOSE_LABEL[purposeFilter] || purposeFilter}`);
+    if (phoneFilter === "duplicate") parts.push("ডুপ্লিকেট ফোন নম্বর");
+    else if (phoneFilter === "unique") parts.push("ইউনিক ফোন নম্বর");
+    else if (phoneFilter === "missing") parts.push("ফোন নম্বর বিহীন");
+    if (search.trim()) parts.push(`সার্চ: "${search.trim()}"`);
+    return parts.length ? parts.join(" • ") : "সকল পেমেন্ট রেকর্ড";
+  };
+
+  // -----------------------------------------------------------------
+  // EXPORT HANDLERS (Excel .xls, CSV .csv, PDF .pdf, Print)
+  // -----------------------------------------------------------------
+
+  // 1. Export Excel (.xls formatted HTML workbook)
+  const handleExportExcel = () => {
+    if (filtered.length === 0) {
+      showToast("এক্সপোর্ট করার মতো কোনো পেমেন্ট রেকর্ড নেই", "error");
+      return;
+    }
+
+    const dateStr = new Date().toLocaleDateString("bn-BD");
+    const timeStr = new Date().toLocaleTimeString("bn-BD");
+
+    const tableHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8" />
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:ExcelWorksheet>
+                <x:Name>Payment Ledger</x:Name>
+                <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+              </x:ExcelWorksheet>
+            </x:ExcelWorksheet>
+          </x:ExcelWorkbook>
+        </xml>
+        <![endif]-->
+        <style>
+          body { font-family: Calibri, 'Segoe UI', Arial, sans-serif; font-size: 11pt; }
+          table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+          th { background-color: #071328; color: #F59E0B; font-weight: bold; border: 1px solid #CBD5E1; padding: 10px 12px; text-align: left; }
+          td { border: 1px solid #CBD5E1; padding: 7px 10px; vertical-align: middle; }
+          .valid { background-color: #DCFCE7; color: #166534; font-weight: bold; }
+          .pending { background-color: #FEF3C7; color: #92400E; font-weight: bold; }
+          .failed { background-color: #FEE2E2; color: #991B1B; font-weight: bold; }
+          .refunded { background-color: #F1F5F9; color: #475569; font-weight: bold; }
+          .duplicate { background-color: #FEF08A; color: #854D0E; font-weight: bold; }
+          .unique { color: #15803D; font-weight: bold; }
+          .num { text-align: right; mso-number-format: "#,##0.00"; }
+          .txt { mso-number-format: "\\@"; }
+          .hdr-title { font-size: 16pt; font-weight: bold; color: #071328; }
+          .hdr-sub { font-size: 10pt; color: #64748B; margin-bottom: 8px; }
+        </style>
+      </head>
+      <body>
+        <div class="hdr-title">FAJR ACADEMY — TOT PAYMENT AUDIT & FINANCIAL LEDGER</div>
+        <div class="hdr-sub">
+          রিপোর্ট তৈরির তারিখ: ${dateStr} (${timeStr}) | মোট রেকর্ড: ${filtered.length} টি | মোট নেট রেভিনিউ: ৳ ${filteredTotalNet.toLocaleString("en-US")} BDT | ফিল্টার: ${getFilterDescription()}
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ক্রমিক</th>
+              <th>ট্রানজেকশন আইডি (TrxID)</th>
+              <th>ট্রেইনির নাম</th>
+              <th>মোবাইল নম্বর</th>
+              <th>ফোন স্ট্যাটাস</th>
+              <th>ইমেইল</th>
+              <th>কোর্স ও ট্র্যাক</th>
+              <th>পেমেন্ট মাধ্যম</th>
+              <th>পরিমাণ (BDT)</th>
+              <th>রিফান্ড (BDT)</th>
+              <th>নেট পরিমাণ (BDT)</th>
+              <th>স্ট্যাটাস</th>
+              <th>উদ্দেশ্য</th>
+              <th>পেমেন্টের তারিখ</th>
+              <th>যাচাইয়ের তারিখ</th>
+              <th>যাচাইকারী</th>
+              <th>নোট</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered
+              .map((p, idx) => {
+                const norm = normalizePhone(p.userPhone);
+                const count = norm ? phoneCounts.get(norm) || 0 : 0;
+                const dupLabel = count > 1 ? `ডুপ্লিকেট (${count} বার)` : count === 1 ? "ইউনিক" : "ফোন নেই";
+                const dupClass = count > 1 ? "duplicate" : count === 1 ? "unique" : "";
+                const stClass =
+                  p.status === "VALID"
+                    ? "valid"
+                    : p.status === "PENDING"
+                    ? "pending"
+                    : p.status === "REFUNDED"
+                    ? "refunded"
+                    : "failed";
+
+                return `
+                <tr>
+                  <td>${idx + 1}</td>
+                  <td class="txt" style="font-family: monospace; font-weight: bold;">${escapeXml(p.tranId)}</td>
+                  <td>${escapeXml(p.userName || "—")}</td>
+                  <td class="txt">${escapeXml(p.userPhone || "—")}</td>
+                  <td class="${dupClass}">${dupLabel}</td>
+                  <td>${escapeXml(p.userEmail || "—")}</td>
+                  <td>${escapeXml(p.courseId || "—")} (${escapeXml(trackLabel(p.track))})</td>
+                  <td>${escapeXml(p.cardType || p.paymentMethod || "—")} (${escapeXml(p.paymentGateway || "—")})</td>
+                  <td class="num">${Number(p.amount) || 0}</td>
+                  <td class="num">${Number(p.refund?.amount) || 0}</td>
+                  <td class="num">${netAmount(p)}</td>
+                  <td class="${stClass}">${p.status || "—"}</td>
+                  <td>${escapeXml(PURPOSE_LABEL[p.purpose] || p.purpose || "—")}</td>
+                  <td>${formatDate(p.createdAt, true)}</td>
+                  <td>${p.finalizedAt ? formatDate(p.finalizedAt, true) : "—"}</td>
+                  <td>${escapeXml(p.verifiedBy || "—")}</td>
+                  <td>${escapeXml(p.notes || "")}</td>
+                </tr>
+              `;
+              })
+              .join("")}
+          </tbody>
+          <tfoot>
+            <tr style="font-weight: bold; background-color: #F8FAFC;">
+              <td colspan="8" style="text-align: right;">সর্বমোট:</td>
+              <td class="num">${filtered.reduce((a, b) => a + (Number(b.amount) || 0), 0)}</td>
+              <td class="num">${filtered.reduce((a, b) => a + (Number(b.refund?.amount) || 0), 0)}</td>
+              <td class="num">${filteredTotalNet}</td>
+              <td colspan="6"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(["\uFEFF" + tableHtml], { type: "application/vnd.ms-excel;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const filterTag = phoneFilter === "duplicate" ? "_Duplicates" : phoneFilter === "unique" ? "_Uniques" : "";
+    link.download = `Fajr_Academy_Payments${filterTag}_${new Date().toISOString().slice(0, 10)}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setShowExportMenu(false);
+    showToast(`${filtered.length} টি পেমেন্ট রেকর্ড Excel (.xls) ফাইলে ডাউনলোড হয়েছে!`);
+  };
+
+  // 2. Export CSV (.csv with UTF-8 BOM)
+  const handleExportCSV = () => {
+    if (filtered.length === 0) {
+      showToast("এক্সপোর্ট করার মতো কোনো ডাটা নেই", "error");
+      return;
+    }
+
+    const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+
+    const headers = [
+      "SL",
+      "Transaction ID",
+      "Trainee Name",
+      "Phone Number",
+      "Phone Status",
+      "Duplicate Count",
+      "Email",
+      "Track",
+      "Course ID",
+      "Method",
+      "Gateway",
+      "Amount (BDT)",
+      "Refund (BDT)",
+      "Net Amount (BDT)",
+      "Status",
+      "Purpose",
+      "Created Date",
+      "Verified Date",
+      "Verified By",
+      "Notes",
+    ];
+
+    const rows = filtered.map((p, idx) => {
+      const norm = normalizePhone(p.userPhone);
+      const count = norm ? phoneCounts.get(norm) || 0 : 0;
+      const phoneStatus = count > 1 ? `Duplicate (${count}x)` : count === 1 ? "Unique" : "No Phone";
+
+      return [
+        idx + 1,
+        csvCell(p.tranId),
+        csvCell(p.userName),
+        csvCell(p.userPhone),
+        csvCell(phoneStatus),
+        count,
+        csvCell(p.userEmail),
+        csvCell(trackLabel(p.track)),
+        csvCell(p.courseId),
+        csvCell(p.cardType || p.paymentMethod),
+        csvCell(p.paymentGateway),
+        Number(p.amount) || 0,
+        Number(p.refund?.amount) || 0,
+        netAmount(p),
+        csvCell(p.status),
+        csvCell(PURPOSE_LABEL[p.purpose] || p.purpose),
+        csvCell(formatDate(p.createdAt, true)),
+        csvCell(p.finalizedAt ? formatDate(p.finalizedAt, true) : ""),
+        csvCell(p.verifiedBy),
+        csvCell(p.notes),
+      ];
+    });
+
+    const csv = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const filterTag = phoneFilter === "duplicate" ? "_Duplicates" : phoneFilter === "unique" ? "_Uniques" : "";
+    link.download = `Fajr_Academy_Payments${filterTag}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setShowExportMenu(false);
+    showToast(`${filtered.length} টি পেমেন্ট রেকর্ড CSV ফাইলে ডাউনলোড হয়েছে!`);
+  };
+
+  // 3. Export PDF (.pdf) via jsPDF + autoTable
+  const handleExportPDF = async () => {
+    if (filtered.length === 0) {
+      showToast("এক্সপোর্ট করার মতো কোনো ডাটা নেই", "error");
+      return;
+    }
+
+    setExportingPdf(true);
+    setShowExportMenu(false);
+    showToast("PDF ফাইল প্রস্তুত হচ্ছে...", "info");
+
+    try {
+      const { jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      const totalNetVal = filtered.reduce((acc, p) => acc + netAmount(p), 0);
+
+      // Header Banner
+      doc.setFontSize(15);
+      doc.setTextColor(7, 19, 40);
+      doc.text("FAJR ACADEMY — TOT PAYMENT AUDIT & FINANCIAL LEDGER", 40, 38);
+
+      doc.setFontSize(9);
+      doc.setTextColor(100, 116, 139);
+      const dateString = new Date().toLocaleString("en-US");
+      doc.text(
+        `Generated: ${dateString}  |  Records: ${filtered.length}  |  Net Total: BDT ${totalNetVal.toLocaleString("en-US")}`,
+        40,
+        52
+      );
+      doc.text(`Filter: ${getFilterDescription()}`, 40, 65);
+
+      // Columns
+      const head = [
+        [
+          "#",
+          "TrxID",
+          "Trainee Name",
+          "Phone Number",
+          "Phone Status",
+          "Email",
+          "Track",
+          "Method",
+          "Amount (BDT)",
+          "Net (BDT)",
+          "Status",
+          "Date",
+        ],
+      ];
+
+      const body = filtered.map((p, idx) => {
+        const norm = normalizePhone(p.userPhone);
+        const count = norm ? phoneCounts.get(norm) || 0 : 0;
+        const phoneStatus = count > 1 ? `DUPLICATE (${count}x)` : count === 1 ? "UNIQUE" : "NO PHONE";
+
+        return [
+          idx + 1,
+          p.tranId || "—",
+          p.userName || "—",
+          p.userPhone || "—",
+          phoneStatus,
+          p.userEmail || "—",
+          trackLabel(p.track) || "—",
+          `${p.cardType || p.paymentMethod || "—"}`,
+          Number(p.amount) || 0,
+          netAmount(p),
+          p.status || "—",
+          formatDate(p.createdAt, true) || "—",
+        ];
+      });
+
+      autoTable(doc, {
+        startY: 78,
+        head: head,
+        body: body,
+        theme: "grid",
+        styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak" },
+        headStyles: { fillColor: [7, 19, 40], textColor: [245, 158, 11], fontStyle: "bold" },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+          0: { cellWidth: 24 },
+          1: { cellWidth: 80, fontStyle: "bold" },
+          2: { cellWidth: 85 },
+          3: { cellWidth: 70 },
+          4: { cellWidth: 68 },
+          5: { cellWidth: 95 },
+          6: { cellWidth: 60 },
+          7: { cellWidth: 65 },
+          8: { cellWidth: 55, halign: "right" },
+          9: { cellWidth: 55, halign: "right" },
+          10: { cellWidth: 50, halign: "center" },
+          11: { cellWidth: 65 },
+        },
+        didParseCell: (data) => {
+          if (data.section === "body") {
+            // Status styling
+            if (data.column.index === 10) {
+              const val = String(data.cell.raw);
+              if (val === "VALID") data.cell.styles.textColor = [22, 101, 52];
+              else if (val === "PENDING") data.cell.styles.textColor = [180, 83, 9];
+              else if (val === "REFUNDED") data.cell.styles.textColor = [71, 85, 105];
+              else data.cell.styles.textColor = [153, 27, 27];
+              data.cell.styles.fontStyle = "bold";
+            }
+            // Phone duplicate highlight
+            if (data.column.index === 4) {
+              const val = String(data.cell.raw);
+              if (val.startsWith("DUPLICATE")) {
+                data.cell.styles.fillColor = [254, 243, 199];
+                data.cell.styles.textColor = [146, 64, 14];
+                data.cell.styles.fontStyle = "bold";
+              }
+            }
+          }
+        },
+        foot: [
+          [
+            "",
+            "",
+            "TOTAL",
+            "",
+            "",
+            "",
+            "",
+            "",
+            filtered.reduce((a, b) => a + (Number(b.amount) || 0), 0),
+            totalNetVal,
+            "",
+            "",
+          ],
+        ],
+        footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: "bold" },
+      });
+
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text(
+          `Page ${i} of ${pageCount} • Fajr Academy Teacher Training Division`,
+          40,
+          doc.internal.pageSize.height - 18
+        );
+      }
+
+      const filterTag = phoneFilter === "duplicate" ? "_Duplicates" : phoneFilter === "unique" ? "_Uniques" : "";
+      doc.save(`Fajr_Academy_Payments${filterTag}_${new Date().toISOString().slice(0, 10)}.pdf`);
+      showToast(`${filtered.length} টি পেমেন্ট রেকর্ড PDF ফাইলে ডাউনলোড হয়েছে!`);
+    } catch (err) {
+      console.error("PDF export error:", err);
+      showToast("PDF তৈরিতে সমস্যা হয়েছে: " + (err?.message || err), "error");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  // 4. Print / Save as PDF
+  const handlePrint = () => {
+    setShowExportMenu(false);
+    window.print();
+  };
 
   const darkInput =
     "w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:border-[#D4AF37] focus:outline-hidden";
   const filterSelectCls = `rounded-2xl px-4 py-3 text-xs font-bold border shadow-xs outline-hidden transition-all w-full sm:w-auto cursor-pointer ${
-    isLight ? "bg-white border-slate-300 text-slate-800 focus:border-amber-500" : "bg-slate-900 border-slate-800 text-white focus:border-amber-500"
+    isLight
+      ? "bg-white border-slate-300 text-slate-800 focus:border-amber-500"
+      : "bg-slate-900 border-slate-800 text-white focus:border-amber-500"
   }`;
   const smallBtn = `px-2.5 py-1.5 max-sm:px-3.5 max-sm:py-2.5 max-sm:rounded-xl rounded-lg text-[11px] font-bold border transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1`;
 
@@ -280,38 +915,70 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
   const subtle = isLight ? "text-slate-500" : "text-slate-400";
 
   // Cell renderers shared by the desktop table and the phone cards.
-  const payerBlock = (p) => (
-    <>
-      <div className={`font-bold wrap-break-word ${isLight ? "text-slate-900" : "text-white"}`}>{p.userName || "—"}</div>
-      <div className={`text-[11px] font-mono break-all ${subtle}`}>{p.userEmail}</div>
-      {p.userPhone && (
-        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-          <a href={`tel:${p.userPhone}`} title="কল করুন" className={`text-[11px] font-mono hover:underline ${subtle}`}>
-            {p.userPhone}
-          </a>
-          {whatsappHref(p.userPhone) && (
-            <a
-              href={whatsappHref(
-                p.userPhone,
-                `আসসালামু আলাইকুম${p.userName ? `, ${p.userName}` : ""}। ফজর একাডেমির পেমেন্ট (${p.tranId}) সম্পর্কে যোগাযোগ করছি।`
-              )}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="WhatsApp-এ মেসেজ করুন"
-              aria-label={`${p.userName || p.userPhone}-কে WhatsApp-এ মেসেজ করুন`}
-              className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full border transition-colors ${
-                isLight
-                  ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
-                  : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25"
-              }`}
-            >
-              <MessageCircle className="w-3 h-3" /> WhatsApp
+  const payerBlock = (p) => {
+    const norm = normalizePhone(p.userPhone);
+    const count = norm ? phoneCounts.get(norm) || 0 : 0;
+    const isDup = count > 1;
+
+    return (
+      <>
+        <div className={`font-bold wrap-break-word ${isLight ? "text-slate-900" : "text-white"}`}>{p.userName || "—"}</div>
+        <div className={`text-[11px] font-mono break-all ${subtle}`}>{p.userEmail}</div>
+        {p.userPhone ? (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <a href={`tel:${p.userPhone}`} title="কল করুন" className={`text-[11px] font-mono font-bold hover:underline ${subtle}`}>
+              {p.userPhone}
             </a>
-          )}
-        </div>
-      )}
-    </>
-  );
+
+            {/* Duplicate / Unique Number Badge with One-Click Filter */}
+            {isDup ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch(p.userPhone);
+                  setPhoneFilter("all");
+                  showToast(`নম্বর "${p.userPhone}"-এর ${count} টি পেমেন্ট ফিল্টার করা হয়েছে।`);
+                }}
+                title={`⚠ এই নম্বরটি ${count} টি পেমেন্টে ব্যবহৃত হয়েছে। ক্লিক করে সবগুলো দেখুন।`}
+                className="inline-flex items-center gap-0.5 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 transition-all cursor-pointer"
+              >
+                <AlertTriangle className="w-2.5 h-2.5" /> ডুপ্লিকেট ({count}x)
+              </button>
+            ) : (
+              <span
+                title="এই নম্বরটি কেবল এই একটি পেমেন্টেই ব্যবহৃত হয়েছে"
+                className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/25"
+              >
+                <CheckCircle className="w-2.5 h-2.5" /> ইউনিক
+              </span>
+            )}
+
+            {whatsappHref(p.userPhone) && (
+              <a
+                href={whatsappHref(
+                  p.userPhone,
+                  `আসসালামু আলাইকুম${p.userName ? `, ${p.userName}` : ""}। ফজর একাডেমির পেমেন্ট (${p.tranId}) সম্পর্কে যোগাযোগ করছি।`
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="WhatsApp-এ মেসেজ করুন"
+                aria-label={`${p.userName || p.userPhone}-কে WhatsApp-এ মেসেজ করুন`}
+                className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full border transition-colors ${
+                  isLight
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                    : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25"
+                }`}
+              >
+                <MessageCircle className="w-3 h-3" /> WhatsApp
+              </a>
+            )}
+          </div>
+        ) : (
+          <span className="text-[10px] text-slate-500 italic block pt-0.5">ফোন নম্বর নেই</span>
+        )}
+      </>
+    );
+  };
 
   const txBlock = (p) => (
     <>
@@ -351,7 +1018,9 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
 
   const amountBlock = (p) => (
     <>
-      <div className={`font-bold font-mono text-sm ${isLight ? "text-emerald-700" : "text-emerald-400"}`}>{formatMoney(p.amount, p.currency)}</div>
+      <div className={`font-bold font-mono text-sm ${isLight ? "text-emerald-700" : "text-emerald-400"}`}>
+        {formatMoney(p.amount, p.currency)}
+      </div>
       {p.refund?.refId && (
         <div className={`text-[10px] font-bold mt-0.5 ${isLight ? "text-rose-700" : "text-rose-400"}`}>
           রিফান্ড {formatMoney(p.refund.amount, p.currency)} • {p.refund.status || "—"}
@@ -369,7 +1038,9 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
 
   const statusBlock = (p, busy) => (
     <>
-      <span className={`inline-block text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${statusBadgeCls(p.status, isLight)}`}>{p.status}</span>
+      <span className={`inline-block text-[10px] font-extrabold px-2.5 py-1 rounded-full border ${statusBadgeCls(p.status, isLight)}`}>
+        {p.status}
+      </span>
       {p.verifiedBy && (
         <div className="text-[10px] font-mono max-w-[180px] truncate text-slate-500" title={p.verifiedBy}>
           যাচাইকারী: {p.verifiedBy}
@@ -415,7 +1086,9 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
             disabled={busy}
             title="আন-ভেরিফাই: এনরোলমেন্ট বাতিল হবে"
             className={`${smallBtn} ${
-              isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300" : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+              isLight
+                ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
+                : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
             }`}
           >
             <Undo2 className="w-3 h-3" /> আন-ভেরিফাই
@@ -426,7 +1099,9 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
             onClick={() => openRefund(p)}
             disabled={busy}
             className={`${smallBtn} ${
-              isLight ? "bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300" : "bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border-rose-500/30"
+              isLight
+                ? "bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300"
+                : "bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border-rose-500/30"
             }`}
           >
             <RotateCcw className="w-3 h-3" /> রিফান্ড
@@ -438,7 +1113,9 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
             disabled={busy}
             title={`Refund ref: ${p.refund.refId}`}
             className={`${smallBtn} ${
-              isLight ? "bg-white hover:bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700"
+              isLight
+                ? "bg-white hover:bg-slate-100 text-slate-700 border-slate-300"
+                : "bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700"
             }`}
           >
             <RefreshCw className={`w-3 h-3 ${busy ? "animate-spin" : ""}`} /> রিফান্ড স্ট্যাটাস
@@ -472,11 +1149,13 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
             পেমেন্ট ভেরিফিকেশন ও ট্রানজেকশন লেজার
           </h1>
           <p className={`text-xs mt-1 font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-            SSLCommerz ও ম্যানুয়াল বিকাশ/নগদ পেমেন্ট অডিট ও ভেরিফিকেশন কনসোল • {validPayments.length} টি যাচাইকৃত • {pendingCount} টি পেন্ডিং
+            SSLCommerz ও ম্যানুয়াল বিকাশ/নগদ পেমেন্ট অডিট • {validPayments.length} টি যাচাইকৃত • {pendingCount} টি পেন্ডিং •{" "}
+            <span className="text-amber-400 font-bold">{distinctDuplicatePhonesCount} টি ডুপ্লিকেট নম্বর গ্রুপ</span>
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          {/* Revenue Badge */}
           <div
             className={`w-full sm:w-auto justify-between px-4 py-2.5 rounded-2xl flex items-center gap-3 border shadow-xs transition-all ${
               isLight ? "bg-emerald-50/90 border-emerald-200 text-emerald-950" : "bg-slate-900 border-slate-800 text-white shadow-xl"
@@ -489,18 +1168,112 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
             </span>
           </div>
 
+          {/* Reload Button */}
           <button
             type="button"
             onClick={() => reload()}
             disabled={reloading}
             title="ডাটাবেজ থেকে আবার লোড করুন"
             className={`flex-1 sm:flex-none justify-center px-3 py-2.5 rounded-2xl border text-xs font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-60 ${
-              isLight ? "bg-white border-slate-300 text-slate-800 hover:bg-slate-50" : "bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800"
+              isLight
+                ? "bg-white border-slate-300 text-slate-800 hover:bg-slate-50"
+                : "bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800"
             }`}
           >
             <RefreshCw className={`w-4 h-4 ${reloading ? "animate-spin" : ""}`} /> রিফ্রেশ
           </button>
 
+          {/* Export Dropdown Menu */}
+          <div className="relative flex-1 sm:flex-none" ref={exportMenuRef}>
+            <button
+              type="button"
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={exportingPdf}
+              className={`w-full sm:w-auto justify-center px-4 py-2.5 rounded-2xl border text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md transition-all ${
+                isLight
+                  ? "bg-white border-amber-300 text-amber-900 hover:bg-amber-50"
+                  : "bg-slate-900 border-amber-500/40 text-amber-400 hover:bg-slate-800"
+              }`}
+            >
+              <Download className="w-4 h-4 text-amber-500" />
+              <span>এক্সপোর্ট ({filtered.length})</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showExportMenu ? "rotate-180" : ""}`} />
+            </button>
+
+            {showExportMenu && (
+              <div
+                className={`absolute right-0 mt-2 w-56 rounded-2xl border shadow-2xl p-2 z-50 animate-fadeIn ${
+                  isLight ? "bg-white border-slate-200 text-slate-900" : "bg-slate-900 border-slate-800 text-slate-100"
+                }`}
+              >
+                <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-700/40 mb-1">
+                  ফিল্টারকৃত ডাটা এক্সপোর্ট
+                </div>
+
+                {/* Excel Option */}
+                <button
+                  type="button"
+                  onClick={handleExportExcel}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer ${
+                    isLight ? "hover:bg-emerald-50 text-emerald-800" : "hover:bg-emerald-950/40 text-emerald-300"
+                  }`}
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <div>
+                    <div>Excel (.xls) স্প্রেডশিট</div>
+                    <div className="text-[10px] font-normal text-slate-400">রঙিন ফরম্যাট ও মোট হিসাব</div>
+                  </div>
+                </button>
+
+                {/* CSV Option */}
+                <button
+                  type="button"
+                  onClick={handleExportCSV}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer ${
+                    isLight ? "hover:bg-blue-50 text-blue-800" : "hover:bg-blue-950/40 text-blue-300"
+                  }`}
+                >
+                  <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+                  <div>
+                    <div>CSV (.csv) ফাইল</div>
+                    <div className="text-[10px] font-normal text-slate-400">Google Sheets ও Excel রেডি</div>
+                  </div>
+                </button>
+
+                {/* PDF Option */}
+                <button
+                  type="button"
+                  onClick={handleExportPDF}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer ${
+                    isLight ? "hover:bg-rose-50 text-rose-800" : "hover:bg-rose-950/40 text-rose-300"
+                  }`}
+                >
+                  <Download className="w-4 h-4 text-rose-500 shrink-0" />
+                  <div>
+                    <div>PDF (.pdf) ডাউনলোড</div>
+                    <div className="text-[10px] font-normal text-slate-400">লেজার অডিট রিপোর্ট</div>
+                  </div>
+                </button>
+
+                {/* Print Option */}
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer ${
+                    isLight ? "hover:bg-amber-50 text-amber-800" : "hover:bg-amber-950/40 text-amber-300"
+                  }`}
+                >
+                  <Printer className="w-4 h-4 text-amber-500 shrink-0" />
+                  <div>
+                    <div>প্রিন্ট / সেভ অ্যাজ PDF</div>
+                    <div className="text-[10px] font-normal text-slate-400">ব্রাউজার প্রিন্ট প্রিভিউ</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Add Manual Payment Button */}
           {mayCreate && (
             <button
               onClick={() => setShowAddModal(true)}
@@ -514,6 +1287,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
 
       {/* Search & Filters */}
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:items-center sm:gap-3">
+        {/* Search Field */}
         <div className="relative flex-1 w-full col-span-2">
           <input
             type="text"
@@ -527,8 +1301,18 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
             }`}
           />
           <Search className={`w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 ${isLight ? "text-slate-400" : "text-slate-500"}`} />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
+        {/* Status Filter */}
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={filterSelectCls}>
           <option value="all">সকল স্ট্যাটাস</option>
           {ALL_STATUSES.map((s) => (
@@ -538,6 +1322,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
           ))}
         </select>
 
+        {/* Purpose Filter */}
         <select value={purposeFilter} onChange={(e) => setPurposeFilter(e.target.value)} className={filterSelectCls}>
           <option value="all">সকল ধরন</option>
           {Object.entries(PURPOSE_LABEL).map(([value, label]) => (
@@ -546,38 +1331,154 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
             </option>
           ))}
         </select>
+
+        {/* Duplicate / Unique Phone Number Filter */}
+        <select
+          value={phoneFilter}
+          onChange={(e) => setPhoneFilter(e.target.value)}
+          className={`${filterSelectCls} ${
+            phoneFilter === "duplicate"
+              ? isLight
+                ? "border-amber-500 text-amber-900 bg-amber-50 font-black"
+                : "border-amber-500 text-amber-300 bg-amber-950/40 font-black"
+              : phoneFilter === "unique"
+              ? isLight
+                ? "border-emerald-500 text-emerald-900 bg-emerald-50 font-black"
+                : "border-emerald-500 text-emerald-300 bg-emerald-950/40 font-black"
+              : ""
+          }`}
+        >
+          <option value="all">সকল ফোন নম্বর ({payments.length})</option>
+          <option value="duplicate">⚠ ডুপ্লিকেট নম্বর ({duplicatePaymentsCount})</option>
+          <option value="unique">✓ ইউনিক নম্বর ({uniquePaymentsCount})</option>
+          <option value="missing">✕ নম্বর বিহীন ({missingPhoneCount})</option>
+        </select>
       </div>
+
+      {/* Quick Filter Status Chips */}
+      <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+        <span className="text-[11px] font-bold text-slate-400">কুইক ফোন ফিল্টার:</span>
+
+        {/* All Chip */}
+        <button
+          type="button"
+          onClick={() => setPhoneFilter("all")}
+          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border ${
+            phoneFilter === "all"
+              ? isLight
+                ? "bg-slate-900 text-white border-slate-900"
+                : "bg-white text-slate-900 border-white"
+              : isLight
+              ? "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+              : "bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800"
+          }`}
+        >
+          সকল ({payments.length})
+        </button>
+
+        {/* Unique Chip */}
+        <button
+          type="button"
+          onClick={() => setPhoneFilter("unique")}
+          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
+            phoneFilter === "unique"
+              ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
+              : isLight
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+              : "bg-emerald-950/40 text-emerald-400 border-emerald-800/40 hover:bg-emerald-900/40"
+          }`}
+        >
+          <CheckCircle className="w-3.5 h-3.5" /> ইউনিক নম্বর ({uniquePaymentsCount})
+        </button>
+
+        {/* Duplicate Chip */}
+        <button
+          type="button"
+          onClick={() => setPhoneFilter("duplicate")}
+          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
+            phoneFilter === "duplicate"
+              ? "bg-amber-600 text-white border-amber-600 shadow-md"
+              : isLight
+              ? "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100"
+              : "bg-amber-950/50 text-amber-300 border-amber-600/40 hover:bg-amber-900/50"
+          }`}
+        >
+          <AlertTriangle className="w-3.5 h-3.5" /> ⚠ ডুপ্লিকেট নম্বর ({duplicatePaymentsCount} টি পেমেন্ট)
+        </button>
+
+        {/* Reset Filter Button if active */}
+        {(statusFilter !== "all" || purposeFilter !== "all" || phoneFilter !== "all" || search) && (
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter("all");
+              setPurposeFilter("all");
+              setPhoneFilter("all");
+              setSearch("");
+            }}
+            className="text-[11px] text-rose-400 hover:text-rose-300 font-bold ml-auto flex items-center gap-1 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" /> ফিল্টার রিসেট
+          </button>
+        )}
+      </div>
+
+      {/* Duplicate Phone Notice Banner when Duplicate filter is active */}
+      {phoneFilter === "duplicate" && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/40 text-amber-200 text-xs flex items-start gap-3 animate-fadeIn">
+          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <strong className="text-amber-300 block text-sm font-bold">ডুপ্লিকেট ফোন নম্বর ফিল্টার সক্রিয়</strong>
+            <p className="text-slate-300 leading-relaxed">
+              মোট <strong className="text-amber-300">{distinctDuplicatePhonesCount}</strong> টি মোবাইল নম্বরে{" "}
+              <strong className="text-amber-300">{duplicatePaymentsCount}</strong> টি পেমেন্ট রেকর্ড পাওয়া গেছে। একাধিকবার
+              পেমেন্ট করা ট্রানজেকশন যাচাই করতে বা একই নম্বরে একাধিক ট্রেইনির নিবন্ধন নিরীক্ষা করতে এই তালিকাটি ব্যবহার করুন।
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Gateway re-validation tool */}
       {mayUpdate && (
-      <form
-        onSubmit={handleValidate}
-        className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center gap-3 text-xs ${
-          isLight ? "bg-white border-slate-200 shadow-xs" : "bg-slate-900 border-slate-800"
-        }`}
-      >
-        <div className="flex items-center gap-2 font-bold shrink-0">
-          <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span className={isLight ? "text-slate-800" : "text-slate-200"}>গেটওয়ে পেমেন্ট পুনঃযাচাই</span>
-        </div>
-        <input
-          type="text"
-          value={valId}
-          onChange={(e) => setValId(e.target.value)}
-          placeholder="SSLCommerz val_id দিন (IPN না আসলে পেমেন্ট যাচাই ও অ্যাকাউন্ট সক্রিয় করতে)"
-          className={`flex-1 px-3 py-2 rounded-xl border font-mono outline-hidden ${
-            isLight ? "bg-slate-50 border-slate-300 text-slate-900 focus:border-emerald-500" : "bg-slate-950 border-slate-800 text-white focus:border-emerald-500"
+        <form
+          onSubmit={handleValidate}
+          className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center gap-3 text-xs ${
+            isLight ? "bg-white border-slate-200 shadow-xs" : "bg-slate-900 border-slate-800"
           }`}
-        />
-        <button
-          type="submit"
-          disabled={validating || !valId.trim()}
-          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer disabled:opacity-50 shrink-0"
         >
-          {validating ? "যাচাই হচ্ছে..." : "যাচাই করুন"}
-        </button>
-      </form>
+          <div className="flex items-center gap-2 font-bold shrink-0">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <span className={isLight ? "text-slate-800" : "text-slate-200"}>গেটওয়ে পেমেন্ট পুনঃযাচাই</span>
+          </div>
+          <input
+            type="text"
+            value={valId}
+            onChange={(e) => setValId(e.target.value)}
+            placeholder="SSLCommerz val_id দিন (IPN না আসলে পেমেন্ট যাচাই ও অ্যাকাউন্ট সক্রিয় করতে)"
+            className={`flex-1 px-3 py-2 rounded-xl border font-mono outline-hidden ${
+              isLight
+                ? "bg-slate-50 border-slate-300 text-slate-900 focus:border-emerald-500"
+                : "bg-slate-950 border-slate-800 text-white focus:border-emerald-500"
+            }`}
+          />
+          <button
+            type="submit"
+            disabled={validating || !valId.trim()}
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer disabled:opacity-50 shrink-0"
+          >
+            {validating ? "যাচাই হচ্ছে..." : "যাচাই করুন"}
+          </button>
+        </form>
       )}
+
+      {/* Printable Report Header (visible only during window.print) */}
+      <div className="hidden print:block mb-4">
+        <h2 className="text-xl font-bold text-black">FAJR ACADEMY — TOT PAYMENT AUDIT & FINANCIAL LEDGER</h2>
+        <p className="text-xs text-gray-600">
+          তারিখ: {new Date().toLocaleDateString("bn-BD")} | মোট রেকর্ড: {filtered.length} টি | মোট রেভিনিউ: ৳{" "}
+          {filteredTotalNet.toLocaleString("en-US")} BDT | ফিল্টার: {getFilterDescription()}
+        </p>
+      </div>
 
       {/* Payments table (≥ md) and cards (< md) */}
       <div
@@ -593,7 +1494,7 @@ export default function AdminPaymentsClient({ initialPayments, loadError: initia
                   isLight ? "bg-slate-50/80 text-slate-500 border-slate-200" : "bg-slate-950/50 text-slate-400 border-slate-800"
                 }`}
               >
-                <th className="p-4">ট্রেইনি বিবরণ</th>
+                <th className="p-4">ট্রেইনি বিবরণ ও ফোন</th>
                 <th className="p-4">ট্রানজেকশন ও কোর্স</th>
                 <th className="p-4">মাধ্যম / মেথড</th>
                 <th className="p-4">পরিমাণ</th>
