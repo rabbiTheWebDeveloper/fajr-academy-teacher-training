@@ -20,6 +20,9 @@ import { InstructorModel } from '@/model/instructor-model'
 import { DEFAULT_INSTRUCTORS } from '@/constant/instructor-defaults'
 import { toBengaliNumber } from '@/lib/utils'
 import { publicSettings } from '@/lib/public-settings'
+import { getSessionUser } from '@/lib/auth'
+import { accountTypeForRole, homeForRole } from '@/lib/roles'
+import Link from 'next/link'
 import {
   BookOpen,
   UserCheck,
@@ -45,6 +48,8 @@ import {
   Globe,
   TrendingUp,
   HelpCircle,
+  LogIn,
+  LayoutDashboard,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -73,6 +78,12 @@ export const metadata = {
 /*  Page Component (Server Component)                                  */
 /* ------------------------------------------------------------------ */
 export default async function TeacherRegistrationMarketingPage() {
+  // A visitor who is already signed in gets a "ড্যাশবোর্ড" shortcut instead of "লগইন".
+  // Token check only (no database), and never a reason for the page to fail.
+  const session = await getSessionUser().catch(() => null)
+  const account =
+    session?.id && accountTypeForRole(session.role) ? { href: homeForRole(session.role) } : null
+
   let courses = []
   let settingsDoc = null
   let instructorsData = []
@@ -297,7 +308,7 @@ export default async function TeacherRegistrationMarketingPage() {
       </div>
 
       {/* ==================== NAVBAR ==================== */}
-      <MarketingNavbar settings={liveSettings} closed={admission.closed} />
+      <MarketingNavbar settings={liveSettings} closed={admission.closed} account={account} />
 
       {/* ==================== HERO SECTION ==================== */}
       <section
@@ -1569,6 +1580,20 @@ export default async function TeacherRegistrationMarketingPage() {
             <span className="flex items-center gap-2">
               <Phone className="w-4 h-4 text-amber-400 shrink-0" /> ইমেইল: {liveSettings.supportEmail || 'support@fajracademy.io'}
             </span>
+            <Link
+              href={account?.href || '/login'}
+              className="flex items-center gap-2 py-2.5 font-semibold text-amber-300 hover:text-amber-200 transition-colors"
+            >
+              {account ? (
+                <>
+                  <LayoutDashboard className="w-4 h-4 shrink-0" /> আমার ড্যাশবোর্ড
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-4 h-4 shrink-0" /> ইতোমধ্যে ভর্তি হয়েছেন? লগইন করুন
+                </>
+              )}
+            </Link>
           </div>
 
           {/* Copyright */}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import {
   Menu,
   X,
@@ -15,6 +16,8 @@ import {
   ShieldCheck,
   Play,
   HelpCircle,
+  LogIn,
+  LayoutDashboard,
 } from 'lucide-react'
 import MessengerIcon from './MessengerIcon'
 import { toBengaliNumber } from '@/lib/utils'
@@ -32,12 +35,21 @@ const NAV_ITEMS = [
   { href: '#faq', label: 'FAQ', Icon: HelpCircle },
 ]
 
-export default function MarketingNavbar({ settings = {}, closed = false }) {
+/**
+ * `account` is set by the server page when the visitor already has a session:
+ * { href } → their own panel. The login button then becomes a "ড্যাশবোর্ড" shortcut.
+ */
+export default function MarketingNavbar({ settings = {}, closed = false, account = null }) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('home')
 
   const coursePrice = settings?.coursePrice || 1000
+
+  // Secondary action: returning users sign in, signed-in users jump to their panel.
+  const portal = account?.href
+    ? { href: account.href, label: 'ড্যাশবোর্ড', longLabel: 'আমার ড্যাশবোর্ডে যান', Icon: LayoutDashboard }
+    : { href: '/login', label: 'লগইন', longLabel: 'অ্যাকাউন্টে লগইন করুন', Icon: LogIn }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -148,11 +160,28 @@ export default function MarketingNavbar({ settings = {}, closed = false }) {
           </a>
         )}
 
+        {/* Login / dashboard — quiet outline so "ভর্তি হোন" stays the primary action.
+            On narrow phones it lives in the menu sheet, unless admission is closed and
+            the primary button is gone. Icon-only until there is room for the label. */}
+        <Link
+          href={portal.href}
+          aria-label={portal.longLabel}
+          title={portal.longLabel}
+          className={`${
+            closed ? 'inline-flex' : 'hidden min-[430px]:inline-flex'
+          } items-center justify-center gap-1.5 min-h-10 min-w-10 sm:px-4 rounded-full border border-white/15 bg-white/[0.05] text-slate-100 font-bold text-sm whitespace-nowrap hover:border-amber-400/60 hover:bg-amber-400/10 hover:text-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60 active:scale-95 transition-all duration-200 shrink-0`}
+        >
+          <portal.Icon className="w-4 h-4" />
+          <span className="hidden sm:inline">{portal.label}</span>
+        </Link>
+
+        {/* Between xl and 2xl the full link row needs the space; the floating Messenger
+            widget covers this action on desktop. */}
         <a
           href={FACEBOOK_MESSENGER_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="hidden sm:inline-flex items-center gap-1.5 bg-[#0866FF] text-white font-bold min-h-10 px-4 rounded-full text-sm hover:bg-[#0756d6] hover:shadow-lg hover:shadow-blue-500/25 active:scale-95 transition-all duration-200 shrink-0"
+          className="hidden sm:inline-flex xl:hidden 2xl:inline-flex items-center gap-1.5 bg-[#0866FF] text-white font-bold min-h-10 px-4 rounded-full text-sm hover:bg-[#0756d6] hover:shadow-lg hover:shadow-blue-500/25 active:scale-95 transition-all duration-200 shrink-0"
           title="Facebook Messenger-এ মেসেজ পাঠান"
         >
           <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
@@ -218,6 +247,14 @@ export default function MarketingNavbar({ settings = {}, closed = false }) {
                   <ArrowRight className="w-4 h-4 stroke-[3]" />
                 </a>
               )}
+              <Link
+                href={portal.href}
+                onClick={closeMenu}
+                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-amber-400/35 bg-amber-400/[0.07] text-sm font-bold text-amber-200 active:scale-[0.98] transition-transform"
+              >
+                <portal.Icon className="w-4 h-4" />
+                <span>{portal.longLabel}</span>
+              </Link>
               <a
                 href={FACEBOOK_MESSENGER_URL}
                 target="_blank"
