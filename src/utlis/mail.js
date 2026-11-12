@@ -169,4 +169,44 @@ async function sendCustomEmail({ toEmail, subject, htmlBody }) {
   });
 }
 
-export { sendWelcomeEmail, sendVerifyEmail, sendCustomEmail };
+const escapeHtml = (value) =>
+  String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+// ── sendPasswordResetEmail ─────────────────────────────────────────────────────
+async function sendPasswordResetEmail({ toEmail, fullName, resetUrl, minutes = 30 }) {
+  const transporter = getTransporter();
+  const fromEmail = process.env.GMAIL_USER || "rabbi.fajracademy@gmail.com";
+
+  await transporter.sendMail({
+    from: `"Fajr Academy" <${fromEmail}>`,
+    to: toEmail,
+    subject: "Fajr Academy — পাসওয়ার্ড রিসেট করুন (Password Reset)",
+    html: getEmailWrapper(`
+      <h3 style="color:#0A1931;font-size:20px;margin:0 0 16px;">প্রিয় ${escapeHtml(fullName) || "ব্যবহারকারী"},</h3>
+      <p style="margin:0 0 12px;">
+        আপনার Fajr Academy অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার একটি অনুরোধ আমরা পেয়েছি।
+        নতুন পাসওয়ার্ড সেট করতে নিচের বাটনে ক্লিক করুন:
+      </p>
+      <div style="text-align:center;margin:28px 0;">
+        <a href="${resetUrl}"
+           style="background:#0A1931;color:#fff;padding:14px 36px;text-decoration:none;
+                  border-radius:7px;font-weight:700;font-size:14px;display:inline-block;">
+          নতুন পাসওয়ার্ড সেট করুন
+        </a>
+      </div>
+      <p style="margin:0 0 12px;color:#555;">
+        এই লিংকটি <strong>${minutes} মিনিট</strong> পর্যন্ত কার্যকর থাকবে এবং শুধু একবার ব্যবহার করা যাবে।
+        লিংকটি কারো সাথে শেয়ার করবেন না।
+      </p>
+      <p style="margin:0 0 12px;font-size:13px;color:#777;word-break:break-all;">
+        বাটন কাজ না করলে এই লিংকটি ব্রাউজারে কপি করুন:<br />
+        <a href="${resetUrl}" style="color:#1c3f70;">${resetUrl}</a>
+      </p>
+      <p style="font-size:13px;color:#999;margin:0;">
+        আপনি এই অনুরোধ না করে থাকলে ইমেইলটি উপেক্ষা করুন — আপনার পাসওয়ার্ড অপরিবর্তিত থাকবে।
+      </p>
+    `),
+  });
+}
+
+export { sendWelcomeEmail, sendVerifyEmail, sendCustomEmail, sendPasswordResetEmail };
