@@ -1,7 +1,6 @@
 'use client';
 
-import Link from "next/link";
-import { Calendar, Clock, ArrowLeft, ShieldCheck, GraduationCap, Radio, HelpCircle, Hourglass, Info } from "lucide-react";
+import { Calendar, Clock, GraduationCap, HelpCircle, Hourglass, Info } from "lucide-react";
 import ClassLinks from "../_shared/ClassLinks";
 import SessionCountdown from "../_shared/SessionCountdown";
 import NoticeList from "../_shared/NoticeList";
@@ -23,26 +22,9 @@ export default function ClassesClient({ courses = [], notices = [], paid = false
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-[#D4AF37] transition-colors mb-2"
-          >
-            <ArrowLeft className="w-4 h-4" /> ড্যাশবোর্ডে ফিরে যান
-          </Link>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight">লাইভ ক্লাসরুম ও ব্যাচ শিডিউল</h1>
-            <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center gap-1">
-              <Radio className="w-3 h-3 text-rose-400" /> LIVE PORTAL
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1">আপনার এনরোল করা ব্যাচের লাইভ সেশনে সরাসরি যুক্ত হোন</p>
-        </div>
-
-        <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-[#C59B27]/20 text-[#D4AF37] border border-[#C59B27]/40 flex items-center gap-1.5 shadow-sm">
-          <ShieldCheck className="w-4 h-4 text-[#D4AF37]" /> OFFICIAL TOT LIVE ROOM
-        </span>
+      <div>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight">লাইভ ক্লাস ও শিডিউল</h1>
+        <p className="text-sm text-slate-300 mt-1">আপনার এনরোল করা ব্যাচের সেশনের সময় দেখুন এবং লাইভ ক্লাসে যুক্ত হোন</p>
       </div>
 
       <NoticeList notices={notices} title="ইনস্ট্রাক্টরের লাইভ ক্লাস সংক্রান্ত নোটিশ" />

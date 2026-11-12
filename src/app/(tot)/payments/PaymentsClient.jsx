@@ -7,8 +7,6 @@ import {
   CreditCard,
   CheckCircle2,
   Printer,
-  ShieldCheck,
-  ArrowLeft,
   FileText,
   DollarSign,
   Layers,
@@ -88,19 +86,6 @@ export default function PaymentsClient({
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-      {/* Breadcrumb */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-[#D4AF37] transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" /> ড্যাশবোর্ডে ফিরে যান
-        </Link>
-        <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#C59B27]/20 text-[#D4AF37] border border-[#C59B27]/40 flex items-center gap-1.5 shadow-sm">
-          <ShieldCheck className="w-3.5 h-3.5 text-[#D4AF37]" /> SSLCOMMERZ 256-BIT SECURED
-        </span>
-      </div>
-
       {/* Header */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#051329] via-[#081A3A] to-[#0B2545] border border-[#C59B27]/35 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-[#C59B27]/15 rounded-full blur-3xl pointer-events-none" />

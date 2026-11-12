@@ -14,8 +14,9 @@ import {
   Clock,
   X,
   Info,
+  UserCog,
 } from "lucide-react";
-import TOTLogoutButton from "@/components/TOTLogoutButton";
+import NextClassCard from "./_components/NextClassCard";
 import PaymentRequiredCard, { latestUnpaidAttempt } from "../_shared/PaymentRequiredCard";
 import NoticeList from "../_shared/NoticeList";
 import {
@@ -35,7 +36,7 @@ import ReceiptTab from "./_components/ReceiptTab";
 
 const TABS = [
   { id: "mycourses", label: "আমার কোর্স", icon: BookOpen },
-  { id: "overview", label: "লাইভ সেশন", icon: Layers },
+  { id: "overview", label: "সেশনের বিস্তারিত", icon: Layers },
   { id: "courses", label: "কোর্স ক্যাটালগ", icon: GraduationCap },
   { id: "receipt", label: "ইনভয়েস", icon: Receipt },
 ];
@@ -186,26 +187,25 @@ export default function DashboardClient({
                 <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-300">পেমেন্ট বাকি</span>
               )}
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="break-words text-xs text-slate-400">
               ID {traineeId} · {user.email}
               {user.phone ? ` · ${user.phone}` : ""}
             </p>
-            <button type="button" onClick={() => setProfileOpen(true)} className="text-xs font-medium text-indigo-400 hover:text-indigo-300">
-              প্রোফাইল সম্পাদনা
-            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-sm">
-          <Link href="/results" className="rounded-lg border border-slate-700 px-3.5 py-2 text-slate-200 hover:border-slate-600 hover:text-white">
-            ফলাফল
-          </Link>
-          <Link href="/payments" className="rounded-lg border border-slate-700 px-3.5 py-2 text-slate-200 hover:border-slate-600 hover:text-white">
-            পেমেন্ট
-          </Link>
-          <TOTLogoutButton variant="header" className="!rounded-lg !px-3.5 !py-2" />
-        </div>
+        {/* Results, payments and logout live in the navigation — one clear action here. */}
+        <button
+          type="button"
+          onClick={() => setProfileOpen(true)}
+          className="inline-flex items-center justify-center gap-2 self-start rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:border-indigo-500/60 hover:text-white sm:self-center"
+        >
+          <UserCog className="h-4 w-4 text-indigo-300" /> প্রোফাইল সম্পাদনা
+        </button>
       </div>
+
+      {/* First thing after "who am I": when is my next class and how do I join it */}
+      {paid && courses.length > 0 && <NextClassCard courses={courses} />}
 
       {/* Evaluation result */}
       {evaluation && evalInfo && (
@@ -230,7 +230,7 @@ export default function DashboardClient({
       <NoticeList notices={notices} limit={5} title="ইনস্ট্রাক্টর নোটিশ" />
 
       {/* Tabs */}
-      <div role="tablist" className="-mb-px flex items-center gap-6 overflow-x-auto border-b border-slate-800">
+      <div role="tablist" aria-label="ড্যাশবোর্ড বিভাগ" className="-mx-4 flex items-center gap-6 overflow-x-auto border-b border-slate-800 px-4 sm:mx-0 sm:px-0">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -241,7 +241,7 @@ export default function DashboardClient({
               role="tab"
               aria-selected={isActive}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 whitespace-nowrap border-b-2 py-3 text-sm transition-colors ${
+              className={`flex min-h-12 items-center gap-2 whitespace-nowrap border-b-2 py-3 text-sm transition-colors ${
                 isActive ? "border-indigo-500 font-semibold text-white" : "border-transparent text-slate-400 hover:text-slate-200"
               }`}
             >
@@ -262,7 +262,14 @@ export default function DashboardClient({
           ) : (
             <>
               {courseSelector}
-              <OverviewTab key={course.courseId} course={course} participant={participant} onOpenDetails={() => openDetails(course.courseId)} />
+              {/* With a single course the card at the top already has its countdown and join buttons. */}
+              <OverviewTab
+                key={course.courseId}
+                course={course}
+                participant={participant}
+                showJoin={courses.length > 1}
+                onOpenDetails={() => openDetails(course.courseId)}
+              />
             </>
           )}
         </div>
@@ -304,7 +311,8 @@ export default function DashboardClient({
       {toast && (
         <div
           role="status"
-          className={`fixed bottom-6 right-6 z-50 flex max-w-sm items-start gap-2 rounded-lg border p-3.5 text-sm shadow-xl ${
+          // Sits above the phone tab bar; full-width there, a corner toast on desktop.
+          className={`fixed inset-x-4 bottom-24 z-50 flex items-start gap-2 rounded-lg border p-3.5 text-sm shadow-xl sm:left-auto sm:max-w-sm lg:bottom-6 lg:right-6 ${
             toast.type === "success"
               ? "border-emerald-500/30 bg-slate-900 text-emerald-200"
               : "border-rose-500/30 bg-slate-900 text-rose-200"

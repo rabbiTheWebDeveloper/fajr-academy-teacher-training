@@ -125,12 +125,6 @@ export default function ResultsClient({ trainee, paid = false, evaluation = null
               />
             </>
           )}
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#081A3A]/80 border border-slate-700/60 text-slate-300 hover:text-white text-xs font-medium transition-colors"
-          >
-            ড্যাশবোর্ড
-          </Link>
         </div>
       </div>
 

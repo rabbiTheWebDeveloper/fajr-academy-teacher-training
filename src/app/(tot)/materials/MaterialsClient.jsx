@@ -1,8 +1,7 @@
 'use client';
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { BookOpen, ArrowLeft, Sparkles, Search, SearchX } from "lucide-react";
+import { BookOpen, Search, SearchX } from "lucide-react";
 import MaterialCard from "../_shared/MaterialCard";
 import PaymentRequiredCard from "../_shared/PaymentRequiredCard";
 import { toBn } from "../_shared/format";
@@ -38,16 +37,10 @@ export default function MaterialsClient({ materials = [], courses = [], paid = f
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div>
         <div>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-[#D4AF37] transition-colors mb-2"
-          >
-            <ArrowLeft className="w-4 h-4" /> ড্যাশবোর্ডে ফিরে যান
-          </Link>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight">কোর্স হ্যান্ডআউটস ও স্টাডি বুকস হাব</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight">স্টাডি বুকস ও হ্যান্ডআউট</h1>
             {paid && (
               <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#C59B27]/20 text-[#D4AF37] border border-[#C59B27]/30 whitespace-nowrap">
                 {toBn(filtered.length)}টি ফাইল
@@ -56,10 +49,6 @@ export default function MaterialsClient({ materials = [], courses = [], paid = f
           </div>
           <p className="text-xs sm:text-sm text-slate-300 mt-1">আপনার এনরোল করা কোর্সের অনুমোদিত স্টাডি শিট, ম্যানুয়াল ও লেসন প্ল্যান</p>
         </div>
-
-        <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-[#C59B27]/20 text-[#D4AF37] border border-[#C59B27]/40 flex items-center gap-1.5 shadow-sm">
-          <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" /> OFFICIAL TOT RESOURCES
-        </span>
       </div>
 
       {!paid ? (

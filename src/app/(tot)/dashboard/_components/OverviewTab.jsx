@@ -22,7 +22,7 @@ function Fact({ icon: Icon, label, value }) {
  * "Live session" for one enrolled course: the next (or last) session from the
  * course's own curriculum, its trainer and time, a real countdown and the course links.
  */
-export default function OverviewTab({ course, participant, onOpenDetails }) {
+export default function OverviewTab({ course, participant, onOpenDetails, showJoin = true }) {
   const now = useNow();
   const modules = course.curriculum || [];
   const event = nextEvent(course, now);
@@ -107,13 +107,15 @@ export default function OverviewTab({ course, participant, onOpenDetails }) {
         )}
       </section>
 
-      {/* Countdown + join */}
-      <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
-        <SessionCountdown course={course} />
-        <div className="mt-4 border-t border-slate-800 pt-4">
-          <ClassLinks meetLink={course.meetLink} whatsappLink={course.whatsappLink} />
-        </div>
-      </section>
+      {/* Countdown + join (hidden when the dashboard's "next class" card already shows them) */}
+      {showJoin && (
+        <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
+          <SessionCountdown course={course} />
+          <div className="mt-4 border-t border-slate-800 pt-4">
+            <ClassLinks meetLink={course.meetLink} whatsappLink={course.whatsappLink} />
+          </div>
+        </section>
+      )}
 
       {/* Enrolment facts */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
