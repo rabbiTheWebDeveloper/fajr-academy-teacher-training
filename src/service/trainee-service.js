@@ -19,6 +19,9 @@ const PAYMENT_SAFE_FIELDS = "-registrationData -rawResponse -loginIssuedAt";
 
 export const isPaidUser = (user) => ["paid", "free"].includes(user?.paymentStatus);
 
+export const hasPaidAccess = (user, participants = []) =>
+  isPaidUser(user) || (participants || []).some((p) => ["paid", "free"].includes(p?.paymentStatus));
+
 export async function getTraineeUser(userId) {
   await dbConnect();
   if (!isObjectId(userId)) return null;
@@ -29,12 +32,12 @@ export async function getTraineeUser(userId) {
 export async function getEnrolledCourses(user) {
   await dbConnect();
   const participants = await ParticipantModel.find({ user: user._id }).sort({ enrolledAt: 1 }).lean();
-  const paidCourseIds = participants.filter((p) => ["paid", "free"].includes(p.paymentStatus)).map((p) => p.courseId);
+  const paidCourseIds = [...new Set(participants.filter((p) => ["paid", "free"].includes(p.paymentStatus)).map((p) => p.courseId).filter(Boolean))];
 
   // Accounts paid before enrolment records existed: use their track's course.
   if (paidCourseIds.length === 0 && isPaidUser(user)) paidCourseIds.push(courseIdForUserTrack(user.track));
 
-  let courses = paidCourseIds.length ? await CourseModel.find({ courseId: { $in: paidCourseIds } }).lean() : [];
+  let courses = paidCourseIds.length ? await CourseModel.find({ courseId: { $in: paidCourseIds } }).sort({ createdAt: 1 }).lean() : [];
   if (paidCourseIds.length && courses.length === 0) {
     const fallback = await getCourseForTrack(user.track);
     courses = fallback ? [fallback] : [];
@@ -68,8 +71,13 @@ export async function getTraineeNotices(user, limit = 30) {
   );
 }
 
-/** Class info for enrolled courses. Meeting links only for paid trainees. */
+/** Class info for enrolled courses. Meeting & recording links only for paid trainees. */
 export function classView(course, paid) {
+  const sortedCurriculum = [...(course.curriculum || [])]
+    .map((m, idx) => ({ m, idx }))
+    .sort((a, b) => (Number(a.m?.moduleNo) || a.idx + 1) - (Number(b.m?.moduleNo) || b.idx + 1) || a.idx - b.idx)
+    .map(({ m }) => m);
+
   return {
     _id: course._id,
     courseId: course.courseId,
@@ -88,7 +96,7 @@ export function classView(course, paid) {
     videoUrl: course.videoUrl || "",
     meetLink: paid ? course.meetLink || "" : "",
     whatsappLink: paid ? course.whatsappLink || "" : "",
-    curriculum: (course.curriculum || []).map((m) => ({
+    curriculum: sortedCurriculum.map((m) => ({
       _id: m._id,
       moduleNo: m.moduleNo,
       sessionBadge: m.sessionBadge,
@@ -103,8 +111,18 @@ export function classView(course, paid) {
       sessionTime: m.sessionTime,
       liveDate: m.liveDate,
       duration: m.duration,
+      meetLink: paid ? m.meetLink || "" : "",
+      recordingUrl: paid ? m.recordingUrl || "" : "",
+      sessionStatus: m.sessionStatus || "",
       topics: m.topics || [],
-      lessons: (m.lessons || []).map((l) => ({ _id: l._id, lessonNo: l.lessonNo, title: l.title, duration: l.duration })),
+      lessons: (m.lessons || []).map((l) => ({
+        _id: l._id,
+        lessonNo: l.lessonNo,
+        title: l.title,
+        duration: l.duration,
+        videoUrl: paid || l.isFreePreview ? l.videoUrl || "" : "",
+        isFreePreview: Boolean(l.isFreePreview),
+      })),
     })),
   };
 }
@@ -129,13 +147,13 @@ export function materialsView(courses, paid) {
 export async function getTraineeDashboard(userId) {
   const user = await getTraineeUser(userId);
   if (!user) return null;
-  const paid = isPaidUser(user);
   const [{ participants, courses }, payments, evaluations, notices] = await Promise.all([
     getEnrolledCourses(user),
     getTraineePayments(user),
     getTraineeEvaluations(user),
     getTraineeNotices(user),
   ]);
+  const paid = hasPaidAccess(user, participants);
   return {
     user,
     paid,

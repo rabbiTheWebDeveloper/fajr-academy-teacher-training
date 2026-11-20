@@ -66,7 +66,23 @@ function clean(input) {
     }
   }
   if (out.perks !== undefined && !Array.isArray(out.perks)) return { error: "perks অবশ্যই তালিকা হতে হবে।" };
-  if (out.curriculum !== undefined && !Array.isArray(out.curriculum)) return { error: "কারিকুলাম ফরম্যাট সঠিক নয়।" };
+  if (out.curriculum !== undefined) {
+    if (!Array.isArray(out.curriculum)) return { error: "কারিকুলাম ফরম্যাট সঠিক নয়।" };
+    const SESSION_STATUSES = ["", "scheduled", "live", "completed", "cancelled", "postponed"];
+    for (const mod of out.curriculum) {
+      for (const linkField of ["meetLink", "recordingUrl"]) {
+        if (mod?.[linkField] !== undefined) {
+          mod[linkField] = String(mod[linkField]).trim();
+          if (mod[linkField] && !/^https:\/\//.test(mod[linkField])) {
+            return { error: `সেশনের ${linkField} অবশ্যই https:// দিয়ে শুরু হতে হবে।` };
+          }
+        }
+      }
+      if (mod?.sessionStatus !== undefined && !SESSION_STATUSES.includes(String(mod.sessionStatus))) {
+        return { error: "সেশনের স্ট্যাটাস সঠিক নয়।" };
+      }
+    }
+  }
   if (out.resources !== undefined && !Array.isArray(out.resources)) return { error: "রিসোর্স ফরম্যাট সঠিক নয়।" };
   return { data: out };
 }

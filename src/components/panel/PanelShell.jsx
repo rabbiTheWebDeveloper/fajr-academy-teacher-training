@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Award,
   BookOpen,
+  CalendarDays,
   ChevronsUpDown,
   CreditCard,
   ExternalLink,
@@ -67,6 +68,7 @@ const ICONS = {
   trainees: Users,
   payments: CreditCard,
   courses: BookOpen,
+  calendar: CalendarDays,
   instructors: GraduationCap,
   evaluations: Award,
   users: ShieldCheck,

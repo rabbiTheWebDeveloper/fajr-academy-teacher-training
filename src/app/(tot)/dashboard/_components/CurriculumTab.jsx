@@ -1,20 +1,34 @@
 "use client";
 
-import { CheckCircle2, Circle, Radio, CalendarClock, ChevronDown, UserCheck, Clock } from "lucide-react";
+import {
+  Ban,
+  CalendarClock,
+  CheckCircle2,
+  ChevronDown,
+  Circle,
+  Clock,
+  ExternalLink,
+  PauseCircle,
+  PlayCircle,
+  Radio,
+  UserCheck,
+  Video,
+} from "lucide-react";
 import { useNow } from "../../_shared/use-now";
 import { moduleSchedule, sessionState } from "../../_shared/schedule";
-import { toBn } from "../../_shared/format";
+import { toBn, usableLink } from "../../_shared/format";
 
 const STATE_CHIP = {
   held: { label: "অনুষ্ঠিত হয়েছে", cls: "bg-emerald-500/15 text-emerald-300", icon: CheckCircle2 },
   live: { label: "চলমান", cls: "bg-rose-500/15 text-rose-300", icon: Radio },
   upcoming: { label: "আসন্ন", cls: "bg-indigo-500/15 text-indigo-300", icon: Circle },
+  postponed: { label: "স্থগিত", cls: "bg-amber-500/15 text-amber-300", icon: PauseCircle },
+  cancelled: { label: "বাতিল", cls: "bg-slate-800 text-slate-400", icon: Ban },
 };
 
 /**
- * The enrolled course's real curriculum: every session with its date, time, trainer, topics
- * and lessons. Status comes from each session's date (held / upcoming) — not from an unsaved
- * "completed" checkbox.
+ * The enrolled course's real curriculum: every session with its date, time, trainer, topics,
+ * links and lessons. Status comes from explicit status overrides or each session's date.
  */
 export default function CurriculumTab({ course }) {
   const now = useNow();
@@ -33,20 +47,36 @@ export default function CurriculumTab({ course }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {items.map(({ key, module: m, when }) => {
-            const state = sessionState(when, now);
+          {items.map(({ key, module: m, when, displayDate, statusOverride, meetLink, hasOwnMeetLink, recordingUrl }) => {
+            const state = sessionState(when, now, statusOverride);
             const chip = state ? STATE_CHIP[state] : null;
             const ChipIcon = chip?.icon || CalendarClock;
             const lessons = m.lessons || [];
-            const dateText = m.liveDate || m.sessionDate || "তারিখ ঘোষণা করা হবে";
+            const dateText = displayDate || "তারিখ ঘোষণা করা হবে";
+            const canJoin = Boolean(meetLink) && state !== "cancelled" && state !== "postponed";
+
             return (
               <div
                 key={key}
-                className={`rounded-xl border bg-slate-900 p-4 sm:p-5 ${state === "live" ? "border-rose-500/40" : "border-slate-800"}`}
+                className={`rounded-xl border bg-slate-900 p-4 sm:p-5 ${
+                  state === "live" ? "border-rose-500/40" : state === "cancelled" ? "border-slate-800 opacity-75" : "border-slate-800"
+                }`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex min-w-0 items-start gap-3">
-                    <ChipIcon className={`mt-0.5 h-5 w-5 shrink-0 ${state === "held" ? "text-emerald-400" : "text-indigo-400"}`} />
+                    <ChipIcon
+                      className={`mt-0.5 h-5 w-5 shrink-0 ${
+                        state === "held"
+                          ? "text-emerald-400"
+                          : state === "live"
+                            ? "text-rose-400 animate-pulse"
+                            : state === "postponed"
+                              ? "text-amber-400"
+                              : state === "cancelled"
+                                ? "text-slate-500"
+                                : "text-indigo-400"
+                      }`}
+                    />
                     <div className="min-w-0">
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-indigo-300">
                         {m.sessionBadge || `মডিউল ${toBn(m.moduleNo ?? "")}`}
@@ -80,10 +110,40 @@ export default function CurriculumTab({ course }) {
                     <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${chip.cls}`}>{chip.label}</span>
                   ) : (
                     !when && (
-                      <span className="whitespace-nowrap rounded-full bg-slate-800 px-2.5 py-1 text-[11px] text-slate-400">তারিখ ঘোষণা হয়নি</span>
+                      <span className="whitespace-nowrap rounded-full bg-slate-800 px-2.5 py-1 text-[11px] text-slate-400">
+                        তারিখ ঘোষণা হয়নি
+                      </span>
                     )
                   )}
                 </div>
+
+                {((canJoin && (state !== "held" || hasOwnMeetLink)) || recordingUrl) && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 pl-8">
+                    {canJoin && (state !== "held" || hasOwnMeetLink) && (
+                      <a
+                        href={meetLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-colors ${
+                          state === "live" ? "bg-rose-600 hover:bg-rose-500" : "bg-indigo-600 hover:bg-indigo-500"
+                        }`}
+                      >
+                        <Video className="h-3.5 w-3.5" />
+                        {state === "live" ? "লাইভে যোগ দিন" : "ক্লাস লিংক"}
+                      </a>
+                    )}
+                    {recordingUrl && (
+                      <a
+                        href={recordingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
+                      >
+                        <PlayCircle className="h-3.5 w-3.5" /> রেকর্ডিং দেখুন
+                      </a>
+                    )}
+                  </div>
+                )}
 
                 {m.topics?.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1.5 pl-8">
@@ -104,14 +164,29 @@ export default function CurriculumTab({ course }) {
                     {m.description && <p className="mt-2 text-sm leading-relaxed text-slate-300">{m.description}</p>}
                     {lessons.length > 0 && (
                       <ol className="mt-3 divide-y divide-slate-800 rounded-lg border border-slate-800 bg-slate-950/60">
-                        {lessons.map((l, i) => (
-                          <li key={l._id || i} className="flex items-start justify-between gap-3 px-3 py-2 text-xs text-slate-300">
-                            <span>
-                              {toBn(l.lessonNo ?? i + 1)}. {l.title}
-                            </span>
-                            {l.duration && <span className="whitespace-nowrap text-slate-500">{l.duration}</span>}
-                          </li>
-                        ))}
+                        {lessons.map((l, i) => {
+                          const video = usableLink(l.videoUrl);
+                          return (
+                            <li key={l._id || i} className="flex items-start justify-between gap-3 px-3 py-2 text-xs text-slate-300">
+                              <span>
+                                {toBn(l.lessonNo ?? i + 1)}. {l.title}
+                              </span>
+                              <span className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+                                {l.duration && <span className="text-slate-500">{l.duration}</span>}
+                                {video && (
+                                  <a
+                                    href={video}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300"
+                                  >
+                                    ভিডিও <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                )}
+                              </span>
+                            </li>
+                          );
+                        })}
                       </ol>
                     )}
                   </details>

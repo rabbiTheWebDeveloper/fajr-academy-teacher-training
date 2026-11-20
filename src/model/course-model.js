@@ -91,6 +91,21 @@ const moduleSchema = new Schema(
       type: String,
       default: "",
     },
+    meetLink: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    recordingUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    sessionStatus: {
+      type: String,
+      enum: ["", "scheduled", "live", "completed", "cancelled", "postponed"],
+      default: "",
+    },
     topics: {
       type: [String],
       default: [],

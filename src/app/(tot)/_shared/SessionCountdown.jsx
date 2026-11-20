@@ -36,7 +36,7 @@ export default function SessionCountdown({ course }) {
   }
 
   const what = event.kind === "orientation" ? "ওরিয়েন্টেশন ক্লাস" : event.module?.sessionBadge || `সেশন ${toBn(event.module?.moduleNo ?? "")}`;
-  const state = sessionState(event.when, now);
+  const state = sessionState(event.when, now, event.statusOverride);
 
   if (state === "live") {
     return (

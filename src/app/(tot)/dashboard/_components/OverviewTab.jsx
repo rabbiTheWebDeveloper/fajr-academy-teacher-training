@@ -4,7 +4,7 @@ import { Calendar, Clock, Users, CalendarDays, Hourglass, UserCheck, BookOpen } 
 import ClassLinks from "../../_shared/ClassLinks";
 import SessionCountdown from "../../_shared/SessionCountdown";
 import { useNow } from "../../_shared/use-now";
-import { nextEvent } from "../../_shared/schedule";
+import { displaySessionDate, nextEvent } from "../../_shared/schedule";
 import { formatDate, toBn } from "../../_shared/format";
 
 function Fact({ icon: Icon, label, value }) {
@@ -43,8 +43,9 @@ export default function OverviewTab({ course, participant, onOpenDetails, showJo
   const subtitle = isOrientation ? course.name : focus.subtitle;
   const trainerName = (!isOrientation && focus.trainerName) || course.instructor || "";
   const trainerRole = !isOrientation ? focus.trainerRole : "";
-  const dateText = isOrientation ? course.orientationDate : focus.liveDate || focus.sessionDate;
+  const dateText = isOrientation ? course.orientationDate : displaySessionDate(focus);
   const timeText = isOrientation ? course.orientationTime : focus.sessionTime;
+  const joinLink = (!isOrientation && event?.meetLink) || course.meetLink;
 
   return (
     <div className="space-y-5">
@@ -112,7 +113,7 @@ export default function OverviewTab({ course, participant, onOpenDetails, showJo
         <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:p-6">
           <SessionCountdown course={course} />
           <div className="mt-4 border-t border-slate-800 pt-4">
-            <ClassLinks meetLink={course.meetLink} whatsappLink={course.whatsappLink} />
+            <ClassLinks meetLink={joinLink} whatsappLink={course.whatsappLink} />
           </div>
         </section>
       )}

@@ -76,7 +76,13 @@ export async function POST(request) {
       maxSeats: source.maxSeats,
       perks: source.perks || [],
       videoUrl: source.videoUrl || "",
-      curriculum: stripIds(source.curriculum, (m) => ({ ...m, lessons: stripIds(m.lessons) })),
+      curriculum: stripIds(source.curriculum, (m) => ({
+        ...m,
+        meetLink: "",
+        recordingUrl: "",
+        sessionStatus: "",
+        lessons: stripIds(m.lessons),
+      })),
       resources: stripIds(source.resources, (r) => ({ ...r, resourceId: newResourceId() })),
       // The new batch's own classroom is announced later.
       meetLink: "",

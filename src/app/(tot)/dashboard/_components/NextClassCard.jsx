@@ -5,7 +5,7 @@ import { ArrowRight, Calendar, Clock, UserCheck } from "lucide-react";
 import ClassLinks from "../../_shared/ClassLinks";
 import SessionCountdown from "../../_shared/SessionCountdown";
 import { useNow } from "../../_shared/use-now";
-import { nextEvent, sessionState } from "../../_shared/schedule";
+import { displaySessionDate, nextEvent, sessionState } from "../../_shared/schedule";
 
 /**
  * The one thing a trainee opens the dashboard for: "when is my next class and how do I
@@ -27,12 +27,13 @@ export default function NextClassCard({ courses = [] }) {
   const event = pick?.event || null;
   const isOrientation = event?.kind === "orientation";
   const mod = event?.module || null;
-  const live = event ? sessionState(event.when, now) === "live" : false;
+  const live = event ? sessionState(event.when, now, event.statusOverride) === "live" : false;
 
   const title = !event ? course.name : isOrientation ? "ওরিয়েন্টেশন ক্লাস" : mod?.title || course.name;
-  const dateText = !event ? "" : isOrientation ? course.orientationDate : mod?.liveDate || mod?.sessionDate;
+  const dateText = !event ? "" : isOrientation ? course.orientationDate : displaySessionDate(mod);
   const timeText = !event ? "" : isOrientation ? course.orientationTime : mod?.sessionTime;
   const trainer = (!isOrientation && mod?.trainerName) || course.instructor || "";
+  const meetLink = (!isOrientation && event?.meetLink) || course.meetLink;
   const showCourseName = Boolean(event) && (courses.length > 1 || isOrientation);
 
   return (
@@ -90,7 +91,7 @@ export default function NextClassCard({ courses = [] }) {
       </div>
 
       <div className="mt-4">
-        <ClassLinks meetLink={course.meetLink} whatsappLink={course.whatsappLink} />
+        <ClassLinks meetLink={meetLink} whatsappLink={course.whatsappLink} />
       </div>
     </section>
   );

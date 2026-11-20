@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   BookOpen,
   Calendar,
@@ -51,6 +52,7 @@ const CARD_FIELDS = [
   "orientationTime",
   "routine",
   "duration",
+  "meetLink",
   "whatsappLink",
   "instructor",
   "maxSeats",
@@ -136,6 +138,9 @@ const emptyModule = (n) => ({
   sessionTime: "",
   duration: "১ ঘণ্টা",
   liveDate: "",
+  meetLink: "",
+  recordingUrl: "",
+  sessionStatus: "",
 });
 
 const EMPTY_RESOURCE = {
@@ -486,7 +491,13 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
       sessionDate: newModule.sessionDate,
       sessionTime: newModule.sessionTime,
       duration: newModule.duration || "১ ঘণ্টা",
-      liveDate: newModule.liveDate || newModule.sessionDate,
+      liveDate:
+        existing && newModule.sessionDate !== existing.sessionDate
+          ? newModule.sessionDate
+          : newModule.liveDate || newModule.sessionDate,
+      meetLink: String(newModule.meetLink || "").trim(),
+      recordingUrl: String(newModule.recordingUrl || "").trim(),
+      sessionStatus: newModule.sessionStatus || "",
     };
     // Editing keeps the module's lessons and anything else not on the form.
     const moduleObj = existing ? { ...existing, ...fields } : { ...fields, topics: [], lessons: [] };
@@ -636,7 +647,15 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
+          <Link
+            href="/admin/classes"
+            className={`px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
+              isLight ? "bg-white border-slate-300 text-slate-800 hover:bg-slate-50" : "bg-slate-900 border-slate-800 text-amber-300 hover:bg-slate-800"
+            }`}
+          >
+            <Calendar className="w-4 h-4" /> ক্লাস শিডিউল
+          </Link>
           <button
             type="button"
             onClick={reload}
@@ -966,18 +985,30 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
 
                   {/* Links Row */}
                   {isEditing ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div>
-                        <label className={labelCls}>WhatsApp গ্রুপ লিংক (https://)</label>
-                        <input
-                          type="url"
-                          value={view.whatsappLink || ""}
-                          onChange={(e) => setDraftField("whatsappLink", e.target.value)}
-                          placeholder="https://chat.whatsapp.com/..."
-                          className={`${editInput} font-mono`}
-                        />
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className={labelCls}>Google Meet / লাইভ লিংক (https://)</label>
+                          <input
+                            type="url"
+                            value={view.meetLink || ""}
+                            onChange={(e) => setDraftField("meetLink", e.target.value)}
+                            placeholder="https://meet.google.com/..."
+                            className={`${editInput} font-mono`}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>WhatsApp গ্রুপ লিংক (https://)</label>
+                          <input
+                            type="url"
+                            value={view.whatsappLink || ""}
+                            onChange={(e) => setDraftField("whatsappLink", e.target.value)}
+                            placeholder="https://chat.whatsapp.com/..."
+                            className={`${editInput} font-mono`}
+                          />
+                        </div>
                       </div>
-                                            <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className={labelCls}>সর্বোচ্চ আসন</label>
                           <input
@@ -1580,13 +1611,15 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                   <input
                     type="date"
                     value={newModule.sessionIso || ""}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const formatted = formatSessionDate(e.target.value);
                       setNewModule({
                         ...newModule,
                         sessionIso: e.target.value,
-                        sessionDate: formatSessionDate(e.target.value),
-                      })
-                    }
+                        sessionDate: formatted,
+                        liveDate: formatted,
+                      });
+                    }}
                     className="w-full px-3 py-2 rounded-xl border"
                   />
                   {newModule.sessionDate && (
@@ -1670,6 +1703,29 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                     onChange={(e) => setNewModule({ ...newModule, trainerRole: e.target.value })}
                     placeholder="যেমন: Senior Operation Executive"
                     className="w-full px-3 py-2 rounded-xl border"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold mb-1">আলাদা ক্লাস মিট লিংক (ঐচ্ছিক)</label>
+                  <input
+                    type="url"
+                    value={newModule.meetLink || ""}
+                    onChange={(e) => setNewModule({ ...newModule, meetLink: e.target.value })}
+                    placeholder="https://meet.google.com/..."
+                    className="w-full font-mono px-3 py-2 rounded-xl border"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold mb-1">রেকর্ডিং লিংক (ঐচ্ছিক)</label>
+                  <input
+                    type="url"
+                    value={newModule.recordingUrl || ""}
+                    onChange={(e) => setNewModule({ ...newModule, recordingUrl: e.target.value })}
+                    placeholder="https://drive.google.com/..."
+                    className="w-full font-mono px-3 py-2 rounded-xl border"
                   />
                 </div>
               </div>
@@ -1991,7 +2047,19 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
                 />
               </div>
 
-              
+              <div>
+                <label className="font-bold block mb-1">Google Meet / লাইভ লিংক</label>
+                <input
+                  type="url"
+                  value={newCourse.meetLink}
+                  onChange={(e) =>
+                    setNewCourse({ ...newCourse, meetLink: e.target.value })
+                  }
+                  placeholder="https://meet.google.com/..."
+                  className="w-full font-mono text-[11px] px-3 py-2 rounded-xl border"
+                />
+              </div>
+
               <div>
                 <label className="font-bold block mb-1">WhatsApp গ্রুপ লিংক</label>
                 <input

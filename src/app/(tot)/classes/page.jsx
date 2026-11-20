@@ -8,6 +8,8 @@ export const metadata = {
   description: "ফজর একাডেমি ট্রেনিং অব ট্রেইনার্স (TOT) কোর্সের লাইভ ক্লাস এক্সেস, শিডিউল ও রেকর্ডেড লেকচার হাব।",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function ClassesPage() {
   const { data, error } = await loadTraineeDashboard();
   if (!data) return <TraineeLoadError error={error} retryHref="/classes" />;

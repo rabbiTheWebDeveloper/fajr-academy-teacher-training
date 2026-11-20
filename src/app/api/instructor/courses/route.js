@@ -8,7 +8,8 @@ import { isObjectId, pick } from "@/lib/query-helpers";
 // Instructors run classes: links, routine and the session schedule.
 // Pricing, publishing and identifiers stay with admins (/api/admin/courses).
 const EDITABLE_FIELDS = ["meetLink", "whatsappLink", "routine", "orientationDate", "orientationTime", "curriculum"];
-const MODULE_EDITABLE = ["liveDate", "sessionDate", "sessionTime", "trainerName", "trainerRole", "topics"];
+const MODULE_EDITABLE = ["liveDate", "sessionDate", "sessionTime", "trainerName", "trainerRole", "topics", "meetLink", "recordingUrl", "sessionStatus"];
+const SESSION_STATUSES = ["", "scheduled", "live", "completed", "cancelled", "postponed"];
 
 const isHttpUrl = (v) => v === "" || /^https:\/\/[^\s]+$/i.test(v);
 
@@ -67,9 +68,23 @@ export async function PATCH(request) {
         return NextResponse.json({ success: false, message: "কোর্স পাওয়া যায়নি।" }, { status: 404 });
       }
       const incoming = new Map(updates.curriculum.map((m) => [Number(m.moduleNo), m]));
+      for (const inc of updates.curriculum) {
+        for (const k of ["meetLink", "recordingUrl"]) {
+          if (inc?.[k] !== undefined && !isHttpUrl(String(inc[k]).trim())) {
+            return NextResponse.json({ success: false, message: "সেশনের লিংকটি অবশ্যই https:// দিয়ে শুরু হতে হবে।" }, { status: 400 });
+          }
+        }
+        if (inc?.sessionStatus !== undefined && !SESSION_STATUSES.includes(String(inc.sessionStatus))) {
+          return NextResponse.json({ success: false, message: "সেশনের স্ট্যাটাস সঠিক নয়।" }, { status: 400 });
+        }
+      }
       updates.curriculum = (course.curriculum || []).map((m) => {
-        const patch = pick(incoming.get(Number(m.moduleNo)) || {}, MODULE_EDITABLE);
+        const raw = incoming.get(Number(m.moduleNo)) || {};
+        const patch = pick(raw, MODULE_EDITABLE);
         if (patch.topics && !Array.isArray(patch.topics)) delete patch.topics;
+        if (patch.meetLink !== undefined) patch.meetLink = String(patch.meetLink).trim();
+        if (patch.recordingUrl !== undefined) patch.recordingUrl = String(patch.recordingUrl).trim();
+        if (patch.sessionDate !== undefined && raw.liveDate === undefined) patch.liveDate = patch.sessionDate;
         return { ...m, ...patch };
       });
     }
