@@ -71,6 +71,7 @@ const EMPTY_SUMMARY = {
   followUp: 0,
   alreadyPaidHidden: 0,
   byPayment: { all: 0 },
+  byLeadStatus: { all: 0 },
 };
 
 const PAYMENT_TABS = [
@@ -328,6 +329,10 @@ export default function AdminLeadsClient({
     for (const st of LEAD_PAYMENT_STATUSES) {
       byPayment[st] = summary?.byPayment?.[st] || 0;
     }
+    const byLeadStatus = { all: summary?.total || 0 };
+    for (const st of LEAD_STATUSES) {
+      byLeadStatus[st] = summary?.byLeadStatus?.[st] || 0;
+    }
     return {
       total: summary?.total || 0,
       pending: summary?.pending || 0,
@@ -338,6 +343,7 @@ export default function AdminLeadsClient({
       followUp: summary?.followUp || 0,
       alreadyPaidHidden: summary?.alreadyPaidHidden ?? summary?.alreadyPaidCount ?? 0,
       byPayment,
+      byLeadStatus,
     };
   }, [summary]);
 
@@ -714,6 +720,16 @@ export default function AdminLeadsClient({
         />
       </div>
 
+      {/* Lead Status-Wise Count Cards */}
+      <LeadStatusCountCards
+        total={stats.total}
+        byLeadStatus={stats.byLeadStatus}
+        activeStatus={leadStatusFilter}
+        onSelectStatus={(st) => changeLeadStatus(leadStatusFilter === st ? "all" : st)}
+        isLight={isLight}
+        cardCls={cardCls}
+      />
+
       {/* Assigned User Pie Chart & Per-User Lead Count */}
       <AssigneePieChartCard
         data={assigneeChartData}
@@ -794,10 +810,10 @@ export default function AdminLeadsClient({
             aria-label="লিড স্ট্যাটাস"
             className={inputCls}
           >
-            <option value="all">সব লিড স্ট্যাটাস</option>
+            <option value="all">সব লিড স্ট্যাটাস ({stats.total})</option>
             {LEAD_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {LEAD_STATUS_META[s].label} ({LEAD_STATUS_META[s].en})
+                {LEAD_STATUS_META[s].label} ({stats.byLeadStatus[s] || 0})
               </option>
             ))}
           </select>
@@ -1922,6 +1938,101 @@ function KpiCard({ title, value, sub, icon: Icon, tone, isLight, onClick }) {
       <div className={`text-2xl font-black font-mono ${isLight ? "text-slate-900" : "text-white"}`}>{value}</div>
       <p className="text-[10px] text-slate-500 mt-1 truncate">{sub}</p>
     </Tag>
+  );
+}
+
+const STATUS_CARD_COLORS = {
+  sky: { dot: "#0ea5e9", bar: "#0ea5e9", ring: "border-sky-500 ring-1 ring-sky-500/40 bg-sky-500/10" },
+  indigo: { dot: "#6366f1", bar: "#6366f1", ring: "border-indigo-500 ring-1 ring-indigo-500/40 bg-indigo-500/10" },
+  emerald: { dot: "#10b981", bar: "#10b981", ring: "border-emerald-500 ring-1 ring-emerald-500/40 bg-emerald-500/10" },
+  amber: { dot: "#f59e0b", bar: "#f59e0b", ring: "border-amber-500 ring-1 ring-amber-500/40 bg-amber-500/10" },
+  teal: { dot: "#14b8a6", bar: "#14b8a6", ring: "border-teal-500 ring-1 ring-teal-500/40 bg-teal-500/10" },
+  slate: { dot: "#64748b", bar: "#64748b", ring: "border-slate-500 ring-1 ring-slate-500/40 bg-slate-500/10" },
+  rose: { dot: "#f43f5e", bar: "#f43f5e", ring: "border-rose-500 ring-1 ring-rose-500/40 bg-rose-500/10" },
+};
+
+function LeadStatusCountCards({ total, byLeadStatus, activeStatus, onSelectStatus, isLight, cardCls }) {
+  return (
+    <div className={`rounded-2xl border p-4 sm:p-5 ${cardCls}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3.5">
+        <div>
+          <h2 className={`text-sm sm:text-base font-black ${isLight ? "text-slate-900" : "text-white"}`}>
+            লিড স্ট্যাটাস অনুযায়ী সংখ্যা
+          </h2>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            যেকোনো স্ট্যাটাস কার্ডে ক্লিক করে সরাসরি ওই স্ট্যাটাসের লিড ফিল্টার করুন
+          </p>
+        </div>
+        {activeStatus !== "all" && (
+          <button
+            type="button"
+            onClick={() => onSelectStatus("all")}
+            className="text-[11px] font-bold text-amber-500 hover:underline cursor-pointer"
+          >
+            স্ট্যাটাস ফিল্টার রিসেট
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2.5">
+        {LEAD_STATUSES.map((st) => {
+          const meta = LEAD_STATUS_META[st];
+          const count = byLeadStatus?.[st] || 0;
+          const percent = total > 0 ? Math.round((count / total) * 1000) / 10 : 0;
+          const colors = STATUS_CARD_COLORS[meta.tone] || STATUS_CARD_COLORS.slate;
+          const selected = activeStatus === st;
+
+          return (
+            <button
+              key={st}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onSelectStatus(st)}
+              className={`text-left rounded-2xl border p-3 transition-all cursor-pointer space-y-2 ${
+                selected
+                  ? colors.ring
+                  : isLight
+                    ? "bg-slate-50/80 border-slate-200 hover:border-amber-300"
+                    : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-1.5">
+                <span className="inline-flex items-center gap-1.5 min-w-0">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: colors.dot }}
+                  />
+                  <span
+                    className={`text-[11px] font-extrabold truncate ${
+                      isLight ? "text-slate-800" : "text-slate-200"
+                    }`}
+                  >
+                    {meta.label}
+                  </span>
+                </span>
+              </div>
+
+              <div className="flex items-baseline justify-between gap-2">
+                <span className={`text-xl font-black font-mono leading-none ${isLight ? "text-slate-900" : "text-white"}`}>
+                  {count}
+                </span>
+                <span className="text-[10px] font-mono font-bold text-slate-500">{percent}%</span>
+              </div>
+
+              <div className="space-y-1">
+                <div className={`h-1.5 w-full rounded-full overflow-hidden ${isLight ? "bg-slate-200" : "bg-slate-800"}`}>
+                  <div
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(100, percent)}%`, backgroundColor: colors.bar }}
+                  />
+                </div>
+                <div className="text-[10px] text-slate-500 truncate">{meta.en}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

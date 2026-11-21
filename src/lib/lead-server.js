@@ -203,6 +203,14 @@ export async function queryAdminLeads({
               },
             },
           ],
+          byLeadStatus: [
+            {
+              $group: {
+                _id: { $ifNull: ["$leadStatus", "new"] },
+                count: { $sum: 1 },
+              },
+            },
+          ],
           byAssignee: [
             {
               $group: {
@@ -251,6 +259,16 @@ export async function queryAdminLeads({
     if (row._id) byPayment[row._id] = row.count || 0;
   }
 
+  const byLeadStatus = { all: ov.total || 0 };
+  for (const st of LEAD_STATUSES) byLeadStatus[st] = 0;
+  for (const row of facet.byLeadStatus || []) {
+    if (row._id && LEAD_STATUSES.includes(row._id)) {
+      byLeadStatus[row._id] = (byLeadStatus[row._id] || 0) + (row.count || 0);
+    } else {
+      byLeadStatus.new += row.count || 0;
+    }
+  }
+
   const summary = {
     total: ov.total || 0,
     pending: ov.pending || 0,
@@ -265,6 +283,7 @@ export async function queryAdminLeads({
     alreadyPaidCount: alreadyPaidHidden,
     alreadyPaidHidden,
     byPayment,
+    byLeadStatus,
   };
 
   const assigneeBreakdown = (facet.byAssignee || []).map((row) => ({
