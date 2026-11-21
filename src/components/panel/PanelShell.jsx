@@ -21,6 +21,7 @@ import {
   Settings,
   ShieldCheck,
   Sun,
+  UserCog,
   Users,
   Video,
 } from "lucide-react";
@@ -74,6 +75,7 @@ const ICONS = {
   instructors: GraduationCap,
   evaluations: Award,
   users: ShieldCheck,
+  userSetting: UserCog,
   settings: Settings,
   resources: FolderOpen,
   live: Video,

@@ -30,12 +30,14 @@ const NAV = [
     items: [
       { href: '/admin/users', label: 'অ্যাডমিন ইউজার ও রোল', short: 'ইউজার', icon: 'users', module: 'users' },
       { href: '/admin/settings', label: 'সিস্টেম সেটিংস', short: 'সেটিংস', icon: 'settings', module: 'settings' },
+      { href: '/admin/user-setting', label: 'ইউজার সেটিংস', short: 'প্রোফাইল', icon: 'userSetting' },
     ],
   },
 ];
 
 // Admins have no trainee (TOT) record, so there is no /dashboard link — the public site instead.
 const MENU_LINKS = [
+  { href: '/admin/user-setting', label: 'ইউজার সেটিংস ও পাসওয়ার্ড', icon: 'userSetting' },
   { href: '/instructor', label: 'ইনস্ট্রাক্টর পোর্টাল', icon: 'portal', external: true },
   { href: '/', label: 'পাবলিক ওয়েবসাইট', icon: 'website', external: true },
 ];
