@@ -16,6 +16,7 @@ import {
   MessageSquarePlus,
   Phone,
   PhoneCall,
+  PieChart,
   RefreshCw,
   Search,
   Send,
@@ -148,9 +149,13 @@ export default function AdminLeadsClient({
   const [bulkStatus, setBulkStatus] = useState("");
   const [bulkSaving, setBulkSaving] = useState(false);
 
-  // Per-row busy & clipboard
+  // Per-row busy, quick inline note drafts & clipboard
   const [busyId, setBusyId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [quickNotes, setQuickNotes] = useState({});
+  const [quickNoteKinds, setQuickNoteKinds] = useState({});
+  const [quickNoteBusyId, setQuickNoteBusyId] = useState(null);
+  const [hoveredSlice, setHoveredSlice] = useState(null);
 
   // Detail & Note History Modal
   const [activeLeadId, setActiveLeadId] = useState(null);
@@ -219,6 +224,112 @@ export default function AdminLeadsClient({
     }
     return s;
   }, [baseLeads, leads, currentAdminId]);
+
+  // Assigned-user distribution for the Pie Chart & per-user count list
+  const assigneeChartData = useMemo(() => {
+    const PALETTE = [
+      "#f59e0b", // amber
+      "#6366f1", // indigo
+      "#10b981", // emerald
+      "#ec4899", // pink
+      "#0ea5e9", // sky
+      "#8b5cf6", // violet
+      "#f97316", // orange
+      "#14b8a6", // teal
+      "#ef4444", // red
+      "#84cc16", // lime
+    ];
+    const staffById = new Map(staff.map((u) => [u._id, u]));
+    const buckets = new Map();
+
+    // Seed every active staff member so 0-count staff can still be seen in breakdown
+    for (const u of staff) {
+      buckets.set(u._id, {
+        key: u._id,
+        name: u.fullName || u.email,
+        email: u.email || "",
+        avatar: u.avatar || "",
+        designation: u.designation || "",
+        count: 0,
+        followUp: 0,
+        converted: 0,
+        isUnassigned: false,
+      });
+    }
+
+    let unassigned = {
+      key: "unassigned",
+      name: "অনির্ধারিত (Unassigned)",
+      email: "",
+      avatar: "",
+      designation: "এখনো কাউকে দায়িত্ব দেওয়া হয়নি",
+      count: 0,
+      followUp: 0,
+      converted: 0,
+      isUnassigned: true,
+    };
+
+    for (const l of baseLeads) {
+      if (!l.leadAssignedTo) {
+        unassigned.count += 1;
+        if (l.leadStatus === "follow_up" || l.leadStatus === "interested") unassigned.followUp += 1;
+        if (l.leadStatus === "converted") unassigned.converted += 1;
+        continue;
+      }
+      if (!buckets.has(l.leadAssignedTo)) {
+        const s = staffById.get(l.leadAssignedTo);
+        buckets.set(l.leadAssignedTo, {
+          key: l.leadAssignedTo,
+          name: l.leadAssignedName || s?.fullName || l.leadAssignedEmail || "Admin",
+          email: l.leadAssignedEmail || s?.email || "",
+          avatar: s?.avatar || "",
+          designation: s?.designation || "",
+          count: 0,
+          followUp: 0,
+          converted: 0,
+          isUnassigned: false,
+        });
+      }
+      const b = buckets.get(l.leadAssignedTo);
+      b.count += 1;
+      if (l.leadStatus === "follow_up" || l.leadStatus === "interested") b.followUp += 1;
+      if (l.leadStatus === "converted") b.converted += 1;
+    }
+
+    const assignedRows = [...buckets.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+    const allRows = unassigned.count > 0 ? [...assignedRows, unassigned] : assignedRows;
+    const total = baseLeads.length;
+
+    let colorIdx = 0;
+    const rows = allRows.map((row) => ({
+      ...row,
+      color: row.isUnassigned ? "#64748b" : PALETTE[colorIdx++ % PALETTE.length],
+      percent: total > 0 ? Math.round((row.count / total) * 1000) / 10 : 0,
+    }));
+
+    return { total, rows, slices: rows.filter((r) => r.count > 0) };
+  }, [baseLeads, staff]);
+
+  const handleQuickAddNote = async (e, lead) => {
+    e.preventDefault();
+    const text = String(quickNotes[lead._id] || "").trim();
+    if (!text) return;
+    const kind = quickNoteKinds[lead._id] || "note";
+
+    setQuickNoteBusyId(lead._id);
+    const { ok, data, message } = await callApi("/api/admin/leads", {
+      method: "POST",
+      body: { leadId: lead._id, text, kind },
+    });
+    setQuickNoteBusyId(null);
+    if (!ok) {
+      showToast(message, "error");
+      return;
+    }
+    if (data.lead) replaceLead(data.lead);
+    setQuickNotes((prev) => ({ ...prev, [lead._id]: "" }));
+    showToast(message || "নোট হিস্ট্রিতে যুক্ত হয়েছে!");
+  };
 
   const visibleLeads = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -491,6 +602,17 @@ export default function AdminLeadsClient({
           onClick={() => setAssigneeFilter("me")}
         />
       </div>
+
+      {/* Assigned User Pie Chart & Per-User Lead Count */}
+      <AssigneePieChartCard
+        data={assigneeChartData}
+        activeFilter={assigneeFilter}
+        onSelectFilter={(key) => setAssigneeFilter((prev) => (prev === key ? "all" : key))}
+        hoveredKey={hoveredSlice}
+        onHover={setHoveredSlice}
+        isLight={isLight}
+        cardCls={cardCls}
+      />
 
       {/* Filters Toolbar */}
       <div className={`rounded-2xl border p-4 space-y-3 ${cardCls}`}>
@@ -832,6 +954,53 @@ export default function AdminLeadsClient({
                             </p>
                           </div>
                         </div>
+                      )}
+
+                      {/* Quick Inline Note Input */}
+                      {mayCreateNote && !locked && (
+                        <form
+                          onSubmit={(e) => handleQuickAddNote(e, lead)}
+                          className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 pt-0.5"
+                        >
+                          <select
+                            value={quickNoteKinds[lead._id] || "note"}
+                            onChange={(e) =>
+                              setQuickNoteKinds((prev) => ({ ...prev, [lead._id]: e.target.value }))
+                            }
+                            aria-label="নোটের ধরন"
+                            className={`px-2 py-1.5 rounded-xl border text-[11px] font-bold outline-hidden shrink-0 ${
+                              isLight
+                                ? "bg-slate-50 border-slate-300 text-slate-800"
+                                : "bg-slate-950 border-slate-800 text-slate-200"
+                            }`}
+                          >
+                            <option value="note">নোট</option>
+                            <option value="call">কল</option>
+                            <option value="whatsapp">WhatsApp</option>
+                          </select>
+                          <input
+                            type="text"
+                            value={quickNotes[lead._id] || ""}
+                            disabled={quickNoteBusyId === lead._id}
+                            onChange={(e) =>
+                              setQuickNotes((prev) => ({ ...prev, [lead._id]: e.target.value }))
+                            }
+                            placeholder="দ্রুত নোট লিখুন এবং Enter চাপুন..."
+                            className={`flex-1 min-w-[160px] px-3 py-1.5 rounded-xl border text-xs outline-hidden ${
+                              isLight
+                                ? "bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-amber-500"
+                                : "bg-slate-950 border-slate-800 text-white placeholder-slate-500 focus:border-amber-500"
+                            }`}
+                          />
+                          <button
+                            type="submit"
+                            disabled={quickNoteBusyId === lead._id || !String(quickNotes[lead._id] || "").trim()}
+                            className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] inline-flex items-center gap-1 cursor-pointer disabled:opacity-40 shrink-0"
+                          >
+                            <Send className="w-3 h-3" />
+                            {quickNoteBusyId === lead._id ? "..." : "যোগ করুন"}
+                          </button>
+                        </form>
                       )}
                     </div>
                   </div>
@@ -1203,6 +1372,180 @@ export default function AdminLeadsClient({
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AssigneePieChartCard({
+  data,
+  activeFilter,
+  onSelectFilter,
+  hoveredKey,
+  onHover,
+  isLight,
+  cardCls,
+}) {
+  const { total, rows, slices } = data;
+  const radius = 64;
+  const circumference = 2 * Math.PI * radius;
+
+  // Build cumulative stroke-dasharray segments for the SVG donut pie chart
+  const segments = slices.reduce(
+    (acc, s) => {
+      const ratio = total > 0 ? s.count / total : 0;
+      const length = ratio * circumference;
+      acc.items.push({ ...s, length, offset: -acc.cumulative });
+      acc.cumulative += length;
+      return acc;
+    },
+    { items: [], cumulative: 0 }
+  ).items;
+
+  const focused =
+    rows.find((r) => r.key === hoveredKey) ||
+    rows.find((r) => r.key === activeFilter) ||
+    null;
+
+  return (
+    <div className={`rounded-2xl border p-4 sm:p-5 ${cardCls}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div>
+          <h2 className={`text-sm sm:text-base font-black flex items-center gap-2 ${isLight ? "text-slate-900" : "text-white"}`}>
+            <PieChart className="w-4 h-4 text-amber-500" />
+            অ্যাসাইন ইউজার অনুযায়ী লিড চার্ট ও সংখ্যা
+          </h2>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            যেকোনো ইউজার বা চার্ট স্লাইসে ক্লিক করে সরাসরি তার লিড ফিল্টার করুন
+          </p>
+        </div>
+        {activeFilter !== "all" && (
+          <button
+            type="button"
+            onClick={() => onSelectFilter("all")}
+            className="text-[11px] font-bold text-amber-500 hover:underline cursor-pointer"
+          >
+            ফিল্টার রিসেট করুন
+          </button>
+        )}
+      </div>
+
+      {total === 0 ? (
+        <div className="py-6 text-center text-xs text-slate-500">চার্ট দেখানোর মতো কোনো লিড এখনো নেই।</div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-6 items-center">
+          {/* Interactive SVG Donut / Pie Chart */}
+          <div className="relative mx-auto w-48 h-48 flex items-center justify-center shrink-0">
+            <svg viewBox="0 0 180 180" className="w-full h-full -rotate-90" role="img" aria-label="অ্যাসাইন ইউজার পাই চার্ট">
+              <circle
+                cx="90"
+                cy="90"
+                r={radius}
+                fill="none"
+                stroke={isLight ? "#e2e8f0" : "#1e293b"}
+                strokeWidth="24"
+              />
+              {segments.map((seg) => {
+                const isActive = activeFilter === seg.key || hoveredKey === seg.key;
+                return (
+                  <circle
+                    key={seg.key}
+                    cx="90"
+                    cy="90"
+                    r={radius}
+                    fill="none"
+                    stroke={seg.color}
+                    strokeWidth={isActive ? "28" : "24"}
+                    strokeDasharray={`${Math.max(seg.length - 1.5, 0.5)} ${circumference}`}
+                    strokeDashoffset={seg.offset}
+                    className="cursor-pointer transition-all duration-200"
+                    onMouseEnter={() => onHover(seg.key)}
+                    onMouseLeave={() => onHover(null)}
+                    onClick={() => onSelectFilter(seg.key)}
+                  >
+                    <title>
+                      {seg.name}: {seg.count} ({seg.percent}%)
+                    </title>
+                  </circle>
+                );
+              })}
+            </svg>
+
+            {/* Center metric */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 pointer-events-none">
+              <span className={`text-2xl font-black font-mono leading-none ${isLight ? "text-slate-900" : "text-white"}`}>
+                {focused ? focused.count : total}
+              </span>
+              <span className="text-[10px] font-bold text-slate-500 mt-1 line-clamp-2 leading-tight">
+                {focused ? `${focused.name} (${focused.percent}%)` : "মোট লিড"}
+              </span>
+            </div>
+          </div>
+
+          {/* Assigned User Pic + Count Breakdown List */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {rows.map((row) => {
+              const selected = activeFilter === row.key;
+              const initial = (row.name || "?").trim().charAt(0).toUpperCase();
+              return (
+                <button
+                  key={row.key}
+                  type="button"
+                  onMouseEnter={() => onHover(row.key)}
+                  onMouseLeave={() => onHover(null)}
+                  onClick={() => onSelectFilter(row.key)}
+                  className={`text-left p-3 rounded-2xl border transition-all cursor-pointer space-y-2 ${
+                    selected
+                      ? "border-amber-500 ring-1 ring-amber-500/40 bg-amber-500/10"
+                      : isLight
+                        ? "bg-slate-50/80 border-slate-200 hover:border-amber-300"
+                        : "bg-slate-950/60 border-slate-800 hover:border-slate-700"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {/* User Avatar / Initial Pic with Color Ring */}
+                      <div
+                        className="w-8 h-8 rounded-full shrink-0 overflow-hidden flex items-center justify-center text-xs font-black text-white border-2"
+                        style={{ borderColor: row.color, backgroundColor: row.avatar ? "transparent" : row.color }}
+                      >
+                        {row.avatar ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={row.avatar} alt={row.name} className="w-full h-full object-cover" />
+                        ) : (
+                          initial
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className={`text-xs font-bold truncate ${isLight ? "text-slate-900" : "text-white"}`}>
+                          {row.name}
+                        </div>
+                        <div className="text-[10px] text-slate-500 truncate">
+                          ফলো-আপ/আগ্রহী: {row.followUp} · ভর্তি: {row.converted}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <div className={`text-base font-black font-mono leading-none ${isLight ? "text-slate-900" : "text-white"}`}>
+                        {row.count}
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-500 mt-0.5">{row.percent}%</div>
+                    </div>
+                  </div>
+
+                  {/* Proportional bar */}
+                  <div className={`h-1.5 w-full rounded-full overflow-hidden ${isLight ? "bg-slate-200" : "bg-slate-800"}`}>
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, row.percent)}%`, backgroundColor: row.color }}
+                    />
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

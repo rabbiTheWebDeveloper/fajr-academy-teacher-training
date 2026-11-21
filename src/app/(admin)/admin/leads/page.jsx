@@ -35,7 +35,7 @@ export default async function AdminLeadsPage() {
         role: { $in: ["admin", "super-admin"] },
         isActive: { $ne: false },
       })
-        .select("_id fullName email role designation")
+        .select("_id fullName email role designation avatar")
         .sort({ fullName: 1 })
         .lean(),
     ]);
@@ -51,6 +51,7 @@ export default async function AdminLeadsPage() {
         email: u.email,
         role: u.role,
         designation: u.designation || "",
+        avatar: u.avatar || "",
       }))
     );
   } catch (err) {
