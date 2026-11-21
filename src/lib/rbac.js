@@ -28,11 +28,13 @@ export const ASSIGNABLE_ACTIONS = ["read", "create", "update"];
 export const PERMISSION_MODULES = [
   { id: "tots", label: "TOT ট্রেইনি", hint: "ট্রেইনির তালিকা, অ্যাকাউন্ট ও কোর্সে ভর্তি", actions: ["read", "create", "update"] },
   { id: "payments", label: "পেমেন্ট ভেরিফিকেশন", hint: "পেমেন্ট যাচাই, ম্যানুয়াল পেমেন্ট ও রিফান্ড", actions: ["read", "create", "update"] },
+  { id: "leads", label: "লিড ম্যানেজমেন্ট", hint: "পেন্ডিং ও বাতিল পেমেন্ট লিড, স্টাফ অ্যাসাইন, স্ট্যাটাস ও নোট হিস্ট্রি", actions: ["read", "create", "update"] },
   { id: "courses", label: "কোর্স ও সেশন", hint: "কোর্স, কারিকুলাম, স্টাডি ফাইল ও প্রকাশনা", actions: ["read", "create", "update"] },
+  { id: "classes", label: "ক্লাস শিডিউল", hint: "লাইভ ক্লাসের সময়সূচি, মিট লিংক, রেকর্ডিং ও স্ট্যাটাস", actions: ["read", "create", "update"] },
   { id: "instructors", label: "ইনস্ট্রাক্টর", hint: "ইনস্ট্রাক্টরের অ্যাকাউন্ট ও প্রোফাইল", actions: ["read", "create", "update"] },
   { id: "evaluations", label: "মূল্যায়ন ও ফলাফল", hint: "ট্রেইনির মূল্যায়ন ও সনদের অবস্থা দেখা", actions: ["read"] },
   { id: "announcements", label: "ঘোষণা ও নোটিশ", hint: "ট্রেইনি ও শিক্ষকদের জন্য নোটিশ", actions: ["read", "create", "update"] },
-  { id: "settings", label: "সিস্টেম সেটিংস", hint: "প্ল্যাটফর্ম কনফিগারেশন", actions: ["read", "update"] },
+  { id: "settings", label: "সিস্টেম সেটিংস", hint: "প্ল্যাটফর্ম কনফিগারেশন ও ভর্তির সময়সীমা", actions: ["read", "update"] },
 ];
 
 /** Modules no custom role can reach — only a super-admin. */

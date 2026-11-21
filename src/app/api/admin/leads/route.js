@@ -77,7 +77,7 @@ function summarize(leads, currentAdminId) {
 }
 
 export async function GET(request) {
-  const auth = await requirePermission(request, ["payments", "tots"], "read");
+  const auth = await requirePermission(request, "leads", "read");
   if (auth.error) return auth.error;
 
   try {
@@ -150,7 +150,7 @@ export async function GET(request) {
 }
 
 export async function PATCH(request) {
-  const auth = await requirePermission(request, ["payments", "tots"], "update");
+  const auth = await requirePermission(request, "leads", "update");
   if (auth.error) return auth.error;
 
   try {
@@ -296,7 +296,8 @@ export async function PATCH(request) {
 }
 
 export async function POST(request) {
-  const auth = await requirePermission(request, ["payments", "tots"], "update");
+  let auth = await requirePermission(request, "leads", "create");
+  if (auth.error) auth = await requirePermission(request, "leads", "update");
   if (auth.error) return auth.error;
 
   try {
@@ -352,7 +353,7 @@ export async function POST(request) {
 }
 
 export async function DELETE(request) {
-  const auth = await requirePermission(request, ["payments", "tots"], "delete");
+  const auth = await requirePermission(request, "leads", "delete");
   if (auth.error) return auth.error;
 
   try {

@@ -122,7 +122,9 @@ export default function AdminLeadsClient({
 }) {
   const { isLight } = useAdminTheme();
   const { can, isSuper } = useAdminAccess();
-  const mayUpdate = can(["payments", "tots"], "update");
+  const mayCreateNote = can("leads", "create") || can("leads", "update");
+  const mayUpdate = can("leads", "update");
+  const canPayments = can("payments", "read");
   const { toast, showToast, hideToast } = useToast();
   const { confirm, confirmDialog } = useConfirm();
 
@@ -408,16 +410,18 @@ export default function AdminLeadsClient({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
-          <Link
-            href="/admin/payments"
-            className={`px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
-              isLight
-                ? "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
-                : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800"
-            }`}
-          >
-            <CreditCard className="w-4 h-4" /> পেমেন্ট লেজার
-          </Link>
+          {canPayments && (
+            <Link
+              href="/admin/payments"
+              className={`px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
+                isLight
+                  ? "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+                  : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800"
+              }`}
+            >
+              <CreditCard className="w-4 h-4" /> পেমেন্ট লেজার
+            </Link>
+          )}
           <button
             type="button"
             onClick={reload}
@@ -1041,7 +1045,7 @@ export default function AdminLeadsClient({
               </div>
 
               {/* Add Note Form */}
-              {mayUpdate && (
+              {mayCreateNote && (
                 <form
                   onSubmit={handleAddNote}
                   className={`rounded-2xl border p-4 space-y-3 ${

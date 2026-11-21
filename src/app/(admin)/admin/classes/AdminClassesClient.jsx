@@ -184,8 +184,9 @@ export default function AdminClassesClient({
 }) {
   const { isLight } = useAdminTheme();
   const { can, isSuper } = useAdminAccess();
-  const mayCreate = can("courses", "create");
-  const mayUpdate = can("courses", "update");
+  const mayCreate = can("classes", "create");
+  const mayUpdate = can("classes", "update");
+  const canCourses = can("courses", "read");
   const { toast, showToast, hideToast } = useToast();
   const { confirm, confirmDialog } = useConfirm();
 
@@ -487,16 +488,18 @@ export default function AdminClassesClient({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
-          <Link
-            href="/admin/courses"
-            className={`px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
-              isLight
-                ? "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
-                : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800"
-            }`}
-          >
-            <BookOpen className="w-4 h-4" /> কোর্স তালিকা
-          </Link>
+          {canCourses && (
+            <Link
+              href="/admin/courses"
+              className={`px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
+                isLight
+                  ? "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+                  : "bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800"
+              }`}
+            >
+              <BookOpen className="w-4 h-4" /> কোর্স তালিকা
+            </Link>
+          )}
           <button
             type="button"
             onClick={reload}

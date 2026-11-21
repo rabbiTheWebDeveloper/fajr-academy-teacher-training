@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 const SAFE_SELECT = "-registrationData.passwordHash -registrationData.password -rawResponse -loginIssuedAt";
 
 export default async function AdminLeadsPage() {
-  const access = await requireAdminPage(["payments", "tots"]);
+  const access = await requireAdminPage("leads");
 
   let initialLeads = [];
   let staff = [];

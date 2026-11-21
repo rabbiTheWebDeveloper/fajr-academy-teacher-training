@@ -648,14 +648,16 @@ export default function AdminCoursesClient({ initialBatches, loadError: initialL
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
-          <Link
-            href="/admin/classes"
-            className={`px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
-              isLight ? "bg-white border-slate-300 text-slate-800 hover:bg-slate-50" : "bg-slate-900 border-slate-800 text-amber-300 hover:bg-slate-800"
-            }`}
-          >
-            <Calendar className="w-4 h-4" /> ক্লাস শিডিউল
-          </Link>
+          {can("classes", "read") && (
+            <Link
+              href="/admin/classes"
+              className={`px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 ${
+                isLight ? "bg-white border-slate-300 text-slate-800 hover:bg-slate-50" : "bg-slate-900 border-slate-800 text-amber-300 hover:bg-slate-800"
+              }`}
+            >
+              <Calendar className="w-4 h-4" /> ক্লাস শিডিউল
+            </Link>
+          )}
           <button
             type="button"
             onClick={reload}

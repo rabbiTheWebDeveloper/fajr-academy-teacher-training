@@ -189,7 +189,7 @@ function cleanSessionFields(body, { isCreate = false } = {}) {
 }
 
 export async function GET(request) {
-  const auth = await requirePermission(request, "courses", "read");
+  const auth = await requirePermission(request, "classes", "read");
   if (auth.error) return auth.error;
 
   try {
@@ -245,7 +245,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const auth = await requirePermission(request, "courses", "create");
+  const auth = await requirePermission(request, "classes", "create");
   if (auth.error) return auth.error;
 
   try {
@@ -302,7 +302,7 @@ export async function POST(request) {
 }
 
 async function handleUpdate(request) {
-  const auth = await requirePermission(request, "courses", "update");
+  const auth = await requirePermission(request, "classes", "update");
   if (auth.error) return auth.error;
 
   try {
@@ -376,7 +376,7 @@ export async function PUT(request) {
 }
 
 export async function DELETE(request) {
-  const auth = await requirePermission(request, "courses", "delete");
+  const auth = await requirePermission(request, "classes", "delete");
   if (auth.error) return auth.error;
 
   try {

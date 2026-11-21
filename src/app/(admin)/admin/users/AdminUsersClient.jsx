@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from "react";
-import { Search, Trash2, X, Plus, RefreshCw, Power, KeyRound, ShieldCheck, Lock } from "lucide-react";
+import { Search, Trash2, X, Plus, RefreshCw, Power, KeyRound, ShieldCheck, Lock, Pencil } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
 import {
   AdminToast,
@@ -45,6 +45,9 @@ export default function AdminUsersClient({ initialUsers, initialRoles, loadError
   const [form, setForm] = useState(EMPTY_FORM);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
+  const [editingUser, setEditingUser] = useState(null); // { id, fullName, phone, designation, email, roleChoice, isSelf }
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
   const [passwordInfo, setPasswordInfo] = useState(null); // { title, email, password } shown once
   const { isLight } = useAdminTheme();
   const { toast, showToast, hideToast } = useToast();
@@ -149,6 +152,43 @@ export default function AdminUsersClient({ initialUsers, initialRoles, loadError
     refreshRoles();
   };
 
+  const openEditUser = (u) => {
+    setEditError("");
+    setEditingUser({
+      id: u._id,
+      email: u.email,
+      fullName: u.fullName || "",
+      phone: u.phone || "",
+      designation: u.designation || "",
+      roleChoice: choiceOf(u),
+      isSelf: u._id === currentUserId,
+    });
+  };
+
+  const handleSaveUserEdit = async (e) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setEditSaving(true);
+    setEditError("");
+    const payload = {
+      id: editingUser.id,
+      fullName: editingUser.fullName,
+      phone: editingUser.phone,
+      designation: editingUser.designation,
+      ...(editingUser.isSelf ? {} : parseChoice(editingUser.roleChoice)),
+    };
+    const { ok, data, message } = await callApi("/api/admin/users", { method: "PATCH", body: payload });
+    setEditSaving(false);
+    if (!ok) {
+      setEditError(message);
+      return;
+    }
+    if (data.user) replaceUser(data.user);
+    setEditingUser(null);
+    showToast(message || "অ্যাডমিন তথ্য আপডেট হয়েছে।");
+    refreshRoles();
+  };
+
   const q = search.trim().toLowerCase();
   const filtered = users.filter(
     (u) =>
@@ -242,6 +282,9 @@ export default function AdminUsersClient({ initialUsers, initialRoles, loadError
 
   const rowActions = (u, { busy, isSelf }) => (
     <div className="flex items-center justify-end gap-1">
+      <button type="button" onClick={() => openEditUser(u)} disabled={busy} title="ইউজার সেটিংস সম্পাদনা" className={iconBtn("warn")}>
+        <Pencil className="w-3.5 h-3.5" />
+      </button>
       <button type="button" onClick={() => handleReset(u)} disabled={busy} title="নতুন পাসওয়ার্ড তৈরি করুন" className={iconBtn("warn")}>
         <KeyRound className="w-3.5 h-3.5" />
       </button>
@@ -451,6 +494,63 @@ export default function AdminUsersClient({ initialUsers, initialRoles, loadError
                 </button>
                 <button type="submit" disabled={creating} className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-60">
                   {creating ? "তৈরি হচ্ছে..." : "অ্যাকাউন্ট তৈরি করুন"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editingUser && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className={`border rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 my-8 ${isLight ? "bg-white border-slate-200 text-slate-900" : "bg-slate-900 border-slate-800 text-white"}`}>
+            <div className={`flex items-center justify-between border-b pb-3 ${isLight ? "border-slate-200" : "border-slate-800"}`}>
+              <div>
+                <h3 className="text-base font-bold">ইউজার সেটিংস সম্পাদনা</h3>
+                <p className={`text-[11px] ${muted}`}>{editingUser.email}</p>
+              </div>
+              <button type="button" onClick={() => setEditingUser(null)} aria-label="বন্ধ করুন" className={`p-1 rounded-lg cursor-pointer ${isLight ? "text-slate-500 hover:bg-slate-100" : "text-slate-400 hover:text-white"}`}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {editError && (
+              <div role="alert" className={`p-3 rounded-xl border text-xs font-bold ${isLight ? "bg-rose-50 text-rose-800 border-rose-300" : "bg-rose-500/20 text-rose-300 border-rose-500/40"}`}>
+                {editError}
+              </div>
+            )}
+            <form onSubmit={handleSaveUserEdit} className="space-y-3.5 text-xs">
+              <div>
+                <label className={label}>পূর্ণ নাম *</label>
+                <input type="text" required minLength={2} value={editingUser.fullName} onChange={(e) => setEditingUser({ ...editingUser, fullName: e.target.value })} className={field} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={label}>মোবাইল নম্বর</label>
+                  <input type="text" value={editingUser.phone} onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })} placeholder="01XXXXXXXXX" className={`${field} font-mono`} />
+                </div>
+                <div>
+                  <label className={label}>পদবী</label>
+                  <input type="text" value={editingUser.designation} onChange={(e) => setEditingUser({ ...editingUser, designation: e.target.value })} placeholder="System Administrator" className={field} />
+                </div>
+              </div>
+              {!editingUser.isSelf && (
+                <div>
+                  <label className={label}>রোল ও পারমিশন</label>
+                  <select value={editingUser.roleChoice} onChange={(e) => setEditingUser({ ...editingUser, roleChoice: e.target.value })} className={`${field} font-bold cursor-pointer`}>
+                    {roleOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className={`flex items-center justify-end gap-2.5 pt-3 border-t ${isLight ? "border-slate-200" : "border-slate-800"}`}>
+                <button type="button" onClick={() => setEditingUser(null)} className={`px-4 py-2 rounded-xl font-bold cursor-pointer ${isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>
+                  বাতিল
+                </button>
+                <button type="submit" disabled={editSaving} className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-60">
+                  {editSaving ? "সংরক্ষণ হচ্ছে..." : "পরিবর্তন সংরক্ষণ করুন"}
                 </button>
               </div>
             </form>

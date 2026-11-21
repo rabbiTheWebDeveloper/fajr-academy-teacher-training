@@ -78,7 +78,7 @@ function shapeClasses(courses) {
 }
 
 export default async function AdminClassesPage() {
-  await requireAdminPage("courses");
+  await requireAdminPage("classes");
 
   let courses = [];
   let classes = [];
