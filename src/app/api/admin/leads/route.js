@@ -3,79 +3,31 @@ import { dbConnect } from "@/service/mongo";
 import { PaymentModel } from "@/model/payment-model";
 import { UserModel } from "@/model/user-model";
 import { requirePermission, serverError } from "@/lib/api-auth";
-import { isObjectId, searchFilter, toPlain } from "@/lib/query-helpers";
+import { isObjectId, toPlain } from "@/lib/query-helpers";
 import {
   LEAD_PAYMENT_STATUSES,
   LEAD_STATUSES,
   LEAD_STATUS_META,
   shapeLeadRow,
 } from "@/lib/lead-helpers";
+import {
+  DEFAULT_LEAD_LIMIT,
+  LEAD_SAFE_SELECT,
+  getPaidEmailSet,
+  queryAdminLeads,
+} from "@/lib/lead-server";
 
 /**
  * Admin Lead Management API
- *   GET    ?paymentStatus=&leadStatus=&assignedTo=&track=&hidePaid=&search=
+ *   GET    ?page=1&limit=20&paymentStatus=&leadStatus=&assignedTo=&track=&hidePaid=&search=
  *   PATCH  { leadId | leadIds, leadStatus?, assignedTo?, followUpAt?, note?, noteKind? }
  *   POST   { leadId, text, kind? }  — append a note / call / WhatsApp log entry
  *   DELETE ?leadId=&noteId=         — delete a note from history (super-admin only)
  */
 
-const SAFE_SELECT = "-registrationData.passwordHash -registrationData.password -rawResponse -loginIssuedAt";
+const SAFE_SELECT = LEAD_SAFE_SELECT;
 const USER_NOTE_KINDS = ["note", "call", "whatsapp"];
 const bad = (message, status = 400) => NextResponse.json({ success: false, message }, { status });
-
-async function getPaidEmailSet() {
-  const emails = await PaymentModel.distinct("userEmail", { status: "VALID" });
-  return new Set(emails.map((e) => String(e || "").toLowerCase().trim()).filter(Boolean));
-}
-
-async function getAssignableStaff() {
-  const users = await UserModel.find({
-    role: { $in: ["admin", "super-admin"] },
-    isActive: { $ne: false },
-  })
-    .select("_id fullName email role designation avatar")
-    .sort({ fullName: 1 })
-    .lean();
-  return toPlain(
-    users.map((u) => ({
-      _id: String(u._id),
-      fullName: u.fullName || u.email,
-      email: u.email,
-      role: u.role,
-      designation: u.designation || "",
-      avatar: u.avatar || "",
-    }))
-  );
-}
-
-function summarize(leads, currentAdminId) {
-  const s = {
-    total: leads.length,
-    pending: 0,
-    cancelled: 0,
-    failed: 0,
-    unassigned: 0,
-    myAssigned: 0,
-    newCount: 0,
-    followUp: 0,
-    interested: 0,
-    converted: 0,
-    alreadyPaidCount: 0,
-  };
-  for (const l of leads) {
-    if (l.paymentStatus === "PENDING") s.pending += 1;
-    else if (l.paymentStatus === "CANCELLED") s.cancelled += 1;
-    else if (["FAILED", "INVALID", "EXPIRED", "UNATTEMPTED"].includes(l.paymentStatus)) s.failed += 1;
-    if (!l.leadAssignedTo) s.unassigned += 1;
-    if (currentAdminId && l.leadAssignedTo === String(currentAdminId)) s.myAssigned += 1;
-    if (l.leadStatus === "new") s.newCount += 1;
-    if (l.leadStatus === "follow_up") s.followUp += 1;
-    if (l.leadStatus === "interested") s.interested += 1;
-    if (l.leadStatus === "converted") s.converted += 1;
-    if (l.alreadyPaid) s.alreadyPaidCount += 1;
-  }
-  return s;
-}
 
 export async function GET(request) {
   const auth = await requirePermission(request, "leads", "read");
@@ -84,66 +36,29 @@ export async function GET(request) {
   try {
     await dbConnect();
     const { searchParams } = new URL(request.url);
-    const paymentStatus = searchParams.get("paymentStatus") || "all";
-    const leadStatus = searchParams.get("leadStatus") || "all";
-    const assignedTo = searchParams.get("assignedTo") || "all";
-    const track = searchParams.get("track") || "all";
-    const hidePaid = searchParams.get("hidePaid") === "true";
-    const search = String(searchParams.get("search") || "").trim();
+    const result = await queryAdminLeads({
+      page: searchParams.get("page") ?? 1,
+      limit: searchParams.get("limit") ?? DEFAULT_LEAD_LIMIT,
+      paymentStatus: searchParams.get("paymentStatus") || "all",
+      leadStatus: searchParams.get("leadStatus") || "all",
+      assignedTo: searchParams.get("assignedTo") || "all",
+      track: searchParams.get("track") || "all",
+      hidePaid: searchParams.get("hidePaid") === "true",
+      search: searchParams.get("search") || "",
+      currentAdminId: auth.access?.id || auth.session.id || "",
+    });
 
-    const filters = [{ status: { $in: LEAD_PAYMENT_STATUSES } }];
-
-    if (paymentStatus && paymentStatus !== "all") {
-      if (!LEAD_PAYMENT_STATUSES.includes(paymentStatus)) return bad("পেমেন্ট স্ট্যাটাস ফিল্টার সঠিক নয়।");
-      filters.push({ status: paymentStatus });
-    }
-    if (leadStatus && leadStatus !== "all") {
-      if (!LEAD_STATUSES.includes(leadStatus)) return bad("লিড স্ট্যাটাস ফিল্টার সঠিক নয়।");
-      if (leadStatus === "new") {
-        filters.push({ $or: [{ leadStatus: "new" }, { leadStatus: { $exists: false } }] });
-      } else {
-        filters.push({ leadStatus });
-      }
-    }
-    if (assignedTo === "unassigned") {
-      filters.push({ $or: [{ leadAssignedTo: null }, { leadAssignedTo: { $exists: false } }] });
-    } else if (assignedTo === "me") {
-      filters.push({ leadAssignedTo: auth.session.id });
-    } else if (assignedTo && assignedTo !== "all") {
-      if (!isObjectId(assignedTo)) return bad("অ্যাসাইন ইউজার ID সঠিক নয়।");
-      filters.push({ leadAssignedTo: assignedTo });
-    }
-    if (track && track !== "all") {
-      if (track === "TOT-WOMEN-014") filters.push({ track: { $regex: /WOMEN/i } });
-      else filters.push({ track });
-    }
-    if (search) {
-      const rxFilter = searchFilter(search, [
-        "userName",
-        "userEmail",
-        "userPhone",
-        "tranId",
-        "leadAssignedName",
-        "leadNotes.text",
-      ]);
-      if (rxFilter) filters.push(rxFilter);
-    }
-
-    const [docs, paidEmails, staff] = await Promise.all([
-      PaymentModel.find({ $and: filters }).select(SAFE_SELECT).sort({ createdAt: -1 }).limit(1000).lean(),
-      getPaidEmailSet(),
-      getAssignableStaff(),
-    ]);
-
-    let leads = docs.map((doc) => shapeLeadRow(doc, { paidEmails }));
-    if (hidePaid) leads = leads.filter((l) => !l.alreadyPaid);
+    if (result.error) return bad(result.error, result.status || 400);
 
     return NextResponse.json({
       success: true,
-      count: leads.length,
-      summary: summarize(leads, auth.session.id),
-      leads: toPlain(leads),
-      staff,
+      count: result.leads.length,
+      total: result.pagination.total,
+      pagination: result.pagination,
+      summary: result.summary,
+      assigneeBreakdown: result.assigneeBreakdown,
+      leads: result.leads,
+      staff: result.staff,
     });
   } catch (error) {
     return serverError(error, "Admin leads GET");

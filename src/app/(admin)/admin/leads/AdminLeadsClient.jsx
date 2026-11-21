@@ -1,15 +1,20 @@
 'use client';
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Calendar,
   Check,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Clock,
   Copy,
   CreditCard,
   History,
+  Loader2,
   Lock,
   Mail,
   MessageCircle,
@@ -53,6 +58,20 @@ const NOTE_KIND_OPTIONS = [
   { value: "call", label: "ফোন কল লগ", Icon: PhoneCall },
   { value: "whatsapp", label: "WhatsApp লগ", Icon: MessageCircle },
 ];
+
+const LIMIT_OPTIONS = [10, 20, 50, 100];
+
+const EMPTY_SUMMARY = {
+  total: 0,
+  pending: 0,
+  cancelled: 0,
+  failed: 0,
+  unassigned: 0,
+  myAssigned: 0,
+  followUp: 0,
+  alreadyPaidHidden: 0,
+  byPayment: { all: 0 },
+};
 
 const PAYMENT_TABS = [
   { key: "all", label: "সব লিড" },
@@ -118,6 +137,18 @@ function fromDhakaDateTimeInput(val) {
 
 export default function AdminLeadsClient({
   initialLeads = [],
+  initialPagination = {
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 1,
+    hasNext: false,
+    hasPrev: false,
+    from: 0,
+    to: 0,
+  },
+  initialSummary = null,
+  initialAssigneeBreakdown = [],
   staff: initialStaff = [],
   currentAdminId = "",
   loadError: initialLoadError = null,
@@ -131,17 +162,28 @@ export default function AdminLeadsClient({
   const { confirm, confirmDialog } = useConfirm();
 
   const [leads, setLeads] = useState(initialLeads);
+  const [paginationMeta, setPaginationMeta] = useState(initialPagination);
+  const [summary, setSummary] = useState(initialSummary || EMPTY_SUMMARY);
+  const [assigneeBreakdown, setAssigneeBreakdown] = useState(initialAssigneeBreakdown);
   const [staff, setStaff] = useState(initialStaff);
   const [loadError, setLoadError] = useState(initialLoadError);
   const [reloading, setReloading] = useState(false);
+  const [loadingPage, setLoadingPage] = useState(false);
 
-  // Filters
+  // Server-driven pagination & filters
+  const [page, setPage] = useState(initialPagination?.page || 1);
+  const [limit, setLimit] = useState(initialPagination?.limit || 20);
   const [paymentTab, setPaymentTab] = useState("all");
   const [leadStatusFilter, setLeadStatusFilter] = useState("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [trackFilter, setTrackFilter] = useState("all");
   const [hidePaid, setHidePaid] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  const hasMountedRef = useRef(false);
+  const requestSeqRef = useRef(0);
+  const listTopRef = useRef(null);
 
   // Selection & bulk actions
   const [selectedIds, setSelectedIds] = useState([]);
@@ -169,18 +211,105 @@ export default function AdminLeadsClient({
     [leads, activeLeadId]
   );
 
-  const reload = async () => {
-    setReloading(true);
-    const { ok, data, message } = await callApi("/api/admin/leads");
-    setReloading(false);
-    if (!ok) {
-      showToast(message, "error");
+  // Debounce search input before hitting the API
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch((prev) => {
+        const next = search.trim();
+        if (prev !== next) setPage(1);
+        return next;
+      });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const fetchLeads = useCallback(
+    async ({ silent = false, showSuccessToast = false } = {}) => {
+      const seq = ++requestSeqRef.current;
+      if (!silent) setLoadingPage(true);
+
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", String(limit));
+      params.set("paymentStatus", paymentTab);
+      params.set("leadStatus", leadStatusFilter);
+      params.set("assignedTo", assigneeFilter);
+      params.set("track", trackFilter);
+      params.set("hidePaid", hidePaid ? "true" : "false");
+      if (debouncedSearch) params.set("search", debouncedSearch);
+
+      const { ok, data, message } = await callApi(`/api/admin/leads?${params.toString()}`);
+      if (seq !== requestSeqRef.current) return false;
+      if (!silent) setLoadingPage(false);
+
+      if (!ok) {
+        showToast(message, "error");
+        return false;
+      }
+
+      setLeads(data.leads || []);
+      if (data.pagination) {
+        setPaginationMeta(data.pagination);
+        if (data.pagination.page && data.pagination.page !== page) {
+          setPage(data.pagination.page);
+        }
+      }
+      if (data.summary) setSummary(data.summary);
+      if (Array.isArray(data.assigneeBreakdown)) setAssigneeBreakdown(data.assigneeBreakdown);
+      if (Array.isArray(data.staff)) setStaff(data.staff);
+      setLoadError(null);
+      if (!silent) setSelectedIds([]);
+      if (showSuccessToast) showToast("সর্বশেষ লিড তালিকা লোড হয়েছে।");
+      return true;
+    },
+    [page, limit, paymentTab, leadStatusFilter, assigneeFilter, trackFilter, hidePaid, debouncedSearch, showToast]
+  );
+
+  // Fetch from API whenever pagination or any server filter changes (skip initial SSR mount)
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
       return;
     }
-    setLeads(data.leads || []);
-    if (Array.isArray(data.staff)) setStaff(data.staff);
-    setLoadError(null);
-    showToast("সর্বশেষ লিড তালিকা লোড হয়েছে।");
+    fetchLeads();
+  }, [fetchLeads]);
+
+  const reload = async () => {
+    setReloading(true);
+    await fetchLeads({ showSuccessToast: true });
+    setReloading(false);
+  };
+
+  // Filter / pagination helpers that always reset to page 1 cleanly
+  const changePaymentTab = (next) => {
+    setPaymentTab(next);
+    setPage(1);
+  };
+  const changeLeadStatus = (next) => {
+    setLeadStatusFilter(next);
+    setPage(1);
+  };
+  const changeAssigneeFilter = (next) => {
+    setAssigneeFilter(next);
+    setPage(1);
+  };
+  const changeTrackFilter = (next) => {
+    setTrackFilter(next);
+    setPage(1);
+  };
+  const changeHidePaid = (next) => {
+    setHidePaid(next);
+    setPage(1);
+  };
+  const changeLimit = (nextLimit) => {
+    setLimit(Number(nextLimit) || 20);
+    setPage(1);
+  };
+  const goToPage = (nextPage) => {
+    const clamped = Math.min(Math.max(1, nextPage), paginationMeta.totalPages || 1);
+    if (clamped === page) return;
+    setPage(clamped);
+    listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const replaceLead = (updated) => {
@@ -193,39 +322,26 @@ export default function AdminLeadsClient({
     setLeads((prev) => prev.map((l) => byId.get(l._id) || l));
   };
 
-  // Pool respecting hidePaid for KPI counts
-  const baseLeads = useMemo(
-    () => (hidePaid ? leads.filter((l) => !l.alreadyPaid) : leads),
-    [leads, hidePaid]
-  );
-
+  // Server-backed KPI stats across the full database (not limited to current page)
   const stats = useMemo(() => {
-    const s = {
-      total: baseLeads.length,
-      pending: 0,
-      cancelled: 0,
-      failed: 0,
-      unassigned: 0,
-      myAssigned: 0,
-      followUp: 0,
-      alreadyPaidHidden: leads.filter((l) => l.alreadyPaid).length,
-      byPayment: { all: baseLeads.length },
-    };
-    for (const st of LEAD_PAYMENT_STATUSES) s.byPayment[st] = 0;
-
-    for (const l of baseLeads) {
-      s.byPayment[l.paymentStatus] = (s.byPayment[l.paymentStatus] || 0) + 1;
-      if (l.paymentStatus === "PENDING") s.pending += 1;
-      else if (l.paymentStatus === "CANCELLED") s.cancelled += 1;
-      else s.failed += 1;
-      if (!l.leadAssignedTo) s.unassigned += 1;
-      if (currentAdminId && l.leadAssignedTo === currentAdminId) s.myAssigned += 1;
-      if (l.leadStatus === "follow_up" || l.leadStatus === "interested") s.followUp += 1;
+    const byPayment = { all: summary?.total || 0 };
+    for (const st of LEAD_PAYMENT_STATUSES) {
+      byPayment[st] = summary?.byPayment?.[st] || 0;
     }
-    return s;
-  }, [baseLeads, leads, currentAdminId]);
+    return {
+      total: summary?.total || 0,
+      pending: summary?.pending || 0,
+      cancelled: summary?.cancelled || 0,
+      failed: summary?.failed || 0,
+      unassigned: summary?.unassigned || 0,
+      myAssigned: summary?.myAssigned || 0,
+      followUp: summary?.followUp || 0,
+      alreadyPaidHidden: summary?.alreadyPaidHidden ?? summary?.alreadyPaidCount ?? 0,
+      byPayment,
+    };
+  }, [summary]);
 
-  // Assigned-user distribution for the User-Wise Pie Chart & per-user assign count list
+  // Server-backed Assigned-User distribution across ALL leads for the User-Wise Pie Chart
   const assigneeChartData = useMemo(() => {
     const PALETTE = [
       "#f59e0b", // amber
@@ -270,19 +386,19 @@ export default function AdminLeadsClient({
       isUnassigned: true,
     };
 
-    for (const l of baseLeads) {
-      if (!l.leadAssignedTo) {
-        unassigned.count += 1;
-        if (l.leadStatus === "follow_up" || l.leadStatus === "interested") unassigned.followUp += 1;
-        if (l.leadStatus === "converted") unassigned.converted += 1;
+    for (const item of assigneeBreakdown || []) {
+      if (item.key === "unassigned") {
+        unassigned.count += item.count || 0;
+        unassigned.followUp += item.followUp || 0;
+        unassigned.converted += item.converted || 0;
         continue;
       }
-      if (!buckets.has(l.leadAssignedTo)) {
-        const s = staffById.get(l.leadAssignedTo);
-        buckets.set(l.leadAssignedTo, {
-          key: l.leadAssignedTo,
-          name: l.leadAssignedName || s?.fullName || l.leadAssignedEmail || "Admin",
-          email: l.leadAssignedEmail || s?.email || "",
+      if (!buckets.has(item.key)) {
+        const s = staffById.get(item.key);
+        buckets.set(item.key, {
+          key: item.key,
+          name: item.name || s?.fullName || item.email || s?.email || "Admin",
+          email: item.email || s?.email || "",
           avatar: s?.avatar || "",
           designation: s?.designation || "",
           count: 0,
@@ -291,14 +407,14 @@ export default function AdminLeadsClient({
           isUnassigned: false,
         });
       }
-      const b = buckets.get(l.leadAssignedTo);
-      b.count += 1;
-      if (l.leadStatus === "follow_up" || l.leadStatus === "interested") b.followUp += 1;
-      if (l.leadStatus === "converted") b.converted += 1;
+      const b = buckets.get(item.key);
+      b.count += item.count || 0;
+      b.followUp += item.followUp || 0;
+      b.converted += item.converted || 0;
     }
 
-    const total = baseLeads.length;
-    const assignedTotal = total - unassigned.count;
+    const total = stats.total;
+    const assignedTotal = Math.max(0, total - unassigned.count);
     const sortedAssigned = [...buckets.values()].sort(
       (a, b) => b.count - a.count || a.name.localeCompare(b.name)
     );
@@ -330,7 +446,7 @@ export default function AdminLeadsClient({
       assignedRows,
       unassignedRow,
     };
-  }, [baseLeads, staff]);
+  }, [assigneeBreakdown, staff, stats.total]);
 
   const handleQuickAddNote = async (e, lead) => {
     e.preventDefault();
@@ -351,43 +467,13 @@ export default function AdminLeadsClient({
     if (data.lead) replaceLead(data.lead);
     setQuickNotes((prev) => ({ ...prev, [lead._id]: "" }));
     showToast(message || "নোট হিস্ট্রিতে যুক্ত হয়েছে!");
+    if (kind === "call" || kind === "whatsapp") {
+      fetchLeads({ silent: true });
+    }
   };
 
-  const visibleLeads = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return baseLeads.filter((l) => {
-      if (paymentTab !== "all" && l.paymentStatus !== paymentTab) return false;
-      if (leadStatusFilter !== "all" && l.leadStatus !== leadStatusFilter) return false;
-      if (assigneeFilter === "unassigned" && l.leadAssignedTo) return false;
-      if (assigneeFilter === "me" && l.leadAssignedTo !== currentAdminId) return false;
-      if (
-        assigneeFilter !== "all" &&
-        assigneeFilter !== "unassigned" &&
-        assigneeFilter !== "me" &&
-        l.leadAssignedTo !== assigneeFilter
-      ) {
-        return false;
-      }
-      if (trackFilter !== "all") {
-        if (trackFilter === "TOT-WOMEN-014" && !/WOMEN/i.test(l.track || "")) return false;
-        if (trackFilter === "TOT-MEN" && /WOMEN/i.test(l.track || "")) return false;
-      }
-      if (
-        q &&
-        ![
-          l.userName,
-          l.userEmail,
-          l.userPhone,
-          l.tranId,
-          l.leadAssignedName,
-          l.latestNote?.text,
-        ].some((v) => String(v || "").toLowerCase().includes(q))
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }, [baseLeads, paymentTab, leadStatusFilter, assigneeFilter, trackFilter, search, currentAdminId]);
+  // Current page leads are already filtered and paginated by the API
+  const visibleLeads = leads;
 
   const handlePatchLead = async (leadId, body, successMsg) => {
     setBusyId(leadId);
@@ -402,6 +488,8 @@ export default function AdminLeadsClient({
     }
     if (data.lead) replaceLead(data.lead);
     showToast(successMsg || message || "লিড আপডেট হয়েছে।");
+    // Refresh KPI summary, pie chart counts, and paginated slice silently
+    fetchLeads({ silent: true });
     return data.lead;
   };
 
@@ -479,6 +567,7 @@ export default function AdminLeadsClient({
     setBulkAssignee("");
     setBulkStatus("");
     showToast(message || "নির্বাচিত লিডগুলো আপডেট হয়েছে।");
+    fetchLeads({ silent: true });
   };
 
   const isLockedByOther = (lead) =>
@@ -594,7 +683,7 @@ export default function AdminLeadsClient({
           icon={Clock}
           tone="amber"
           isLight={isLight}
-          onClick={() => setPaymentTab("PENDING")}
+          onClick={() => changePaymentTab("PENDING")}
         />
         <KpiCard
           title="বাতিল / ব্যর্থ"
@@ -603,7 +692,7 @@ export default function AdminLeadsClient({
           icon={PhoneCall}
           tone="rose"
           isLight={isLight}
-          onClick={() => setPaymentTab("CANCELLED")}
+          onClick={() => changePaymentTab("CANCELLED")}
         />
         <KpiCard
           title="অনির্ধারিত (Unassigned)"
@@ -612,7 +701,7 @@ export default function AdminLeadsClient({
           icon={UserPlus}
           tone="purple"
           isLight={isLight}
-          onClick={() => setAssigneeFilter("unassigned")}
+          onClick={() => changeAssigneeFilter("unassigned")}
         />
         <KpiCard
           title="আমার লিড / ফলো-আপ"
@@ -621,7 +710,7 @@ export default function AdminLeadsClient({
           icon={UserCheck}
           tone="emerald"
           isLight={isLight}
-          onClick={() => setAssigneeFilter("me")}
+          onClick={() => changeAssigneeFilter("me")}
         />
       </div>
 
@@ -629,7 +718,7 @@ export default function AdminLeadsClient({
       <AssigneePieChartCard
         data={assigneeChartData}
         activeFilter={assigneeFilter}
-        onSelectFilter={(key) => setAssigneeFilter((prev) => (prev === key ? "all" : key))}
+        onSelectFilter={(key) => changeAssigneeFilter(assigneeFilter === key ? "all" : key)}
         hoveredKey={hoveredSlice}
         onHover={setHoveredSlice}
         isLight={isLight}
@@ -637,7 +726,7 @@ export default function AdminLeadsClient({
       />
 
       {/* Filters Toolbar */}
-      <div className={`rounded-2xl border p-4 space-y-3 ${cardCls}`}>
+      <div ref={listTopRef} className={`rounded-2xl border p-4 space-y-3 ${cardCls}`}>
         {/* Payment status tabs */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div
@@ -655,7 +744,7 @@ export default function AdminLeadsClient({
                   type="button"
                   role="tab"
                   aria-selected={active}
-                  onClick={() => setPaymentTab(t.key)}
+                  onClick={() => changePaymentTab(t.key)}
                   className={`px-3 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
                     active
                       ? "bg-amber-500 text-slate-950 font-black"
@@ -701,7 +790,7 @@ export default function AdminLeadsClient({
         <div className="flex flex-wrap items-center gap-2.5 text-xs">
           <select
             value={leadStatusFilter}
-            onChange={(e) => setLeadStatusFilter(e.target.value)}
+            onChange={(e) => changeLeadStatus(e.target.value)}
             aria-label="লিড স্ট্যাটাস"
             className={inputCls}
           >
@@ -715,7 +804,7 @@ export default function AdminLeadsClient({
 
           <select
             value={assigneeFilter}
-            onChange={(e) => setAssigneeFilter(e.target.value)}
+            onChange={(e) => changeAssigneeFilter(e.target.value)}
             aria-label="দায়িত্বপ্রাপ্ত স্টাফ"
             className={inputCls}
           >
@@ -731,7 +820,7 @@ export default function AdminLeadsClient({
 
           <select
             value={trackFilter}
-            onChange={(e) => setTrackFilter(e.target.value)}
+            onChange={(e) => changeTrackFilter(e.target.value)}
             aria-label="ব্যাচ ফিল্টার"
             className={inputCls}
           >
@@ -744,7 +833,7 @@ export default function AdminLeadsClient({
             <input
               type="checkbox"
               checked={hidePaid}
-              onChange={(e) => setHidePaid(e.target.checked)}
+              onChange={(e) => changeHidePaid(e.target.checked)}
               className="rounded border-slate-400 text-amber-500 cursor-pointer"
             />
             <span className={isLight ? "text-slate-700" : "text-slate-300"}>
@@ -810,7 +899,14 @@ export default function AdminLeadsClient({
       </div>
 
       {/* Leads List */}
-      {visibleLeads.length === 0 ? (
+      {loadingPage && visibleLeads.length === 0 ? (
+        <div className={`rounded-3xl border p-12 text-center space-y-2 ${cardCls}`}>
+          <Loader2 className="w-8 h-8 mx-auto text-amber-500 animate-spin" />
+          <p className={`text-sm font-bold ${isLight ? "text-slate-800" : "text-slate-200"}`}>
+            লিড তালিকা লোড হচ্ছে...
+          </p>
+        </div>
+      ) : visibleLeads.length === 0 ? (
         <div className={`rounded-3xl border p-12 text-center space-y-2 ${cardCls}`}>
           <PhoneCall className="w-10 h-10 mx-auto text-slate-500" />
           <p className={`text-sm font-bold ${isLight ? "text-slate-800" : "text-slate-200"}`}>
@@ -821,9 +917,9 @@ export default function AdminLeadsClient({
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {mayUpdate && (
-            <div className="flex items-center justify-between px-1 text-xs">
+        <div className={`space-y-3 transition-opacity ${loadingPage ? "opacity-60 pointer-events-none" : ""}`}>
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
+            {mayUpdate ? (
               <label className="inline-flex items-center gap-2 font-bold cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -835,11 +931,44 @@ export default function AdminLeadsClient({
                   className="rounded border-slate-400 text-amber-500 cursor-pointer"
                 />
                 <span className={isLight ? "text-slate-600" : "text-slate-400"}>
-                  সবগুলো নির্বাচন করুন ({visibleLeads.length}টি লিড)
+                  এই পেজের সবগুলো নির্বাচন ({visibleLeads.length}টি)
                 </span>
               </label>
+            ) : (
+              <div />
+            )}
+
+            <div className="flex flex-wrap items-center gap-3 ml-auto">
+              {loadingPage && (
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-500">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> লোড হচ্ছে...
+                </span>
+              )}
+              <span className={`text-[11px] font-semibold ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                দেখানো হচ্ছে <span className="font-mono font-black">{paginationMeta.from}–{paginationMeta.to}</span> · মোট{" "}
+                <span className="font-mono font-black">{paginationMeta.total}</span> টি লিড
+              </span>
+              <label className="inline-flex items-center gap-1.5 text-[11px] font-bold">
+                <span className="text-slate-500">প্রতি পেজে:</span>
+                <select
+                  value={limit}
+                  onChange={(e) => changeLimit(e.target.value)}
+                  aria-label="প্রতি পেজে লিড সংখ্যা"
+                  className={`px-2 py-1 rounded-lg border text-xs font-mono font-bold outline-hidden cursor-pointer ${
+                    isLight
+                      ? "bg-white border-slate-300 text-slate-900"
+                      : "bg-slate-950 border-slate-800 text-white"
+                  }`}
+                >
+                  {LIMIT_OPTIONS.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
-          )}
+          </div>
 
           {visibleLeads.map((lead) => {
             const payMeta = PAYMENT_STATUS_META[lead.paymentStatus] || { label: lead.paymentStatus, tone: "slate" };
@@ -1113,6 +1242,17 @@ export default function AdminLeadsClient({
               </div>
             );
           })}
+
+          {/* API-Level Pagination Bar */}
+          <LeadsPaginationBar
+            pagination={paginationMeta}
+            limit={limit}
+            loading={loadingPage}
+            onPageChange={goToPage}
+            onLimitChange={changeLimit}
+            isLight={isLight}
+            cardCls={cardCls}
+          />
         </div>
       )}
 
@@ -1782,5 +1922,142 @@ function KpiCard({ title, value, sub, icon: Icon, tone, isLight, onClick }) {
       <div className={`text-2xl font-black font-mono ${isLight ? "text-slate-900" : "text-white"}`}>{value}</div>
       <p className="text-[10px] text-slate-500 mt-1 truncate">{sub}</p>
     </Tag>
+  );
+}
+
+function buildPageNumbers(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) pages.push("left-ellipsis");
+  for (let p = start; p <= end; p += 1) pages.push(p);
+  if (end < total - 1) pages.push("right-ellipsis");
+  pages.push(total);
+  return pages;
+}
+
+function LeadsPaginationBar({
+  pagination,
+  limit,
+  loading,
+  onPageChange,
+  onLimitChange,
+  isLight,
+  cardCls,
+}) {
+  const { page = 1, totalPages = 1, total = 0, from = 0, to = 0, hasPrev = false, hasNext = false } =
+    pagination || {};
+  const pageItems = buildPageNumbers(page, totalPages);
+
+  const btnCls = `h-8 min-w-[32px] px-2 rounded-xl border text-xs font-bold inline-flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+    isLight
+      ? "bg-white border-slate-300 text-slate-700 hover:bg-slate-100"
+      : "bg-slate-950 border-slate-800 text-slate-300 hover:bg-slate-800"
+  }`;
+
+  return (
+    <div
+      className={`rounded-2xl border px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 ${cardCls}`}
+    >
+      <div className="flex flex-wrap items-center gap-3 text-xs">
+        <span className={isLight ? "text-slate-600" : "text-slate-400"}>
+          মোট <span className="font-mono font-black text-amber-500">{total}</span> টি লিডের মধ্যে{" "}
+          <span className="font-mono font-bold">{from}–{to}</span> (পেজ{" "}
+          <span className="font-mono font-bold">{page}</span> /{" "}
+          <span className="font-mono font-bold">{totalPages}</span>)
+        </span>
+
+        <label className="inline-flex items-center gap-1.5 text-[11px] font-bold">
+          <span className="text-slate-500">লিমিট:</span>
+          <select
+            value={limit}
+            disabled={loading}
+            onChange={(e) => onLimitChange(e.target.value)}
+            aria-label="লিমিট নির্বাচন করুন"
+            className={`px-2 py-1 rounded-lg border text-xs font-mono font-bold outline-hidden cursor-pointer disabled:opacity-50 ${
+              isLight
+                ? "bg-slate-50 border-slate-300 text-slate-900"
+                : "bg-slate-950 border-slate-800 text-white"
+            }`}
+          >
+            {LIMIT_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n} / পেজ
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <nav aria-label="লিড পেজিনেশন" className="flex items-center gap-1 flex-wrap justify-center">
+        <button
+          type="button"
+          onClick={() => onPageChange(1)}
+          disabled={loading || !hasPrev}
+          title="প্রথম পেজ"
+          aria-label="প্রথম পেজ"
+          className={btnCls}
+        >
+          <ChevronsLeft className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onPageChange(page - 1)}
+          disabled={loading || !hasPrev}
+          title="পূর্ববর্তী পেজ"
+          aria-label="পূর্ববর্তী পেজ"
+          className={`${btnCls} gap-1 px-2.5`}
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">আগের</span>
+        </button>
+
+        {pageItems.map((item) =>
+          typeof item === "string" ? (
+            <span key={item} className="px-1.5 text-xs text-slate-500 select-none">
+              …
+            </span>
+          ) : (
+            <button
+              key={item}
+              type="button"
+              disabled={loading}
+              aria-current={item === page ? "page" : undefined}
+              onClick={() => onPageChange(item)}
+              className={
+                item === page
+                  ? "h-8 min-w-[32px] px-2.5 rounded-xl bg-amber-500 text-slate-950 font-black text-xs font-mono cursor-default"
+                  : `${btnCls} font-mono`
+              }
+            >
+              {item}
+            </button>
+          )
+        )}
+
+        <button
+          type="button"
+          onClick={() => onPageChange(page + 1)}
+          disabled={loading || !hasNext}
+          title="পরবর্তী পেজ"
+          aria-label="পরবর্তী পেজ"
+          className={`${btnCls} gap-1 px-2.5`}
+        >
+          <span className="hidden sm:inline">পরের</span>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onPageChange(totalPages)}
+          disabled={loading || !hasNext}
+          title="শেষ পেজ"
+          aria-label="শেষ পেজ"
+          className={btnCls}
+        >
+          <ChevronsRight className="w-3.5 h-3.5" />
+        </button>
+      </nav>
+    </div>
   );
 }

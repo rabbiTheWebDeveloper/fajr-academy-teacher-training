@@ -1,8 +1,5 @@
 import { dbConnect } from "@/service/mongo";
-import { PaymentModel } from "@/model/payment-model";
-import { UserModel } from "@/model/user-model";
-import { toPlain } from "@/lib/query-helpers";
-import { LEAD_PAYMENT_STATUSES, shapeLeadRow } from "@/lib/lead-helpers";
+import { DEFAULT_LEAD_LIMIT, queryAdminLeads } from "@/lib/lead-server";
 import { requireAdminPage } from "../../_shared/server";
 import AdminLeadsClient from "./AdminLeadsClient";
 
@@ -13,47 +10,42 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-const SAFE_SELECT = "-registrationData.passwordHash -registrationData.password -rawResponse -loginIssuedAt";
-
 export default async function AdminLeadsPage() {
   const access = await requireAdminPage("leads");
 
   let initialLeads = [];
+  let initialPagination = {
+    page: 1,
+    limit: DEFAULT_LEAD_LIMIT,
+    total: 0,
+    totalPages: 1,
+    hasNext: false,
+    hasPrev: false,
+    from: 0,
+    to: 0,
+  };
+  let initialSummary = null;
+  let initialAssigneeBreakdown = [];
   let staff = [];
   let loadError = null;
 
   try {
     await dbConnect();
-    const [docs, validEmails, staffDocs] = await Promise.all([
-      PaymentModel.find({ status: { $in: LEAD_PAYMENT_STATUSES } })
-        .select(SAFE_SELECT)
-        .sort({ createdAt: -1 })
-        .limit(1000)
-        .lean(),
-      PaymentModel.distinct("userEmail", { status: "VALID" }),
-      UserModel.find({
-        role: { $in: ["admin", "super-admin"] },
-        isActive: { $ne: false },
-      })
-        .select("_id fullName email role designation avatar")
-        .sort({ fullName: 1 })
-        .lean(),
-    ]);
-
-    const paidEmails = new Set(
-      validEmails.map((e) => String(e || "").toLowerCase().trim()).filter(Boolean)
-    );
-    initialLeads = toPlain(docs.map((doc) => shapeLeadRow(doc, { paidEmails })));
-    staff = toPlain(
-      staffDocs.map((u) => ({
-        _id: String(u._id),
-        fullName: u.fullName || u.email,
-        email: u.email,
-        role: u.role,
-        designation: u.designation || "",
-        avatar: u.avatar || "",
-      }))
-    );
+    const res = await queryAdminLeads({
+      page: 1,
+      limit: DEFAULT_LEAD_LIMIT,
+      hidePaid: true,
+      currentAdminId: access.id,
+    });
+    if (res.error) {
+      loadError = res.error;
+    } else {
+      initialLeads = res.leads;
+      initialPagination = res.pagination;
+      initialSummary = res.summary;
+      initialAssigneeBreakdown = res.assigneeBreakdown;
+      staff = res.staff;
+    }
   } catch (err) {
     console.error("Error loading leads for admin page:", err);
     loadError = "ডাটাবেজের সাথে সংযোগ করা যায়নি — লিড তালিকা লোড হয়নি। কিছুক্ষণ পর আবার চেষ্টা করুন।";
@@ -62,6 +54,9 @@ export default async function AdminLeadsPage() {
   return (
     <AdminLeadsClient
       initialLeads={initialLeads}
+      initialPagination={initialPagination}
+      initialSummary={initialSummary}
+      initialAssigneeBreakdown={initialAssigneeBreakdown}
       staff={staff}
       currentAdminId={access.id}
       loadError={loadError}
