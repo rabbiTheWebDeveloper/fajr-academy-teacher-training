@@ -225,7 +225,7 @@ export default function AdminLeadsClient({
     return s;
   }, [baseLeads, leads, currentAdminId]);
 
-  // Assigned-user distribution for the Pie Chart & per-user count list
+  // Assigned-user distribution for the User-Wise Pie Chart & per-user assign count list
   const assigneeChartData = useMemo(() => {
     const PALETTE = [
       "#f59e0b", // amber
@@ -242,7 +242,7 @@ export default function AdminLeadsClient({
     const staffById = new Map(staff.map((u) => [u._id, u]));
     const buckets = new Map();
 
-    // Seed every active staff member so 0-count staff can still be seen in breakdown
+    // Seed every active staff member so 0-count staff are visible in the breakdown
     for (const u of staff) {
       buckets.set(u._id, {
         key: u._id,
@@ -257,9 +257,10 @@ export default function AdminLeadsClient({
       });
     }
 
-    let unassigned = {
+    const unassigned = {
       key: "unassigned",
       name: "অনির্ধারিত (Unassigned)",
+      shortName: "অনির্ধারিত",
       email: "",
       avatar: "",
       designation: "এখনো কাউকে দায়িত্ব দেওয়া হয়নি",
@@ -296,18 +297,39 @@ export default function AdminLeadsClient({
       if (l.leadStatus === "converted") b.converted += 1;
     }
 
-    const assignedRows = [...buckets.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-    const allRows = unassigned.count > 0 ? [...assignedRows, unassigned] : assignedRows;
     const total = baseLeads.length;
+    const assignedTotal = total - unassigned.count;
+    const sortedAssigned = [...buckets.values()].sort(
+      (a, b) => b.count - a.count || a.name.localeCompare(b.name)
+    );
 
-    let colorIdx = 0;
-    const rows = allRows.map((row) => ({
-      ...row,
-      color: row.isUnassigned ? "#64748b" : PALETTE[colorIdx++ % PALETTE.length],
-      percent: total > 0 ? Math.round((row.count / total) * 1000) / 10 : 0,
-    }));
+    const assignedRows = sortedAssigned.map((row, idx) => {
+      const firstWord = String(row.name || "User").trim().split(/\s+/)[0];
+      return {
+        ...row,
+        shortName: firstWord.length > 10 ? `${firstWord.slice(0, 9)}…` : firstWord,
+        color: PALETTE[idx % PALETTE.length],
+        percent: assignedTotal > 0 ? Math.round((row.count / assignedTotal) * 1000) / 10 : 0,
+        totalPercent: total > 0 ? Math.round((row.count / total) * 1000) / 10 : 0,
+      };
+    });
 
-    return { total, rows, slices: rows.filter((r) => r.count > 0) };
+    const unassignedRow = {
+      ...unassigned,
+      color: "#64748b",
+      percent: total > 0 ? Math.round((unassigned.count / total) * 1000) / 10 : 0,
+      totalPercent: total > 0 ? Math.round((unassigned.count / total) * 1000) / 10 : 0,
+    };
+
+    const activeAssigneeCount = assignedRows.filter((r) => r.count > 0).length;
+
+    return {
+      total,
+      assignedTotal,
+      activeAssigneeCount,
+      assignedRows,
+      unassignedRow,
+    };
   }, [baseLeads, staff]);
 
   const handleQuickAddNote = async (e, lead) => {
@@ -1388,105 +1410,278 @@ function AssigneePieChartCard({
   isLight,
   cardCls,
 }) {
-  const { total, rows, slices } = data;
-  const radius = 64;
-  const circumference = 2 * Math.PI * radius;
+  const [includeUnassigned, setIncludeUnassigned] = useState(false);
+  const { total, assignedTotal, activeAssigneeCount, assignedRows, unassignedRow } = data;
 
-  // Build cumulative stroke-dasharray segments for the SVG donut pie chart
+  // By default show strictly Assigned (দায়িত্বপ্রাপ্ত) users on the pie chart;
+  // user can toggle to include Unassigned as well.
+  const showUnassignedSlice = includeUnassigned && unassignedRow.count > 0;
+  const chartTotal = showUnassignedSlice ? total : assignedTotal;
+  const rawRows = showUnassignedSlice
+    ? [...assignedRows, unassignedRow]
+    : assignedRows;
+
+  const displayRows = rawRows.map((r) => ({
+    ...r,
+    share: chartTotal > 0 ? Math.round((r.count / chartTotal) * 1000) / 10 : 0,
+  }));
+
+  const slices = displayRows.filter((r) => r.count > 0);
+
+  // Build SVG pie wedge geometry purely (no outer mutable state)
+  const cx = 120;
+  const cy = 120;
+  const radius = 96;
+
   const segments = slices.reduce(
     (acc, s) => {
-      const ratio = total > 0 ? s.count / total : 0;
-      const length = ratio * circumference;
-      acc.items.push({ ...s, length, offset: -acc.cumulative });
-      acc.cumulative += length;
+      const ratio = chartTotal > 0 ? s.count / chartTotal : 0;
+      const angle = ratio * Math.PI * 2;
+      const startAngle = acc.angle;
+      const endAngle = startAngle + angle;
+      const midAngle = startAngle + angle / 2;
+
+      const x1 = cx + radius * Math.cos(startAngle);
+      const y1 = cy + radius * Math.sin(startAngle);
+      const x2 = cx + radius * Math.cos(endAngle);
+      const y2 = cy + radius * Math.sin(endAngle);
+      const largeArc = angle > Math.PI ? 1 : 0;
+
+      const path = `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${radius} ${radius} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+
+      // Place count + short name inside each slice
+      const labelRadius = slices.length === 1 ? 0 : radius * 0.62;
+      const lx = cx + labelRadius * Math.cos(midAngle);
+      const ly = cy + labelRadius * Math.sin(midAngle);
+
+      // Subtle pop-out offset on hover/selected
+      const popX = slices.length === 1 ? 0 : Math.cos(midAngle) * 5;
+      const popY = slices.length === 1 ? 0 : Math.sin(midAngle) * 5;
+
+      acc.items.push({
+        ...s,
+        ratio,
+        path,
+        lx,
+        ly,
+        popX,
+        popY,
+        isFullCircle: slices.length === 1,
+      });
+      acc.angle = endAngle;
       return acc;
     },
-    { items: [], cumulative: 0 }
+    { items: [], angle: -Math.PI / 2 }
   ).items;
 
+  // All rows shown in the right-side user breakdown (always include unassigned at the bottom if > 0)
+  const breakdownRows =
+    unassignedRow.count > 0 && !showUnassignedSlice
+      ? [...displayRows, { ...unassignedRow, share: unassignedRow.totalPercent }]
+      : displayRows;
+
   const focused =
-    rows.find((r) => r.key === hoveredKey) ||
-    rows.find((r) => r.key === activeFilter) ||
+    breakdownRows.find((r) => r.key === hoveredKey) ||
+    breakdownRows.find((r) => r.key === activeFilter) ||
     null;
 
   return (
     <div className={`rounded-2xl border p-4 sm:p-5 ${cardCls}`}>
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <h2 className={`text-sm sm:text-base font-black flex items-center gap-2 ${isLight ? "text-slate-900" : "text-white"}`}>
             <PieChart className="w-4 h-4 text-amber-500" />
-            অ্যাসাইন ইউজার অনুযায়ী লিড চার্ট ও সংখ্যা
+            দায়িত্বপ্রাপ্ত (Assign) ইউজার ভিত্তিক পাই চার্ট ও সংখ্যা
           </h2>
           <p className="text-[11px] text-slate-500 mt-0.5">
-            যেকোনো ইউজার বা চার্ট স্লাইসে ক্লিক করে সরাসরি তার লিড ফিল্টার করুন
+            প্রতিটি স্লাইসে অ্যাসাইন সংখ্যা ও ইউজার দেখাচ্ছে — যেকোনো স্লাইস বা ইউজারে ক্লিক করে তার লিড ফিল্টার করুন
           </p>
         </div>
-        {activeFilter !== "all" && (
-          <button
-            type="button"
-            onClick={() => onSelectFilter("all")}
-            className="text-[11px] font-bold text-amber-500 hover:underline cursor-pointer"
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+              isLight
+                ? "bg-amber-50 text-amber-800 border-amber-200"
+                : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+            }`}
           >
-            ফিল্টার রিসেট করুন
-          </button>
-        )}
+            মোট অ্যাসাইন: <span className="font-mono font-black">{assignedTotal}</span>
+          </span>
+          <span
+            className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+              isLight
+                ? "bg-indigo-50 text-indigo-800 border-indigo-200"
+                : "bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+            }`}
+          >
+            দায়িত্বপ্রাপ্ত ইউজার: <span className="font-mono font-black">{activeAssigneeCount}</span> জন
+          </span>
+          {unassignedRow.count > 0 && (
+            <button
+              type="button"
+              onClick={() => setIncludeUnassigned((v) => !v)}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-bold border cursor-pointer transition-colors ${
+                showUnassignedSlice
+                  ? "bg-slate-700 text-white border-slate-600"
+                  : isLight
+                    ? "bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200"
+                    : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+              }`}
+            >
+              {showUnassignedSlice
+                ? `অনির্ধারিত (${unassignedRow.count}) চার্টে যুক্ত ✓`
+                : `অনির্ধারিত (${unassignedRow.count}) চার্টে দেখান`}
+            </button>
+          )}
+          {activeFilter !== "all" && (
+            <button
+              type="button"
+              onClick={() => onSelectFilter("all")}
+              className="text-[11px] font-bold text-amber-500 hover:underline cursor-pointer"
+            >
+              ফিল্টার রিসেট
+            </button>
+          )}
+        </div>
       </div>
 
       {total === 0 ? (
         <div className="py-6 text-center text-xs text-slate-500">চার্ট দেখানোর মতো কোনো লিড এখনো নেই।</div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-6 items-center">
-          {/* Interactive SVG Donut / Pie Chart */}
-          <div className="relative mx-auto w-48 h-48 flex items-center justify-center shrink-0">
-            <svg viewBox="0 0 180 180" className="w-full h-full -rotate-90" role="img" aria-label="অ্যাসাইন ইউজার পাই চার্ট">
-              <circle
-                cx="90"
-                cy="90"
-                r={radius}
-                fill="none"
-                stroke={isLight ? "#e2e8f0" : "#1e293b"}
-                strokeWidth="24"
-              />
-              {segments.map((seg) => {
-                const isActive = activeFilter === seg.key || hoveredKey === seg.key;
-                return (
-                  <circle
-                    key={seg.key}
-                    cx="90"
-                    cy="90"
-                    r={radius}
-                    fill="none"
-                    stroke={seg.color}
-                    strokeWidth={isActive ? "28" : "24"}
-                    strokeDasharray={`${Math.max(seg.length - 1.5, 0.5)} ${circumference}`}
-                    strokeDashoffset={seg.offset}
-                    className="cursor-pointer transition-all duration-200"
-                    onMouseEnter={() => onHover(seg.key)}
-                    onMouseLeave={() => onHover(null)}
-                    onClick={() => onSelectFilter(seg.key)}
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-6 items-center">
+          {/* Interactive SVG Pie Chart with User & Assign Count on Slices */}
+          <div className="flex flex-col items-center gap-2.5 mx-auto w-full max-w-[260px]">
+            {segments.length === 0 ? (
+              <div
+                className={`w-52 h-52 rounded-full border-2 border-dashed flex flex-col items-center justify-center text-center p-5 ${
+                  isLight ? "border-slate-300 bg-slate-50 text-slate-500" : "border-slate-700 bg-slate-950/60 text-slate-400"
+                }`}
+              >
+                <span className="text-2xl font-black font-mono">0</span>
+                <span className="text-xs font-bold mt-1">এখনো কোনো লিড কাউকে অ্যাসাইন করা হয়নি</span>
+                {unassignedRow.count > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectFilter("unassigned")}
+                    className="mt-2 text-[11px] font-bold text-amber-500 hover:underline cursor-pointer"
                   >
-                    <title>
-                      {seg.name}: {seg.count} ({seg.percent}%)
-                    </title>
-                  </circle>
-                );
-              })}
-            </svg>
+                    অনির্ধারিত ({unassignedRow.count}) দেখুন
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="relative w-56 h-56 flex items-center justify-center shrink-0">
+                <svg
+                  viewBox="0 0 240 240"
+                  className="w-full h-full overflow-visible drop-shadow-sm"
+                  role="img"
+                  aria-label="দায়িত্বপ্রাপ্ত ইউজার ভিত্তিক পাই চার্ট"
+                >
+                  {segments.map((seg) => {
+                    const isActive = activeFilter === seg.key || hoveredKey === seg.key;
+                    const strokeColor = isLight ? "#ffffff" : "#0f172a";
+                    const showNameOnSlice = seg.isFullCircle || seg.share >= 11;
+                    const showCountOnSlice = seg.isFullCircle || seg.share >= 5;
 
-            {/* Center metric */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 pointer-events-none">
-              <span className={`text-2xl font-black font-mono leading-none ${isLight ? "text-slate-900" : "text-white"}`}>
-                {focused ? focused.count : total}
-              </span>
-              <span className="text-[10px] font-bold text-slate-500 mt-1 line-clamp-2 leading-tight">
-                {focused ? `${focused.name} (${focused.percent}%)` : "মোট লিড"}
-              </span>
+                    return (
+                      <g
+                        key={seg.key}
+                        transform={isActive ? `translate(${seg.popX.toFixed(2)}, ${seg.popY.toFixed(2)})` : undefined}
+                        className="cursor-pointer transition-transform duration-200"
+                        onMouseEnter={() => onHover(seg.key)}
+                        onMouseLeave={() => onHover(null)}
+                        onClick={() => onSelectFilter(seg.key)}
+                      >
+                        <title>
+                          {seg.name}: {seg.count} টি লিড ({seg.share}%)
+                        </title>
+                        {seg.isFullCircle ? (
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={radius}
+                            fill={seg.color}
+                            stroke={strokeColor}
+                            strokeWidth="2.5"
+                            opacity={hoveredKey && !isActive ? 0.72 : 1}
+                          />
+                        ) : (
+                          <path
+                            d={seg.path}
+                            fill={seg.color}
+                            stroke={strokeColor}
+                            strokeWidth={isActive ? "3" : "2"}
+                            strokeLinejoin="round"
+                            opacity={hoveredKey && !isActive ? 0.72 : 1}
+                          />
+                        )}
+
+                        {showCountOnSlice && (
+                          <g className="pointer-events-none select-none">
+                            <text
+                              x={seg.lx}
+                              y={showNameOnSlice ? seg.ly - 4 : seg.ly + 4}
+                              textAnchor="middle"
+                              fill="#ffffff"
+                              fontSize={seg.isFullCircle ? "26" : seg.share >= 16 ? "15" : "12"}
+                              fontWeight="900"
+                              style={{ textShadow: "0 1px 3px rgba(0,0,0,0.65)" }}
+                            >
+                              {seg.count}
+                            </text>
+                            {showNameOnSlice && (
+                              <text
+                                x={seg.lx}
+                                y={seg.isFullCircle ? seg.ly + 18 : seg.ly + 10}
+                                textAnchor="middle"
+                                fill="#ffffff"
+                                fontSize={seg.isFullCircle ? "12" : "9.5"}
+                                fontWeight="700"
+                                style={{ textShadow: "0 1px 3px rgba(0,0,0,0.75)" }}
+                              >
+                                {seg.shortName} ({seg.share}%)
+                              </text>
+                            )}
+                          </g>
+                        )}
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+            )}
+
+            {/* Active / Hovered User Summary Strip below the Pie Chart */}
+            <div
+              className={`w-full rounded-xl border px-3 py-2 text-center text-xs ${
+                isLight ? "bg-slate-50 border-slate-200 text-slate-700" : "bg-slate-950/70 border-slate-800 text-slate-200"
+              }`}
+            >
+              {focused ? (
+                <div className="flex items-center justify-center gap-2 min-w-0">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: focused.color }}
+                  />
+                  <span className="font-bold truncate">{focused.name}</span>
+                  <span className="font-mono font-black text-amber-500 shrink-0">
+                    {focused.count} টি ({focused.share}%)
+                  </span>
+                </div>
+              ) : (
+                <span className="text-[11px] font-bold text-slate-500">
+                  {showUnassignedSlice
+                    ? `মোট লিড: ${total} টি (${activeAssigneeCount} জন ইউজার + অনির্ধারিত)`
+                    : `মোট অ্যাসাইন লিড: ${assignedTotal} টি · ${activeAssigneeCount} জন দায়িত্বপ্রাপ্ত ইউজার`}
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Assigned User Pic + Count Breakdown List */}
+          {/* Assigned User Pic + Assign Count Breakdown List */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {rows.map((row) => {
+            {breakdownRows.map((row) => {
               const selected = activeFilter === row.key;
               const initial = (row.name || "?").trim().charAt(0).toUpperCase();
               return (
@@ -1506,9 +1701,9 @@ function AssigneePieChartCard({
                 >
                   <div className="flex items-center justify-between gap-2.5">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      {/* User Avatar / Initial Pic with Color Ring */}
+                      {/* User Avatar / Initial Pic with Slice Color Ring */}
                       <div
-                        className="w-8 h-8 rounded-full shrink-0 overflow-hidden flex items-center justify-center text-xs font-black text-white border-2"
+                        className="w-9 h-9 rounded-full shrink-0 overflow-hidden flex items-center justify-center text-xs font-black text-white border-2"
                         style={{ borderColor: row.color, backgroundColor: row.avatar ? "transparent" : row.color }}
                       >
                         {row.avatar ? (
@@ -1519,10 +1714,14 @@ function AssigneePieChartCard({
                         )}
                       </div>
                       <div className="min-w-0">
-                        <div className={`text-xs font-bold truncate ${isLight ? "text-slate-900" : "text-white"}`}>
-                          {row.name}
+                        <div className={`text-xs font-bold truncate flex items-center gap-1.5 ${isLight ? "text-slate-900" : "text-white"}`}>
+                          <span
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: row.color }}
+                          />
+                          <span className="truncate">{row.name}</span>
                         </div>
-                        <div className="text-[10px] text-slate-500 truncate">
+                        <div className="text-[10px] text-slate-500 truncate mt-0.5">
                           ফলো-আপ/আগ্রহী: {row.followUp} · ভর্তি: {row.converted}
                         </div>
                       </div>
@@ -1531,8 +1730,9 @@ function AssigneePieChartCard({
                     <div className="text-right shrink-0">
                       <div className={`text-base font-black font-mono leading-none ${isLight ? "text-slate-900" : "text-white"}`}>
                         {row.count}
+                        <span className="text-[10px] font-sans font-bold text-slate-500 ml-0.5">টি</span>
                       </div>
-                      <div className="text-[10px] font-mono text-slate-500 mt-0.5">{row.percent}%</div>
+                      <div className="text-[10px] font-mono text-slate-500 mt-0.5">{row.share}%</div>
                     </div>
                   </div>
 
@@ -1540,7 +1740,7 @@ function AssigneePieChartCard({
                   <div className={`h-1.5 w-full rounded-full overflow-hidden ${isLight ? "bg-slate-200" : "bg-slate-800"}`}>
                     <div
                       className="h-full rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, row.percent)}%`, backgroundColor: row.color }}
+                      style={{ width: `${Math.min(100, row.share)}%`, backgroundColor: row.color }}
                     />
                   </div>
                 </button>
