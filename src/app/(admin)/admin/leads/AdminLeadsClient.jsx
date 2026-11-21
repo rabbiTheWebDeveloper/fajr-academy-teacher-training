@@ -10,6 +10,7 @@ import {
   Copy,
   CreditCard,
   History,
+  Lock,
   Mail,
   MessageCircle,
   MessageSquarePlus,
@@ -347,13 +348,19 @@ export default function AdminLeadsClient({
     showToast(message || "নির্বাচিত লিডগুলো আপডেট হয়েছে।");
   };
 
-  const toggleSelect = (id) =>
+  const isLockedByOther = (lead) =>
+    !isSuper && Boolean(lead?.leadAssignedTo) && lead.leadAssignedTo !== currentAdminId;
+
+  const toggleSelect = (id) => {
+    const target = leads.find((l) => l._id === id);
+    if (target && isLockedByOther(target)) return;
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
 
   const toggleSelectAll = () => {
-    const visibleIds = visibleLeads.map((l) => l._id);
-    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
-    setSelectedIds(allSelected ? [] : visibleIds);
+    const selectableIds = visibleLeads.filter((l) => !isLockedByOther(l)).map((l) => l._id);
+    const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.includes(id));
+    setSelectedIds(allSelected ? [] : selectableIds);
   };
 
   const handleCopy = async (text, key) => {
@@ -676,7 +683,10 @@ export default function AdminLeadsClient({
               <label className="inline-flex items-center gap-2 font-bold cursor-pointer select-none">
                 <input
                   type="checkbox"
-                  checked={visibleLeads.length > 0 && visibleLeads.every((l) => selectedIds.includes(l._id))}
+                  checked={
+                    visibleLeads.some((l) => !isLockedByOther(l)) &&
+                    visibleLeads.filter((l) => !isLockedByOther(l)).every((l) => selectedIds.includes(l._id))
+                  }
                   onChange={toggleSelectAll}
                   className="rounded border-slate-400 text-amber-500 cursor-pointer"
                 />
@@ -695,6 +705,8 @@ export default function AdminLeadsClient({
               `আসসালামু আলাইকুম ${lead.userName || ""}। ফজর একাডেমি TOT কোর্সে আপনার রেজিস্ট্রেশন (${lead.tranId}) অসম্পূর্ণ রয়েছে। ভর্তিতে কোনো সহায়তার প্রয়োজন হলে জানাতে পারেন।`
             );
             const working = busyId === lead._id;
+            const locked = isLockedByOther(lead);
+            const canEditLead = mayUpdate && !locked;
             const selected = selectedIds.includes(lead._id);
 
             return (
@@ -711,9 +723,11 @@ export default function AdminLeadsClient({
                       <input
                         type="checkbox"
                         checked={selected}
+                        disabled={locked}
+                        title={locked ? `${lead.leadAssignedName || "অন্য স্টাফ"}-এর দায়িত্বে লক করা আছে` : undefined}
                         onChange={() => toggleSelect(lead._id)}
                         aria-label={`${lead.userName || lead.userEmail} নির্বাচন`}
-                        className="mt-1 rounded border-slate-400 text-amber-500 cursor-pointer shrink-0"
+                        className="mt-1 rounded border-slate-400 text-amber-500 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                       />
                     )}
 
@@ -748,6 +762,11 @@ export default function AdminLeadsClient({
                         {lead.alreadyPaid && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/35">
                             <CheckCircle2 className="w-3 h-3" /> পরবর্তীতে পেমেন্ট সম্পন্ন
+                          </span>
+                        )}
+                        {locked && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-500/15 text-slate-400 border border-slate-500/30">
+                            <Lock className="w-3 h-3" /> {lead.leadAssignedName || "অন্য স্টাফ"}-এর দায়িত্বে লক
                           </span>
                         )}
                       </div>
@@ -824,9 +843,10 @@ export default function AdminLeadsClient({
                         <label className="block text-[10px] font-bold text-slate-500 mb-1">লিড স্ট্যাটাস</label>
                         <select
                           value={lead.leadStatus}
-                          disabled={!mayUpdate || working}
+                          disabled={!canEditLead || working}
+                          title={locked ? "অন্য স্টাফের দায়িত্বে থাকা লিড পরিবর্তন করা যাবে না" : undefined}
                           onChange={(e) => handlePatchLead(lead._id, { leadStatus: e.target.value })}
-                          className={`w-full ${inputCls} cursor-pointer disabled:opacity-50`}
+                          className={`w-full ${inputCls} cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           {LEAD_STATUSES.map((s) => (
                             <option key={s} value={s}>
@@ -840,9 +860,10 @@ export default function AdminLeadsClient({
                         <label className="block text-[10px] font-bold text-slate-500 mb-1">দায়িত্বপ্রাপ্ত (Assign)</label>
                         <select
                           value={lead.leadAssignedTo || ""}
-                          disabled={!mayUpdate || working}
+                          disabled={!canEditLead || working}
+                          title={locked ? `${lead.leadAssignedName || "অন্য স্টাফ"}-এর দায়িত্বে লক করা আছে` : undefined}
                           onChange={(e) => handlePatchLead(lead._id, { assignedTo: e.target.value })}
-                          className={`w-full ${inputCls} cursor-pointer disabled:opacity-50`}
+                          className={`w-full ${inputCls} cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           <option value="">— অনির্ধারিত —</option>
                           {staff.map((u) => (
@@ -855,7 +876,7 @@ export default function AdminLeadsClient({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      {mayUpdate && currentAdminId && lead.leadAssignedTo !== currentAdminId && (
+                      {canEditLead && currentAdminId && !lead.leadAssignedTo && (
                         <button
                           type="button"
                           disabled={working}
@@ -979,15 +1000,31 @@ export default function AdminLeadsClient({
                 </div>
               )}
 
+              {/* Locked notice if assigned to another user */}
+              {isLockedByOther(activeLead) && (
+                <div
+                  className={`p-3.5 rounded-2xl border text-xs font-bold flex items-center gap-2 ${
+                    isLight
+                      ? "bg-amber-50 border-amber-200 text-amber-900"
+                      : "bg-amber-500/10 border-amber-500/35 text-amber-200"
+                  }`}
+                >
+                  <Lock className="w-4 h-4 shrink-0 text-amber-500" />
+                  <span>
+                    এই লিডটি ইতোমধ্যে <strong>{activeLead.leadAssignedName || "অন্য একজনের"}</strong> দায়িত্বে আছে — আপনি শুধু হিস্ট্রি দেখতে পারবেন, পরিবর্তন করতে পারবেন না।
+                  </span>
+                </div>
+              )}
+
               {/* Quick Status, Assign & Follow-up controls */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-400 mb-1">লিড স্ট্যাটাস</label>
                   <select
                     value={activeLead.leadStatus}
-                    disabled={!mayUpdate || busyId === activeLead._id}
+                    disabled={!mayUpdate || isLockedByOther(activeLead) || busyId === activeLead._id}
                     onChange={(e) => handlePatchLead(activeLead._id, { leadStatus: e.target.value })}
-                    className={`w-full ${inputCls} cursor-pointer disabled:opacity-50`}
+                    className={`w-full ${inputCls} cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {LEAD_STATUSES.map((s) => (
                       <option key={s} value={s}>
@@ -1001,9 +1038,9 @@ export default function AdminLeadsClient({
                   <label className="block text-[11px] font-bold text-slate-400 mb-1">দায়িত্বপ্রাপ্ত (Assign)</label>
                   <select
                     value={activeLead.leadAssignedTo || ""}
-                    disabled={!mayUpdate || busyId === activeLead._id}
+                    disabled={!mayUpdate || isLockedByOther(activeLead) || busyId === activeLead._id}
                     onChange={(e) => handlePatchLead(activeLead._id, { assignedTo: e.target.value })}
-                    className={`w-full ${inputCls} cursor-pointer disabled:opacity-50`}
+                    className={`w-full ${inputCls} cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <option value="">— অনির্ধারিত —</option>
                     {staff.map((u) => (
@@ -1020,11 +1057,11 @@ export default function AdminLeadsClient({
                     <input
                       type="datetime-local"
                       value={followUpInput}
-                      disabled={!mayUpdate}
+                      disabled={!mayUpdate || isLockedByOther(activeLead)}
                       onChange={(e) => setFollowUpInput(e.target.value)}
-                      className={`w-full ${inputCls} font-mono`}
+                      className={`w-full ${inputCls} font-mono disabled:opacity-50`}
                     />
-                    {mayUpdate && (
+                    {mayUpdate && !isLockedByOther(activeLead) && (
                       <button
                         type="button"
                         onClick={() =>
@@ -1045,7 +1082,7 @@ export default function AdminLeadsClient({
               </div>
 
               {/* Add Note Form */}
-              {mayCreateNote && (
+              {mayCreateNote && !isLockedByOther(activeLead) && (
                 <form
                   onSubmit={handleAddNote}
                   className={`rounded-2xl border p-4 space-y-3 ${

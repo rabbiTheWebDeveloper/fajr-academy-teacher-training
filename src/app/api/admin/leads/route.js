@@ -216,9 +216,26 @@ export async function PATCH(request) {
     if (existingDocs.length === 0) return bad("লিড রেকর্ড খুঁজে পাওয়া যায়নি।", 404);
 
     const now = new Date();
+    const currentUserId = String(auth.access?.id || auth.session.id || "");
+    const isSuper = Boolean(auth.access?.isSuper);
+
+    // Ownership lock: once a lead is assigned to one user, another non-super-admin cannot change it.
+    if (!isSuper) {
+      const locked = existingDocs.find(
+        (doc) => doc.leadAssignedTo && String(doc.leadAssignedTo) !== currentUserId
+      );
+      if (locked) {
+        return bad(
+          `এই লিডটি ইতোমধ্যে ${locked.leadAssignedName || "অন্য একজনের"} দায়িত্বে আছে — অন্য কেউ পরিবর্তন করতে পারবেন না।`,
+          403
+        );
+      }
+    }
+
     const updatedDocs = [];
 
     for (const doc of existingDocs) {
+      const wasUnassigned = !doc.leadAssignedTo;
       const historyToAdd = [];
 
       if (hasStatus && (doc.leadStatus || "new") !== body.leadStatus) {
@@ -270,12 +287,40 @@ export async function PATCH(request) {
         }
       }
 
-      if (historyToAdd.length > 0) {
-        doc.leadNotes = [...(doc.leadNotes || []), ...historyToAdd];
-      }
+      // Guard against two admins claiming the same unassigned lead simultaneously.
+      if (!isSuper && wasUnassigned && hasAssign && assignee) {
+        const claimed = await PaymentModel.findOneAndUpdate(
+          {
+            _id: doc._id,
+            $or: [{ leadAssignedTo: null }, { leadAssignedTo: { $exists: false } }],
+          },
+          {
+            $set: {
+              leadStatus: doc.leadStatus,
+              leadAssignedTo: doc.leadAssignedTo,
+              leadAssignedName: doc.leadAssignedName,
+              leadAssignedEmail: doc.leadAssignedEmail,
+              leadFollowUpAt: doc.leadFollowUpAt,
+              leadLastContactedAt: doc.leadLastContactedAt,
+            },
+            ...(historyToAdd.length > 0 ? { $push: { leadNotes: { $each: historyToAdd } } } : {}),
+          },
+          { returnDocument: "after" }
+        )
+          .select(SAFE_SELECT)
+          .lean();
 
-      await doc.save();
-      updatedDocs.push(doc.toObject());
+        if (!claimed) {
+          return bad("এই লিডটি এইমাত্র অন্য কেউ নিয়ে নিয়েছেন — পেজ রিফ্রেশ করুন।", 409);
+        }
+        updatedDocs.push(claimed);
+      } else {
+        if (historyToAdd.length > 0) {
+          doc.leadNotes = [...(doc.leadNotes || []), ...historyToAdd];
+        }
+        await doc.save();
+        updatedDocs.push(doc.toObject());
+      }
     }
 
     const paidEmails = await getPaidEmailSet();
@@ -312,6 +357,14 @@ export async function POST(request) {
 
     const doc = await PaymentModel.findOne({ _id: leadId, status: { $in: LEAD_PAYMENT_STATUSES } });
     if (!doc) return bad("লিড রেকর্ড খুঁজে পাওয়া যায়নি।", 404);
+
+    const currentUserId = String(auth.access?.id || auth.session.id || "");
+    if (!auth.access?.isSuper && doc.leadAssignedTo && String(doc.leadAssignedTo) !== currentUserId) {
+      return bad(
+        `এই লিডটি ইতোমধ্যে ${doc.leadAssignedName || "অন্য একজনের"} দায়িত্বে আছে — আপনি নোট যোগ করতে পারবেন না।`,
+        403
+      );
+    }
 
     const now = new Date();
     doc.leadNotes.push({
