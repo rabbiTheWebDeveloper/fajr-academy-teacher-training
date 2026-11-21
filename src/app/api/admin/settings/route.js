@@ -4,6 +4,7 @@ import { SettingModel } from "@/model/setting-model";
 import { requirePermission, serverError } from "@/lib/api-auth";
 import { gatewayMode, isGatewayConfigured } from "@/lib/sslcommerz";
 import { pick } from "@/lib/query-helpers";
+import { normalizeEnrollmentDate } from "@/app/(marketing)/admission";
 
 /**
  * Admin system settings. Gateway credentials are NOT stored or edited here any more —
@@ -23,6 +24,8 @@ const EDITABLE = [
   "certificatePrefix",
   "orientationDate",
   "orientationTime",
+  "enrollmentEndDate",
+  "nextEnrollmentStartDate",
   "bkashMerchantNumber",
   "nagadMerchantNumber",
   "helplinePhone",
@@ -51,6 +54,8 @@ const DEFAULTS = {
   certificatePrefix: "FJR-TOT-2026",
   orientationDate: "২০ সেপ্টেম্বর ২০২৬",
   orientationTime: "রাত ৮:০০ টা – ৯:৩০ টা",
+  enrollmentEndDate: "",
+  nextEnrollmentStartDate: "",
   bkashMerchantNumber: "01410764581",
   nagadMerchantNumber: "01410764581",
   helplinePhone: "01410764581",
@@ -81,6 +86,22 @@ function validate(update) {
   }
   for (const key of ["whatsappSupport", "whatsappCommunityGroup"]) {
     if (update[key] && !/^https:\/\//.test(update[key])) return `${key} must start with https://`;
+  }
+  for (const key of ["enrollmentEndDate", "nextEnrollmentStartDate"]) {
+    if (update[key] !== undefined) {
+      const normalized = normalizeEnrollmentDate(update[key]);
+      if (normalized === null) {
+        return key === "enrollmentEndDate"
+          ? "ভর্তি শেষের তারিখ ও সময় সঠিক নয়।"
+          : "পরবর্তী ভর্তি শুরুর তারিখ ও সময় সঠিক নয়।";
+      }
+      update[key] = normalized;
+    }
+  }
+  if (update.enrollmentEndDate && update.nextEnrollmentStartDate) {
+    if (Date.parse(update.nextEnrollmentStartDate) <= Date.parse(update.enrollmentEndDate)) {
+      return "পরবর্তী ভর্তি শুরুর সময় অবশ্যই বর্তমান ভর্তি শেষের সময়ের পরে হতে হবে।";
+    }
   }
   return null;
 }

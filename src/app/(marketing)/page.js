@@ -5,6 +5,7 @@ import FloatingWhatsApp from './FloatingWhatsApp'
 import VideoShortsCard from './VideoShortsCard'
 import AdmitLink from './AdmitLink'
 import AdmissionHighlight from './AdmissionHighlight'
+import EnrollmentCountdown from './EnrollmentCountdown'
 import BatchSchedule from './BatchSchedule'
 import MobileActionBar from './MobileActionBar'
 import { FACEBOOK_MESSENGER_URL } from './contact'
@@ -281,6 +282,7 @@ export default async function TeacherRegistrationMarketingPage() {
             }`}
           />
           <span className="text-[11px] sm:text-xs truncate">{admission.label}</span>
+          <EnrollmentCountdown settings={liveSettings} variant="bar" className="shrink-0" />
           {!admission.closed && (
             <span className="shrink-0 text-[11px] sm:text-xs font-bold text-white underline decoration-amber-400/70 underline-offset-2">
               ভর্তি হোন →
@@ -438,7 +440,7 @@ export default async function TeacherRegistrationMarketingPage() {
               </div>
 
               {/* Value Points */}
-              <ul className="space-y-3 sm:space-y-3.5 mb-7 text-[13px] sm:text-sm text-slate-200">
+              <ul className="space-y-3 sm:space-y-3.5 mb-5 text-[13px] sm:text-sm text-slate-200">
                 <li className="flex items-start gap-3">
                   <div className="w-5 h-5 rounded-full bg-amber-400/20 flex items-center justify-center text-amber-300 mt-0.5 shrink-0 border border-amber-400/30">
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
@@ -466,6 +468,8 @@ export default async function TeacherRegistrationMarketingPage() {
                   <span className="font-medium">অফিসিয়াল মূল্যায়ন সার্টিফিকেট ও আজীবন মেন্টরশিপ সাপোর্ট</span>
                 </li>
               </ul>
+
+              <EnrollmentCountdown settings={liveSettings} variant="compact" className="mb-5" />
 
               {/* Action Buttons */}
               <div className="space-y-3">
@@ -502,6 +506,7 @@ export default async function TeacherRegistrationMarketingPage() {
         regularPrice={regularPrice}
         batchLabel={liveSettings.currentBatch || 'BATCH 2026'}
         mode={admission.mode}
+        settings={liveSettings}
         batches={[
           {
             key: 'men',
@@ -1252,6 +1257,8 @@ export default async function TeacherRegistrationMarketingPage() {
               পছন্দের ট্র্যাক নির্বাচন করে {toBengaliNumber(coursePrice)}৳ কোর্স ফি পরিশোধের মাধ্যমে আপনার নিবন্ধন সম্পন্ন করুন।
             </p>
           </div>
+
+          <EnrollmentCountdown settings={liveSettings} variant="card" className="mb-8" />
 
           <RegistrationForm courses={sanitizedCourses} settings={liveSettings} />
         </div>

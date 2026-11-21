@@ -10,6 +10,7 @@ import { newTranId } from "@/service/payment-service";
 import { phoneVariants } from "@/lib/phone";
 import { emailInUse, emailTakenMessage, phoneInUse, phoneTakenMessage } from "@/service/account-service";
 import { rateLimit } from "@/lib/rate-limit";
+import { admissionState } from "@/app/(marketing)/admission";
 
 /**
  * POST /api/payment/sslcommerz/init — new applicant registration + payment start.
@@ -47,10 +48,15 @@ export async function POST(request) {
 
     await dbConnect();
 
-    // Admission rules set by the admin.
+    // Admission rules set by the admin (manual status + enrollment end / next start dates).
     const settings = (await SettingModel.findOne({ key: "system_settings" }).lean()) || {};
-    if (settings.registrationOpen === false || settings.admissionStatus === "closed") {
-      return bad("এই মুহূর্তে ভর্তি বন্ধ রয়েছে। পরবর্তী ব্যাচের আপডেটের জন্য WhatsApp হেল্পলাইনে যোগাযোগ করুন।", 403, { admissionClosed: true });
+    const admission = admissionState(settings);
+    if (admission.closed) {
+      return bad(
+        admission.closedReason || "এই মুহূর্তে ভর্তি বন্ধ রয়েছে। পরবর্তী ব্যাচের আপডেটের জন্য WhatsApp হেল্পলাইনে যোগাযোগ করুন।",
+        403,
+        { admissionClosed: true }
+      );
     }
 
     const { amount, currency, course } = await getPriceForTrack(track);

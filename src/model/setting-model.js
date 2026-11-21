@@ -64,6 +64,17 @@ const settingSchema = new Schema(
       type: String,
       default: "রাত ৮:০০ টা – ৯:৩০ টা",
     },
+    // ISO datetime strings (Bangladesh Time UTC+6), empty = no deadline / not scheduled
+    enrollmentEndDate: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    nextEnrollmentStartDate: {
+      type: String,
+      default: "",
+      trim: true,
+    },
 
     // Payment Gateway (SSLCommerz, bKash/Nagad)
     sslcommerzMode: {

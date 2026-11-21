@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import { toBengaliNumber } from '@/lib/utils'
 import { FACEBOOK_MESSENGER_URL } from './contact'
-import { SELECT_TRACK_EVENT } from './admission'
+import { SELECT_TRACK_EVENT, admissionState } from './admission'
 import { modulesFor, sessionRows, sessionRange } from './course-dates'
 
 const GATEWAY_ERRORS = {
@@ -60,8 +60,23 @@ export default function RegistrationForm({
     }
   }, [initialCourses, initialSettings])
 
+  const [nowMs, setNowMs]                 = useState(null)
+
+  useEffect(() => {
+    const tick = () => setNowMs(Date.now())
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
+
   const defaultPrice = settings?.coursePrice || 1000
-  const registrationClosed = settings?.registrationOpen === false || settings?.admissionStatus === 'closed'
+  const admission = nowMs != null ? admissionState(settings, nowMs) : {
+    mode: settings?.registrationOpen === false || settings?.admissionStatus === 'closed' ? 'closed' : settings?.admissionStatus === 'waitlist' ? 'waitlist' : 'open',
+    closed: settings?.registrationOpen === false || settings?.admissionStatus === 'closed',
+    closedReason: '',
+    nextStartText: '',
+  }
+  const registrationClosed = admission.closed
 
   const menCourse = coursesList.find((c) => c.track === 'men' || c.courseId === 'TOT-MEN') || {
     name: 'Training of Trainers (TOT) – MEN',
@@ -151,7 +166,10 @@ export default function RegistrationForm({
     setErrorMsg('')
     setGatewayNoticeOpen(false)
     if (registrationClosed) {
-      setErrorMsg('এই মুহূর্তে ভর্তি বন্ধ রয়েছে। পরবর্তী ব্যাচের আপডেটের জন্য Facebook Messenger-এ যোগাযোগ করুন।')
+      setErrorMsg(
+        admission.closedReason ||
+          'এই মুহূর্তে ভর্তি বন্ধ রয়েছে। পরবর্তী ব্যাচের আপডেটের জন্য Facebook Messenger-এ যোগাযোগ করুন।'
+      )
       return
     }
     setAlreadyPaid(false)
@@ -440,12 +458,13 @@ export default function RegistrationForm({
             </div>
 
             {/* Admission Status / Waitlist Alert */}
-            {(settings?.registrationOpen === false || settings?.admissionStatus === 'closed' || settings?.admissionStatus === 'waitlist') && (
+            {(registrationClosed || admission.mode === 'waitlist') && (
               <div style={{ margin: '0 0 1.25rem 0', padding: '0.85rem 1rem', background: '#FEF3C7', color: '#92400E', borderRadius: '12px', border: '1px solid #FDE68A', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.875rem', fontWeight: 600 }}>
                 <Sparkles size={18} className="shrink-0 text-amber-600" />
                 <span>
-                  {settings?.admissionStatus === 'closed' || settings?.registrationOpen === false
-                    ? 'বর্তমানে সরাসরি ব্যাচ ভর্তি কোটা পূর্ণ। আপনি ফরম পূরণ করে রাখলে পরবর্তী অগ্রাধিকার ব্যাচে সুযোগ পাবেন।'
+                  {registrationClosed
+                    ? admission.closedReason ||
+                      'বর্তমানে ভর্তি বন্ধ রয়েছে। পরবর্তী ব্যাচের আপডেটের জন্য Facebook Messenger-এ যোগাযোগ করুন।'
                     : 'বর্তমানে এই ব্যাচে অপেক্ষমাণ তালিকা (Waitlist) চলছে। আসন ফাঁকা সাপেক্ষে যোগাযোগ করা হবে।'}
                 </span>
               </div>

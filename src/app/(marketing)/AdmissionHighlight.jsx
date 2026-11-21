@@ -1,5 +1,6 @@
 import { ArrowRight, BadgePercent, Check, Flame, Lock } from 'lucide-react'
 import AdmitLink from './AdmitLink'
+import EnrollmentCountdown from './EnrollmentCountdown'
 import MessengerIcon from './MessengerIcon'
 import { FACEBOOK_MESSENGER_URL } from './contact'
 import { discountPercent, seatLine } from './admission'
@@ -17,7 +18,7 @@ const SEAT_TONE = {
  * The admission highlight: fee, saving, what is included and one "ভর্তি হোন" button per batch.
  * Server component — every number comes from the live settings / course records.
  */
-export default function AdmissionHighlight({ price, regularPrice, batchLabel, mode, batches }) {
+export default function AdmissionHighlight({ price, regularPrice, batchLabel, mode, batches, settings = {} }) {
   const closed = mode === 'closed'
   const percent = discountPercent(price, regularPrice)
 
@@ -26,6 +27,8 @@ export default function AdmissionHighlight({ price, regularPrice, batchLabel, mo
       <div className="mx-auto max-w-5xl rounded-3xl bg-gradient-to-br from-amber-300 via-amber-500/50 to-amber-300 p-[1.5px] shadow-2xl shadow-amber-500/15" data-reveal>
         <div className="relative overflow-hidden rounded-[calc(1.5rem-1.5px)] bg-[#0A1326] p-4 sm:p-8">
           <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-amber-400/10 blur-3xl" />
+
+          <EnrollmentCountdown settings={settings} variant="card" className="relative mb-6" />
 
           <div className="relative grid gap-5 lg:grid-cols-[1.05fr_1fr] lg:gap-8">
             {/* Fee + what you get */}

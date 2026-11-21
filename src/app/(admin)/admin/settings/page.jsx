@@ -26,6 +26,8 @@ const EDITABLE = [
   "certificatePrefix",
   "orientationDate",
   "orientationTime",
+  "enrollmentEndDate",
+  "nextEnrollmentStartDate",
   "bkashMerchantNumber",
   "nagadMerchantNumber",
   "helplinePhone",

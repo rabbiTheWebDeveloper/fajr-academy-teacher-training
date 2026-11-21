@@ -17,11 +17,20 @@ import {
   Check,
   Database,
   Building2,
+  CalendarClock,
+  Clock,
   Info,
+  X,
 } from "lucide-react";
 import { useAdminTheme } from "../../AdminThemeContext";
 import { useAdminAccess } from "../../AdminAccessContext";
 import { DbErrorBanner, callApi, useConfirm } from "../../_shared/admin-ui";
+import {
+  admissionState,
+  formatEnrollmentDateBn,
+  normalizeEnrollmentDate,
+  toDhakaInputValue,
+} from "@/app/(marketing)/admission";
 
 /** Exactly the keys PUT /api/admin/settings accepts (gateway credentials are env-only). */
 const EDITABLE = [
@@ -37,6 +46,8 @@ const EDITABLE = [
   "certificatePrefix",
   "orientationDate",
   "orientationTime",
+  "enrollmentEndDate",
+  "nextEnrollmentStartDate",
   "bkashMerchantNumber",
   "nagadMerchantNumber",
   "helplinePhone",
@@ -429,6 +440,122 @@ export default function AdminSettingsClient({ initialSettings, isDefault, gatewa
                   />
                 </div>
               </div>
+
+              {/* Enrollment Window: End Date & Next Start Date (with Marketing Countdown) */}
+              {(() => {
+                const endIso = settings.enrollmentEndDate || "";
+                const nextIso = settings.nextEnrollmentStartDate || "";
+                const endPreview = formatEnrollmentDateBn(endIso);
+                const nextPreview = formatEnrollmentDateBn(nextIso);
+                const invalidOrder =
+                  Boolean(endIso && nextIso) && Date.parse(nextIso) <= Date.parse(endIso);
+                const livePreview = admissionState(settings);
+
+                return (
+                  <div
+                    className={`rounded-2xl border p-4 sm:p-5 space-y-4 ${
+                      isLight ? "bg-amber-50/50 border-amber-200/80" : "bg-slate-950/70 border-amber-500/25"
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <h4 className={`text-sm font-black flex items-center gap-2 ${isLight ? "text-slate-900" : "text-white"}`}>
+                          <CalendarClock className="w-4 h-4 text-amber-500" />
+                          ভর্তি শেষ ও পরবর্তী ভর্তি শুরুর তারিখ (লাইভ কাউন্টডাউন)
+                        </h4>
+                        <p className={`text-[11px] mt-0.5 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                          বাংলাদেশ সময় (UTC+6) অনুযায়ী সেট করুন। মার্কেটিং পেজে লাইভ কাউন্টডাউন দেখাবে এবং শেষ সময় পেরিয়ে গেলে ভর্তি স্বয়ংক্রিয়ভাবে বন্ধ হবে।
+                        </p>
+                      </div>
+                      <span
+                        className={`self-start sm:self-center shrink-0 rounded-full border px-3 py-1 text-[11px] font-bold ${
+                          livePreview.closed
+                            ? isLight
+                              ? "bg-rose-50 border-rose-300 text-rose-800"
+                              : "bg-rose-500/15 border-rose-500/40 text-rose-300"
+                            : isLight
+                              ? "bg-emerald-50 border-emerald-300 text-emerald-800"
+                              : "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+                        }`}
+                      >
+                        {livePreview.label}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className={`font-bold flex items-center gap-1.5 ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                            <Clock className="w-3.5 h-3.5 text-rose-500" />
+                            বর্তমান ভর্তি শেষের তারিখ ও সময় (Enrollment End)
+                          </label>
+                          {endIso && (
+                            <button
+                              type="button"
+                              onClick={() => handleChange("enrollmentEndDate", "")}
+                              className="inline-flex items-center gap-0.5 text-[11px] font-bold text-rose-500 hover:underline cursor-pointer"
+                            >
+                              <X className="w-3 h-3" /> মুছুন
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="datetime-local"
+                          value={toDhakaInputValue(endIso)}
+                          onChange={(e) => handleChange("enrollmentEndDate", normalizeEnrollmentDate(e.target.value) || "")}
+                          className={`${inputCls} font-mono`}
+                        />
+                        <p className={hintCls}>
+                          {endPreview
+                            ? `মার্কেটিং পেজে দেখাবে: ${endPreview} পর্যন্ত (বাংলাদেশ সময়)`
+                            : "খালি রাখলে কোনো নির্ধারিত শেষ সময় থাকবে না।"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className={`font-bold flex items-center gap-1.5 ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                            <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                            পরবর্তী ভর্তি শুরুর তারিখ ও সময় (Next Enrollment Start)
+                          </label>
+                          {nextIso && (
+                            <button
+                              type="button"
+                              onClick={() => handleChange("nextEnrollmentStartDate", "")}
+                              className="inline-flex items-center gap-0.5 text-[11px] font-bold text-rose-500 hover:underline cursor-pointer"
+                            >
+                              <X className="w-3 h-3" /> মুছুন
+                            </button>
+                          )}
+                        </div>
+                        <input
+                          type="datetime-local"
+                          value={toDhakaInputValue(nextIso)}
+                          onChange={(e) => handleChange("nextEnrollmentStartDate", normalizeEnrollmentDate(e.target.value) || "")}
+                          className={`${inputCls} font-mono`}
+                        />
+                        <p className={hintCls}>
+                          {nextPreview
+                            ? `বর্তমান ভর্তি শেষ হলে পরবর্তী শুরুর কাউন্টডাউন দেখাবে: ${nextPreview}`
+                            : "ঐচ্ছিক — ভর্তি শেষ হওয়ার পর পরবর্তী ব্যাচ কবে শুরু হবে তা দেখাতে দিন।"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {invalidOrder && (
+                      <div
+                        role="alert"
+                        className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2 ${
+                          isLight ? "bg-rose-50 border-rose-300 text-rose-800" : "bg-rose-500/15 border-rose-500/40 text-rose-200"
+                        }`}
+                      >
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        পরবর্তী ভর্তি শুরুর সময় অবশ্যই বর্তমান ভর্তি শেষের সময়ের পরে হতে হবে।
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
