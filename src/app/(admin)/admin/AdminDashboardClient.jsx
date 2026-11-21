@@ -85,6 +85,7 @@ export default function AdminDashboardClient({ stats, loadError, notice: pageNot
   const kpiCount = [canPayments, canTots, canPayments, canInstructors, canEvaluations].filter(Boolean).length;
   const KPI_COLS = { 1: "lg:grid-cols-1", 2: "lg:grid-cols-2", 3: "lg:grid-cols-3", 4: "lg:grid-cols-4", 5: "lg:grid-cols-5" };
   const quickLinks = [
+    { href: "/admin/leads", Icon: Phone, text: "লিড ম্যানেজমেন্ট", show: canPayments || canTots },
     { href: "/admin/classes", Icon: Clock, text: "ক্লাস শিডিউল", show: can("courses") },
     { href: "/admin/evaluations", Icon: Award, text: "মূল্যায়ন ও ফলাফল", show: canEvaluations },
     { href: "/admin/instructors", Icon: GraduationCap, text: "ইনস্ট্রাক্টর", show: canInstructors },

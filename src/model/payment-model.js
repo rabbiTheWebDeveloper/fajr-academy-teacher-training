@@ -1,5 +1,21 @@
 import mongoose, { Schema } from "mongoose";
 
+const leadNoteSchema = new Schema(
+  {
+    text: { type: String, required: true, trim: true, maxlength: 2000 },
+    kind: {
+      type: String,
+      enum: ["note", "call", "whatsapp", "status", "assign", "system"],
+      default: "note",
+    },
+    byId: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    byName: { type: String, default: "" },
+    byEmail: { type: String, default: "" },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { _id: true }
+);
+
 const paymentSchema = new Schema(
   {
     tranId: {
@@ -121,6 +137,39 @@ const paymentSchema = new Schema(
       type: String,
       default: "",
     },
+    // Lead Management CRM fields (for PENDING / CANCELLED / FAILED / UNATTEMPTED / EXPIRED / INVALID payments)
+    leadStatus: {
+      type: String,
+      enum: ["new", "contacted", "interested", "follow_up", "converted", "not_interested", "lost"],
+      default: "new",
+      index: true,
+    },
+    leadAssignedTo: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    leadAssignedName: {
+      type: String,
+      default: "",
+    },
+    leadAssignedEmail: {
+      type: String,
+      default: "",
+    },
+    leadFollowUpAt: {
+      type: Date,
+      default: null,
+    },
+    leadLastContactedAt: {
+      type: Date,
+      default: null,
+    },
+    leadNotes: {
+      type: [leadNoteSchema],
+      default: [],
+    },
   },
   {
     timestamps: true,
@@ -129,6 +178,8 @@ const paymentSchema = new Schema(
 );
 
 paymentSchema.index({ userEmail: 1, status: 1 });
+paymentSchema.index({ status: 1, leadStatus: 1, createdAt: -1 });
+paymentSchema.index({ leadAssignedTo: 1, leadStatus: 1 });
 
 export const PaymentModel =
   mongoose.models.Payment ?? mongoose.model("Payment", paymentSchema);
